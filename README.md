@@ -3,6 +3,8 @@ An audio-visual viewer for binary files.
  
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
 
+If you use this for a video, please credit me as "nimaid", and provide a link to this GitHub.
+
 Syntax help:
 ```
 >python binary-waterfall.py -h
