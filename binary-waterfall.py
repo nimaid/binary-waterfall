@@ -203,24 +203,28 @@ while run_program:
         if i.type == pygame.QUIT:
             run_program = False
     
-    audio_ms = pygame.mixer.music.get_pos()
-    # If music is over
-    if audio_ms == -1:
+    try:
+        audio_ms = pygame.mixer.music.get_pos()
+        # If music is over
+        if audio_ms == -1:
+            run_program = False
+            break
+        
+        address_block_offset = round(audio_ms * total_blocks / file_length_ms)
+        address = address_block_offset * address_block_size
+        
+        image, end_address = waterfall.get_image(address)
+        if end_address == -1:
+            run_program = False
+        
+        if scale_window:
+            image = pygame.transform.scale(image, (window_width, window_height))
+        
+        screen.blit(image, (0, 0))
+        pygame.display.flip()
+    except KeyboardInterrupt:
         run_program = False
         break
-    
-    address_block_offset = round(audio_ms * total_blocks / file_length_ms)
-    address = address_block_offset * address_block_size
-    
-    image, end_address = waterfall.get_image(address)
-    if end_address == -1:
-        run_program = False
-    
-    if scale_window:
-        image = pygame.transform.scale(image, (window_width, window_height))
-    
-    screen.blit(image, (0, 0))
-    pygame.display.flip()
     
     fps_clock.tick(fps)
     
