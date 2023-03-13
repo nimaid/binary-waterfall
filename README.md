@@ -31,7 +31,12 @@ optional arguments:
                         the sample rate to use
 ```
 
-To get the results from the video:
+To get the results from [the inspiration video](https://www.youtube.com/watch?v=NFe0aGO9-TE):
 ```
 python binary-waterfall.py examples\mspaint.exe
+```
+
+To get the results from [my SnippingTool.exe video](https://youtu.be/yZ38UzCo4QM):
+```
+python binary-waterfall.py -f examples\SnippingTool.exe -vw 96 -vh 96
 ```

@@ -179,7 +179,7 @@ file_length_ms = math.ceil(file_sound.get_length() * 1000)
 del(file_sound)
 
 
-print("Ready to play file!")
+print("Ready to play file! Get your camera ready!")
 temp = input("Press Enter once you are ready to display the file!")
 
 
