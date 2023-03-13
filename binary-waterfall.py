@@ -80,7 +80,7 @@ class BinaryWaterfall:
         # Tell that we are past the end of the file
         if picture_bytes_length == 0:
             current_address = -1
-        picture = pygame.image.frombytes(picture_bytes, (self.width, self.height), 'RGB')
+        picture = pygame.image.frombytes(picture_bytes, (self.width, self.height), 'RGB', True)
         return picture, current_address
 
 
