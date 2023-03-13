@@ -92,7 +92,7 @@ parser.add_argument("-vw", "--viswidth", type=int, required=False, default=48,
     help="the width of the visualization")
 parser.add_argument("-vh", "--visheight", type=int, required=False, default=48,
     help="the width of the visualization")
-parser.add_argument("-fs", "--fps", type=int, required=False, default=60,
+parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
     help="the maximum framerate of the visualization")
 parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
     help="the length of the longest edge of the viewer window")
