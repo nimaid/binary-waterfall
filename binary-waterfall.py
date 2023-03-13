@@ -200,11 +200,12 @@ address = 0
 address_block_size = waterfall.width * waterfall.color_bytes
 total_blocks = math.ceil(len(waterfall.bytes) / address_block_size)
 while run_program:
-    for i in pygame.event.get():
-        if i.type == pygame.QUIT:
-            run_program = False
-    
     try:
+        for i in pygame.event.get():
+            if i.type == pygame.QUIT:
+                run_program = False
+    
+    
         audio_ms = pygame.mixer.music.get_pos()
         # If music is over
         if audio_ms == -1:
@@ -223,11 +224,11 @@ while run_program:
         
         screen.blit(image, (0, 0))
         pygame.display.flip()
+        
+        fps_clock.tick(fps)
     except KeyboardInterrupt:
         run_program = False
         break
-    
-    fps_clock.tick(fps)
     
 pygame.quit()
 
