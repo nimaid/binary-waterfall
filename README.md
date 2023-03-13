@@ -9,7 +9,7 @@ Syntax help:
 ```
 >python binary-waterfall.py -h
 usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS] [-ws WINDOWSIZE] [-ac AUDIOCHANNELS]
-                           [-ab AUDIOBYTES] [-ar AUDIORATE]
+                           [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
 
 Visualizes binary files with audio and video
 
@@ -29,6 +29,7 @@ optional arguments:
                         how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.)
   -ar AUDIORATE, --audiorate AUDIORATE
                         the sample rate to use
+  -p, --pause           if the program should pause before playing (useful for screen recorder setup)
 ```
 
 To get the results from [the inspiration video](https://www.youtube.com/watch?v=NFe0aGO9-TE):

@@ -102,6 +102,8 @@ parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
     help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.)")
 parser.add_argument("-ar", "--audiorate", type=int, required=False, default=32000,
     help="the sample rate to use")
+parser.add_argument("-p", "--pause", action="store_true",
+    help="if the program should pause before playing (useful for screen recorder setup)")
 args = vars(parser.parse_args())
 
 waterfall_file = args["file"]
@@ -157,6 +159,8 @@ if args["audiorate"] < 1:
         raise argparse.ArgumentError("Invalid sample rate, must be at least 1")
 audio_sample_rate = args["audiorate"]
 
+wait_for_enter = args["pause"]
+
 
 
 # Start pygame
@@ -179,8 +183,9 @@ file_length_ms = math.ceil(file_sound.get_length() * 1000)
 del(file_sound)
 
 
-print("Ready to play file! Get your camera ready!")
-temp = input("Press Enter once you are ready to display the file!")
+if wait_for_enter:
+    print("Ready to play file! Get your camera ready!")
+    temp = input("Press Enter once you are ready to display the file!")
 
 
 print("Displaying file...")
