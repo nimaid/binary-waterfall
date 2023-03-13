@@ -197,4 +197,7 @@ while run_program:
     
 pygame.quit()
 
+# Delete audio file
+os.remove(file_audio)
+
 print("All done!")
