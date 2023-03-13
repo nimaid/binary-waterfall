@@ -1,5 +1,6 @@
 import os
 import wave
+import pygame
 
 # https://www.youtube.com/watch?v=NFe0aGO9-TE
 # https://www.youtube.com/watch?v=HFgqyB7hm3Y
@@ -53,4 +54,11 @@ class BinaryWaterfall:
         
         self.wav_filename = filename
         return self.wav_filename
-        
+    
+    def process_files(self):
+        hexfile = self.save_hex_file()
+        print("Saved HEX file at: {}".format(hexfile))
+        wavfile = self.save_audio_file()
+        print("Saved WAV file at: {}".format(wavfile))
+        return (hexfile, wavfile)
+    
