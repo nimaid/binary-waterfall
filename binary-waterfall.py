@@ -1,12 +1,11 @@
 import os
 import math
 import wave
+import argparse
 import contextlib
 with contextlib.redirect_stdout(None):
     import pygame
 
-# https://www.youtube.com/watch?v=NFe0aGO9-TE
-# https://www.youtube.com/watch?v=HFgqyB7hm3Y
 
 class BinaryWaterfall:
     def __init__(self, filename, width=48, height=48):
@@ -80,20 +79,86 @@ class BinaryWaterfall:
 
 
 
+# Parse arguments
+def file_path(string):
+    if os.path.isfile(string):
+        return string
+    else:
+        raise FileNotFoundError(string)
+parser = argparse.ArgumentParser(description="Visualizes binary files with audio and video")
+parser.add_argument("-f", "--file", type=file_path, required=True,
+    help="the name of the file to visualize")
+parser.add_argument("-vw", "--viswidth", type=int, required=False, default=48,
+    help="the width of the visualization")
+parser.add_argument("-vh", "--visheight", type=int, required=False, default=48,
+    help="the width of the visualization")
+parser.add_argument("-fs", "--fps", type=int, required=False, default=60,
+    help="the maximum framerate of the visualization")
+parser.add_argument("-ws", "--windowsize", type=int, required=False, default=600,
+    help="the length of the longest edge of the viewer window")
+parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
+    help="how many channels to make in audio (1 is mono, default)")
+parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
+    help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.)")
+parser.add_argument("-ar", "--audiorate", type=int, required=False, default=32000,
+    help="the sample rate to use")
+args = vars(parser.parse_args())
+
+waterfall_file = args["file"]
+
+if args["viswidth"] < 4:
+    raise argparse.ArgumentError("Visualization width must be at least 4")
+view_width = args["viswidth"]
+if args["visheight"] < 4:
+    raise argparse.ArgumentError("Visualization height must be at least 4")
+view_height = args["visheight"]
+
+if args["windowsize"] < view_height or args["windowsize"] < view_width:
+        raise argparse.ArgumentError("Window size is smaller than one of the visualization dimensions")
+        
+if view_width > view_height:
+    window_width = args["windowsize"]
+    window_height = round(view_height * args["windowsize"] / view_width)
+else:
+    window_height = args["windowsize"]
+    window_width = round(view_width * args["windowsize"] / view_height)
+
+if args["fps"] < 1:
+        raise argparse.ArgumentError("FPS must be at least 1")
+fps = args["fps"]
+
+if args["audiochannels"] not in [1, 2]:
+        raise argparse.ArgumentError("Invalid number of audio channels, must be either 1 or 2")
+audio_channels = args["audiochannels"]
+
+if args["audiobytes"] not in [1, 2, 3, 4]:
+        raise argparse.ArgumentError("Invalid sample size (bytes), must be either 1, 2, 3, or 4")
+audio_sample_bytes = args["audiobytes"]
+
+if args["audiorate"] < 1:
+        raise argparse.ArgumentError("Invalid sample rate, must be at least 1")
+audio_sample_rate = args["audiorate"]
+
+
+
+# Start pygame
 pygame.init()
-X = 600
-Y = 600
 
-waterfall = BinaryWaterfall(os.path.sep.join(["examples", "mspaint.exe"]))
+waterfall = BinaryWaterfall(waterfall_file, width=view_width, height=view_height)
 
-screen = pygame.display.set_mode((X, Y))
+screen = pygame.display.set_mode((window_width, window_height))
 pygame.display.set_caption(os.path.split(waterfall.filename)[-1])
 fps_clock = pygame.time.Clock()
-fps = 60
 
 print("Computing audio...")
-file_audio = waterfall.save_audio_file() # Create wave file
-file_length_ms = math.ceil(pygame.mixer.Sound(file_audio).get_length() * 1000)
+file_audio = waterfall.save_audio_file(
+    channels=audio_channels,
+    sample_bytes=audio_sample_bytes,
+    sample_rate=audio_sample_rate
+) # Create wave file
+file_sound = pygame.mixer.Sound(file_audio)
+file_length_ms = math.ceil(file_sound.get_length() * 1000)
+del(file_sound)
 
 
 print("Displaying file...")
@@ -124,7 +189,7 @@ while run_program:
     if end_address == -1:
         run_program = False
 
-    image = pygame.transform.scale(image, (X, Y))
+    image = pygame.transform.scale(image, (window_width, window_height))
     screen.blit(image, (0, 0))
     pygame.display.flip()
     
