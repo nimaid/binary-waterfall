@@ -94,7 +94,7 @@ parser.add_argument("-vh", "--visheight", type=int, required=False, default=48,
     help="the width of the visualization")
 parser.add_argument("-fs", "--fps", type=int, required=False, default=60,
     help="the maximum framerate of the visualization")
-parser.add_argument("-ws", "--windowsize", type=int, required=False, default=600,
+parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
     help="the length of the longest edge of the viewer window")
 parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
     help="how many channels to make in audio (1 is mono, default)")
@@ -113,15 +113,33 @@ if args["visheight"] < 4:
     raise argparse.ArgumentError("Visualization height must be at least 4")
 view_height = args["visheight"]
 
-if args["windowsize"] < view_height or args["windowsize"] < view_width:
-        raise argparse.ArgumentError("Window size is smaller than one of the visualization dimensions")
-        
 if view_width > view_height:
-    window_width = args["windowsize"]
-    window_height = round(view_height * args["windowsize"] / view_width)
+    largest_view_dim = view_width
 else:
-    window_height = args["windowsize"]
-    window_width = round(view_width * args["windowsize"] / view_height)
+    largest_view_dim = view_height
+
+min_window_size = 600
+scale_window = True
+if args["windowsize"] == -1:
+    if min_window_size > largest_view_dim:
+        window_size = min_window_size
+    else:
+        window_size = largest_view_dim
+        scale_window = False
+else:
+    window_size = args["windowsize"]
+    if window_size <= largest_view_dim:
+        scale_window = False
+
+if window_size < view_height or window_size < view_width:
+        raise argparse.ArgumentError("Window size is smaller than one of the visualization dimensions")
+   
+if view_width > view_height:
+    window_width = window_size
+    window_height = round(view_height * window_size / view_width)
+else:
+    window_height = window_size
+    window_width = round(view_width * window_size / view_height)
 
 if args["fps"] < 1:
         raise argparse.ArgumentError("FPS must be at least 1")
@@ -188,8 +206,10 @@ while run_program:
     image, end_address = waterfall.get_image(address)
     if end_address == -1:
         run_program = False
-
-    image = pygame.transform.scale(image, (window_width, window_height))
+    
+    if scale_window:
+        image = pygame.transform.scale(image, (window_width, window_height))
+    
     screen.blit(image, (0, 0))
     pygame.display.flip()
     
