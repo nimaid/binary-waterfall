@@ -103,14 +103,15 @@ while run_program:
             run_program = False
     
     image, end_address = waterfall.get_image(address)
+    if end_address == -1:
+        run_program = False
+    
+    address += waterfall.width * waterfall.color_bytes
+    
     image = pygame.transform.scale(image, (X, Y))
     screen.blit(image, (0, 0))
     pygame.display.flip()
     
-    address += waterfall.width * waterfall.color_bytes
-    
-    if end_address == -1:
-        run_program = False
-    
     pygame.time.wait(10)
+    
 pygame.quit()
