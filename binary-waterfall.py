@@ -47,10 +47,22 @@ class BinaryWaterfall:
         self.wav_filename = filename
         return self.wav_filename
     
-    def process_files(self):
-        hexfile = self.save_hex_file()
-        print("Saved HEX file at: {}".format(hexfile))
-        wavfile = self.save_audio_file()
-        print("Saved WAV file at: {}".format(wavfile))
-        return (hexfile, wavfile)
-    
+    def get_image(
+        self,
+        address,
+        width=24,
+        height=24
+    ):
+        picture_bytes = bytes()
+        current_address = address
+        for row in range(height):
+            for col in range(width):
+                picture_bytes += self.bytes[current_address:current_address+1] # Red
+                current_address += 1
+                picture_bytes += self.bytes[current_address:current_address+1] # Green
+                current_address += 1
+                picture_bytes += self.bytes[current_address:current_address+1] # Blue
+                current_address += 1
+        
+        picture = Image.frombytes('RGB', (width, height), picture_bytes)
+        return picture, current_address
