@@ -258,6 +258,8 @@ waterfall = BinaryWaterfall(
 screen = pygame.display.set_mode((window_width, window_height))
 binary_filename = os.path.split(waterfall.filename)[-1]
 pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
+pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
+pygame.display.set_icon(pygame_icon)
 fps_clock = pygame.time.Clock()
 
 print("Computing audio...")
