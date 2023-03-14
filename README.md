@@ -10,8 +10,9 @@ If you use this for a video, please credit me as "nimaid", and provide a link to
 Syntax help:
 ```
 > python binary-waterfall.py -h
-usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS] [-ws WINDOWSIZE] [-cf COLORFORMAT]
-                           [-v VOLUME] [-ac AUDIOCHANNELS] [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
+usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS]
+                           [-ws WINDOWSIZE] [-cf COLORFORMAT] [-v VOLUME]
+                           [-ac AUDIOCHANNELS] [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
 
 Visualizes binary files with audio and video.
 
@@ -28,8 +29,9 @@ optional arguments:
   -ws WINDOWSIZE, --windowsize WINDOWSIZE
                         the length of the longest edge of the viewer window [600]
   -cf COLORFORMAT, --colorformat COLORFORMAT
-                        how to interpret the bytes into colored pixels, requires exactly one of each "r", "g", and
-                        "b" character, and can have any number of unused bytes with an "x" character [rgbx]
+                        how to interpret the bytes into colored pixels, requires exactly one
+                        of each "r", "g", and "b" character, and can have any number of
+                        unused bytes with an "x" character [rgbx]
   -v VOLUME, --volume VOLUME
                         the audio playback volume, from 0 to 100 [100]
   -ac AUDIOCHANNELS, --audiochannels AUDIOCHANNELS
@@ -38,7 +40,8 @@ optional arguments:
                         how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]
   -ar AUDIORATE, --audiorate AUDIORATE
                         the sample rate to use [32000]
-  -p, --pause           add to make the program pause before playing (useful for screen recorder setup)
+  -p, --pause           add to make the program pause before playing (useful for screen
+                        recorder setup)
 ```
 
 To get the results from [the inspiration video](https://www.youtube.com/watch?v=NFe0aGO9-TE):
