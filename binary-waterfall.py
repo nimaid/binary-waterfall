@@ -167,29 +167,33 @@ def file_path(string):
         return string
     else:
         raise FileNotFoundError(string)
-parser = argparse.ArgumentParser(description="Visualizes binary files with audio and video")
+parser = argparse.ArgumentParser(
+    description="Visualizes binary files with audio and video.\n\nDefault parameters are shown in [brackets].",
+    formatter_class=argparse.RawDescriptionHelpFormatter
+)
 parser.add_argument("-f", "--file", type=file_path, required=True,
     help="the name of the file to visualize")
 parser.add_argument("-vw", "--viswidth", type=int, required=False, default=48,
-    help="the width of the visualization")
+    help="the width of the visualization [48]")
 parser.add_argument("-vh", "--visheight", type=int, required=False, default=48,
-    help="the width of the visualization")
+    help="the height of the visualization [48]")
 parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
-    help="the maximum framerate of the visualization")
+    help="the maximum framerate of the visualization [120]")
+min_window_size = 600
 parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
-    help="the length of the longest edge of the viewer window")
+    help="the length of the longest edge of the viewer window [600]")
 parser.add_argument("-cf", "--colorformat", type=str, required=False, default="rgbx",
-    help="how to interpret the bytes into colored pixels. Default is \"rgbx\". Requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character")
+    help="how to interpret the bytes into colored pixels, requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character [rgbx]")
 parser.add_argument("-v", "--volume", type=int, required=False, default=100,
-    help="the audio playback volume, from 0 to 100")
+    help="the audio playback volume, from 0 to 100 [100]")
 parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
-    help="how many channels to make in audio (1 is mono, default)")
+    help="how many channels to make in audio (1 is mono, 2 is stereo) [1]")
 parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
-    help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.)")
+    help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]")
 parser.add_argument("-ar", "--audiorate", type=int, required=False, default=32000,
-    help="the sample rate to use")
+    help="the sample rate to use [32000]")
 parser.add_argument("-p", "--pause", action="store_true",
-    help="if the program should pause before playing (useful for screen recorder setup)")
+    help="add to make the program pause before playing (useful for screen recorder setup)")
 args = vars(parser.parse_args())
 
 waterfall_file = args["file"]
@@ -206,7 +210,6 @@ if view_width > view_height:
 else:
     largest_view_dim = view_height
 
-min_window_size = 600
 scale_window = True
 if args["windowsize"] == -1:
     if min_window_size > largest_view_dim:
