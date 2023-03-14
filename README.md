@@ -33,7 +33,7 @@ optional arguments:
   -cf COLORFORMAT, --colorformat COLORFORMAT
                         how to interpret the bytes into colored pixels, requires exactly one
                         of each "r", "g", and "b" character, and can have any number of
-                        unused bytes with an "x" character [rgbx]
+                        unused bytes with an "x" character [bgrx]
   -v VOLUME, --volume VOLUME
                         the audio playback volume, from 0 to 100 [100]
   -ac AUDIOCHANNELS, --audiochannels AUDIOCHANNELS

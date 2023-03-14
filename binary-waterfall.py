@@ -25,7 +25,7 @@ class BinaryWaterfall:
         self, filename,
         width=48,
         height=48,
-        color_format="rgbx"
+        color_format="bgrx"
     ):
         self.filename = filename
         
@@ -182,8 +182,8 @@ parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
 min_window_size = 600
 parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
     help="the length of the longest edge of the viewer window [600]")
-parser.add_argument("-cf", "--colorformat", type=str, required=False, default="rgbx",
-    help="how to interpret the bytes into colored pixels, requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character [rgbx]")
+parser.add_argument("-cf", "--colorformat", type=str, required=False, default="bgrx",
+    help="how to interpret the bytes into colored pixels, requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character [bgrx]")
 parser.add_argument("-v", "--volume", type=int, required=False, default=100,
     help="the audio playback volume, from 0 to 100 [100]")
 parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
