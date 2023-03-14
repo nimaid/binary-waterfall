@@ -7,7 +7,19 @@ from enum import Enum
 os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
 import pygame
 
+# Test if this is a PyInstaller executable or a .py file
+if getattr(sys, 'frozen', False):
+    IS_EXE = True
+    PROG_FILE = sys.executable
+    PROG_PATH = os.path.dirname(PROG_FILE)
+    PATH = sys._MEIPASS
+else:
+    IS_EXE = False
+    PROG_FILE = os.path.realpath(__file__)
+    PROG_PATH = os.path.dirname(PROG_FILE)
+    PATH = PROG_PATH
 
+# Main class
 class BinaryWaterfall:
     def __init__(
         self, filename,
@@ -242,20 +254,6 @@ if audio_volume < 0 or audio_volume > 100:
 audio_volume_val = audio_volume / 100 
 
 color_format = args["colorformat"]
-
-
-
-# Test if this is a PyInstaller executable or a .py file
-if getattr(sys, 'frozen', False):
-    IS_EXE = True
-    PROG_FILE = sys.executable
-    PROG_PATH = os.path.dirname(PROG_FILE)
-    PATH = sys._MEIPASS
-else:
-    IS_EXE = False
-    PROG_FILE = os.path.realpath(__file__)
-    PROG_PATH = os.path.dirname(PROG_FILE)
-    PATH = PROG_PATH
 
 
 
