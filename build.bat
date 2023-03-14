@@ -13,7 +13,6 @@ call conda run -n binary-waterfall pyinstaller ^
     --noconfirm ^
 	--add-data icon.png;. ^
     --onefile ^
-    --windowed ^
     --icon=icon.ico ^
     "%PY%"
 if errorlevel 1 goto ERROR
