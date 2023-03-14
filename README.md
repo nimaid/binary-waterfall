@@ -51,7 +51,7 @@ To get the results from [the inspiration video](https://www.youtube.com/watch?v=
 python binary-waterfall.py examples\mspaint.exe
 ```
 
-To get the results from [my SnippingTool.exe video](https://youtu.be/yZ38UzCo4QM):
+To get the results from [my mspaint.exe video](https://youtu.be/W0360iaScCw):
 ```
-python binary-waterfall.py -f examples\SnippingTool.exe -vw 96 -vh 96
+python binary-waterfall.py -f examples\mspaint.exe -vw 64 -vh 64
 ```
