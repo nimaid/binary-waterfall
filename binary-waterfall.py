@@ -96,6 +96,8 @@ parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
     help="the maximum framerate of the visualization")
 parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
     help="the length of the longest edge of the viewer window")
+parser.add_argument("-v", "--volume", type=int, required=False, default=100,
+    help="The audio playback volume, from 0 to 100")
 parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
     help="how many channels to make in audio (1 is mono, default)")
 parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
@@ -161,6 +163,11 @@ audio_sample_rate = args["audiorate"]
 
 wait_for_enter = args["pause"]
 
+audio_volume = args["volume"]
+if audio_volume < 0 or audio_volume > 100:
+    raise argparse.ArgumentError("Volume must be between 0 and 100")
+
+audio_volume_val = audio_volume / 100 
 
 
 # Start pygame
@@ -179,6 +186,7 @@ file_audio = waterfall.save_audio_file(
     sample_bytes=audio_sample_bytes,
     sample_rate=audio_sample_rate
 ) # Create wave file
+# Get file length in ms
 file_sound = pygame.mixer.Sound(file_audio)
 file_length_ms = math.ceil(file_sound.get_length() * 1000)
 del(file_sound)
@@ -193,6 +201,7 @@ print("Displaying file...")
 # Start playing sound
 pygame.mixer.init()
 pygame.mixer.music.load(file_audio)
+pygame.mixer.music.set_volume(audio_volume_val)
 pygame.mixer.music.play()
 # Run display loop
 run_program = True
