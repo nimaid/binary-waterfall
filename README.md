@@ -1,7 +1,7 @@
 # Binary Waterfall
 An audio-visual viewer for binary files.
 
-<img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" align="center" alt="Running the program on mspaint.exe"/>
+<img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
 
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
 
