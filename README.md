@@ -7,9 +7,9 @@ If you use this for a video, please credit me as "nimaid", and provide a link to
 
 Syntax help:
 ```
->python binary-waterfall.py -h
-usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS] [-ws WINDOWSIZE] [-v VOLUME]
-                           [-ac AUDIOCHANNELS] [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
+> python binary-waterfall.py -h
+usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS] [-ws WINDOWSIZE] [-cf COLORFORMAT]
+                           [-v VOLUME] [-ac AUDIOCHANNELS] [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
 
 Visualizes binary files with audio and video
 
@@ -23,8 +23,12 @@ optional arguments:
   -fs FPS, --fps FPS    the maximum framerate of the visualization
   -ws WINDOWSIZE, --windowsize WINDOWSIZE
                         the length of the longest edge of the viewer window
+  -cf COLORFORMAT, --colorformat COLORFORMAT
+                        how to interpret the bytes into colored pixels. Default is "rgbx". Requires exactly one of
+                        each "r", "g", and "b" character, and can have any number of unused bytes with an "x"
+                        character
   -v VOLUME, --volume VOLUME
-                        The audio playback volume, from 0 to 100
+                        the audio playback volume, from 0 to 100
   -ac AUDIOCHANNELS, --audiochannels AUDIOCHANNELS
                         how many channels to make in audio (1 is mono, default)
   -ab AUDIOBYTES, --audiobytes AUDIOBYTES

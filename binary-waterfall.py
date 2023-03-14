@@ -3,19 +3,78 @@ import math
 import wave
 import argparse
 import contextlib
+from enum import Enum
 with contextlib.redirect_stdout(None):
     import pygame
 
 
 class BinaryWaterfall:
-    def __init__(self, filename, width=48, height=48):
+    def __init__(
+        self, filename,
+        width=48,
+        height=48,
+        color_format="rgbx"
+    ):
         self.filename = filename
         
         self.width = width
         self.height = height
-        self.used_color_bytes = 3
-        self.dead_color_bytes = 1
+        
+        color_format = color_format.strip().lower()
+        red_count = color_format.count(self.ColorFmtCode.RED.value)
+        if red_count != 1:
+            raise ValueError(
+            "Exactly 1 red channel format specifier \"{}\" needed, but {} were given in format string \"{}\"".format(
+                self.ColorFmtCode.RED.value,
+                red_count,
+                color_format
+            )
+        )
+        green_count = color_format.count(self.ColorFmtCode.GREEN.value)
+        if green_count != 1:
+            raise ValueError(
+            "Exactly 1 green channel format specifier \"{}\" needed, but {} were given in format string \"{}\"".format(
+                self.ColorFmtCode.GREEN.value,
+                green_count,
+                color_format
+            )
+        )
+        blue_count = color_format.count(self.ColorFmtCode.BLUE.value)
+        if blue_count != 1:
+            raise ValueError(
+            "Exactly 1 blue channel format specifier \"{}\" needed, but {} were given in format string \"{}\"".format(
+                self.ColorFmtCode.BLUE.value,
+                blue_count,
+                color_format
+            )
+        )
+        unused_count = color_format.count(self.ColorFmtCode.UNUSED.value)
+        
+        read_color_byte_order = list()
+        for c in color_format:
+            if c not in self.ColorFmtCode.VALID_OPTIONS.value:
+                raise ValueError(
+                    "Color formatting codes only accept \"{}\" = red, \"{}\" = green, \"{}\" = blue, \"{}\" = unused".format(
+                        self.ColorFmtCode.RED.value.
+                        self.ColorFmtCode.GREEN.value,
+                        self.ColorFmtCode.BLUE.value,
+                        self.ColorFmtCode.UNUSED.value
+                    )
+                )
+            
+            if c == self.ColorFmtCode.RED.value:
+                read_color_byte_order.append(self.ColorFmtCode.RED)
+            elif c == self.ColorFmtCode.GREEN.value:
+                read_color_byte_order.append(self.ColorFmtCode.GREEN)
+            elif c == self.ColorFmtCode.BLUE.value:
+                read_color_byte_order.append(self.ColorFmtCode.BLUE)
+            elif c == self.ColorFmtCode.UNUSED.value:
+                read_color_byte_order.append(self.ColorFmtCode.UNUSED)
+        
+        self.used_color_bytes = red_count + green_count + blue_count
+        self.dead_color_bytes = unused_count
         self.color_bytes = self.used_color_bytes + self.dead_color_bytes
+        self.color_format = read_color_byte_order
         
         with open(self.filename, "rb") as f:
             self.bytes = f.read()
@@ -24,6 +83,13 @@ class BinaryWaterfall:
         self.wav_channels = None
         self.wav_sample_bytes = None
         self.wav_sample_rate = None
+    
+    class ColorFmtCode(Enum):
+        RED = "r"
+        GREEN = "g"
+        BLUE = "b"
+        UNUSED = "x"
+        VALID_OPTIONS = "rgbx"
     
     def save_audio_file(
         self,
@@ -56,14 +122,18 @@ class BinaryWaterfall:
         current_address = address
         for row in range(self.height):
             for col in range(self.width):
-                picture_bytes += self.bytes[current_address:current_address+1] # Red
-                current_address += 1
-                picture_bytes += self.bytes[current_address:current_address+1] # Green
-                current_address += 1
-                picture_bytes += self.bytes[current_address:current_address+1] # Blue
-                current_address += 1
-                
-                current_address += self.dead_color_bytes # Skip bytes for visual
+                # Fill one RGB byte value
+                this_byte = [b'\x00', b'\x00', b'\x00']
+                for c in self.color_format:
+                    if c == self.ColorFmtCode.RED:
+                        this_byte[0] = self.bytes[current_address:current_address+1] # Red
+                    elif c == self.ColorFmtCode.GREEN:
+                        this_byte[1] = self.bytes[current_address:current_address+1] # Green
+                    elif c == self.ColorFmtCode.BLUE:
+                        this_byte[2] = self.bytes[current_address:current_address+1] # Blue
+                    current_address += 1
+                    
+                picture_bytes += b"".join(this_byte)
         
         full_length = (self.width * self.height * self.used_color_bytes)
         picture_bytes_length = len(picture_bytes)
@@ -96,8 +166,10 @@ parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
     help="the maximum framerate of the visualization")
 parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
     help="the length of the longest edge of the viewer window")
+parser.add_argument("-cf", "--colorformat", type=str, required=False, default="rgbx",
+    help="how to interpret the bytes into colored pixels. Default is \"rgbx\". Requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character")
 parser.add_argument("-v", "--volume", type=int, required=False, default=100,
-    help="The audio playback volume, from 0 to 100")
+    help="the audio playback volume, from 0 to 100")
 parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
     help="how many channels to make in audio (1 is mono, default)")
 parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
@@ -169,11 +241,19 @@ if audio_volume < 0 or audio_volume > 100:
 
 audio_volume_val = audio_volume / 100 
 
+color_format = args["colorformat"]
+
+
 
 # Start pygame
 pygame.init()
 
-waterfall = BinaryWaterfall(waterfall_file, width=view_width, height=view_height)
+waterfall = BinaryWaterfall(
+    waterfall_file,
+    width=view_width,
+    height=view_height,
+    color_format=color_format
+)
 
 screen = pygame.display.set_mode((window_width, window_height))
 binary_filename = os.path.split(waterfall.filename)[-1]
