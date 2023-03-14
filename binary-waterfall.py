@@ -3,10 +3,9 @@ import sys
 import math
 import wave
 import argparse
-import contextlib
 from enum import Enum
-with contextlib.redirect_stdout(None):
-    import pygame
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame
 
 
 class BinaryWaterfall:
