@@ -277,7 +277,7 @@ pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
 pygame.display.set_icon(pygame_icon)
 fps_clock = pygame.time.Clock()
 
-print("Computing audio...")
+print("\nComputing audio...")
 file_audio = waterfall.save_audio_file(
     channels=audio_channels,
     sample_bytes=audio_sample_bytes,
@@ -351,4 +351,4 @@ pygame.quit()
 # Delete audio file
 os.remove(file_audio)
 
-print("All done!")
+print("All done!\n")
