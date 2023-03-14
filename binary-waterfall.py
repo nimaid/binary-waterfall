@@ -277,12 +277,13 @@ if wait_for_enter:
     temp = input("Press Enter once you are ready to display the file!")
 
 
-print("Displaying file...")
+print("Displaying file... [Press SPACE to pause/play]")
 # Start playing sound
 pygame.mixer.init()
 pygame.mixer.music.load(file_audio)
 pygame.mixer.music.set_volume(audio_volume_val)
 pygame.mixer.music.play()
+playing_audio = True
 # Run display loop
 run_program = True
 address = 0
@@ -290,9 +291,18 @@ address_block_size = waterfall.width * waterfall.color_bytes
 total_blocks = math.ceil(len(waterfall.bytes) / address_block_size)
 while run_program:
     try:
-        for i in pygame.event.get():
-            if i.type == pygame.QUIT:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
                 run_program = False
+            
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_SPACE:
+                    if playing_audio:
+                        pygame.mixer.music.pause()
+                    else:
+                        pygame.mixer.music.unpause()
+                    # Toggle state
+                    playing_audio = not playing_audio
     
     
         audio_ms = pygame.mixer.music.get_pos()
