@@ -1,4 +1,4 @@
-# binary-waterfall
+# Binary Waterfall
 An audio-visual viewer for binary files.
  
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
