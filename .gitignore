@@ -152,3 +152,4 @@ cython_debug/
 #.idea/
 
 examples/*.exe.*
+binary-waterfall.exe
