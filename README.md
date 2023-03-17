@@ -13,8 +13,8 @@ Syntax help:
 ```
 > python binary-waterfall.py -h
 usage: binary-waterfall.py [-h] -f FILE [-vw VISWIDTH] [-vh VISHEIGHT] [-fs FPS]
-                           [-ws WINDOWSIZE] [-cf COLORFORMAT] [-v VOLUME]
-                           [-ac AUDIOCHANNELS] [-ab AUDIOBYTES] [-ar AUDIORATE] [-p]
+                           [-ws WINDOWSIZE] [-cf COLORFORMAT] [-v VOLUME] [-ac AUDIOCHANNELS]
+                           [-ab AUDIOBYTES] [-ar AUDIORATE] [-sa] [-p]
 
 Visualizes binary files with audio and video.
 
@@ -42,6 +42,7 @@ optional arguments:
                         how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]
   -ar AUDIORATE, --audiorate AUDIORATE
                         the sample rate to use [32000]
+  -sa, --saveaudio      add to prevent the program from deleting the computed .wav file
   -p, --pause           add to make the program pause before playing (useful for screen
                         recorder setup)
 ```
