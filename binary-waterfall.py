@@ -106,12 +106,18 @@ class BinaryWaterfall:
     def save_audio_file(
         self,
         filename=None, # Will set itself based on the input filename if left set to None
+        path=None, # Will save to the binary file's location if not set
         channels=1, # Number of channels, 1 = Mono, 2 = Stereo, etc.
         sample_bytes=1, # Number of bytes per sample, 1 = 8-bit, 2 = 16-bit, etc.
         sample_rate=32000 # The sample rate of the file
     ):
         if filename is None:
             filename = self.filename + os.path.extsep + "wav"
+        
+        if path is not None:
+            save_path, name = os.path.split(filename)
+            save_path = path
+            filename = os.path.join(save_path, name)
         
         with wave.open(filename, "wb") as f:
             f.setnchannels(channels)
