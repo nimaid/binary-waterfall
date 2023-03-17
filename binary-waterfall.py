@@ -256,7 +256,7 @@ if args["audiorate"] < 1:
         raise argparse.ArgumentError("Invalid sample rate, must be at least 1")
 audio_sample_rate = args["audiorate"]
 
-wait_for_enter = args["pause"]
+wait_for_play = args["pause"]
 
 audio_volume = args["volume"]
 if audio_volume < 0 or audio_volume > 100:
@@ -282,6 +282,24 @@ waterfall = BinaryWaterfall(
     color_format=color_format
 )
 
+print("\nComputing audio...")
+try:
+    file_audio = waterfall.save_audio_file(
+        channels=audio_channels,
+        sample_bytes=audio_sample_bytes,
+        sample_rate=audio_sample_rate,
+        path=audio_path
+    ) # Create wave file
+    # Get file length in ms
+    file_sound = pygame.mixer.Sound(file_audio)
+    file_length_ms = math.ceil(file_sound.get_length() * 1000)
+    del(file_sound)
+except KeyboardInterrupt:
+    print("Audio computation interrupted, exiting...\n")
+    pygame.quit()
+    os.remove(file_audio)
+    sys.exit()
+
 screen = pygame.display.set_mode((window_width, window_height))
 binary_filename = os.path.split(waterfall.filename)[-1]
 pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
@@ -289,29 +307,19 @@ pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
 pygame.display.set_icon(pygame_icon)
 fps_clock = pygame.time.Clock()
 
-print("\nComputing audio...")
-file_audio = waterfall.save_audio_file(
-    channels=audio_channels,
-    sample_bytes=audio_sample_bytes,
-    sample_rate=audio_sample_rate
-) # Create wave file
-# Get file length in ms
-file_sound = pygame.mixer.Sound(file_audio)
-file_length_ms = math.ceil(file_sound.get_length() * 1000)
-del(file_sound)
-
-
-if wait_for_enter:
-    print("Ready to play file! Get your camera ready!")
-    temp = input("Press Enter once you are ready to display the file!")
-
-
-print("Displaying file... [Press SPACE to pause/play]")
+if wait_for_play:
+    print("Ready to display file! [Press SPACE to play/pause]")
+else:
+    print("Displaying file... [Press SPACE to pause/play]")
 # Start playing sound
 pygame.mixer.init()
 pygame.mixer.music.load(file_audio)
 pygame.mixer.music.set_volume(audio_volume_val)
-pygame.mixer.music.play()
+if wait_for_play:
+    still_waiting = True
+else:
+    pygame.mixer.music.play()
+    still_waiting = False
 playing_audio = True
 # Run display loop
 run_program = True
@@ -326,34 +334,37 @@ while run_program:
             
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_SPACE:
-                    if playing_audio:
+                    if wait_for_play and still_waiting:
+                        pygame.mixer.music.play()
+                        still_waiting = False
+                    elif playing_audio:
                         pygame.mixer.music.pause()
+                        playing_audio = False
                     else:
                         pygame.mixer.music.unpause()
-                    # Toggle state
-                    playing_audio = not playing_audio
+                        playing_audio = True
     
-    
-        audio_ms = pygame.mixer.music.get_pos()
-        # If music is over
-        if audio_ms == -1:
-            run_program = False
-            break
-        
-        address_block_offset = round(audio_ms * total_blocks / file_length_ms)
-        address = address_block_offset * address_block_size
-        
-        image, end_address = waterfall.get_image(address)
-        if end_address == -1:
-            run_program = False
-        
-        if scale_window:
-            image = pygame.transform.scale(image, (window_width, window_height))
-        
-        screen.blit(image, (0, 0))
-        pygame.display.flip()
-        
-        fps_clock.tick(fps)
+        if not still_waiting:
+            audio_ms = pygame.mixer.music.get_pos()
+            # If music is over
+            if audio_ms == -1:
+                run_program = False
+                break
+            
+            address_block_offset = round(audio_ms * total_blocks / file_length_ms)
+            address = address_block_offset * address_block_size
+            
+            image, end_address = waterfall.get_image(address)
+            if end_address == -1:
+                run_program = False
+            
+            if scale_window:
+                image = pygame.transform.scale(image, (window_width, window_height))
+            
+            screen.blit(image, (0, 0))
+            pygame.display.flip()
+            
+            fps_clock.tick(fps)
     except KeyboardInterrupt:
         run_program = False
         break
