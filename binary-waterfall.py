@@ -198,6 +198,8 @@ parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
     help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]")
 parser.add_argument("-ar", "--audiorate", type=int, required=False, default=32000,
     help="the sample rate to use [32000]")
+parser.add_argument("-sa", "--saveaudio", action="store_true",
+    help="add to prevent the program from deleting the computed .wav file")
 parser.add_argument("-p", "--pause", action="store_true",
     help="add to make the program pause before playing (useful for screen recorder setup)")
 args = vars(parser.parse_args())
@@ -264,6 +266,10 @@ audio_volume_val = audio_volume / 100
 
 color_format = args["colorformat"]
 
+save_audio = args["saveaudio"]
+
+# Save the wav file to the program path (NOT the binary file's path!)
+audio_path = PROG_PATH
 
 
 # Start pygame
@@ -355,6 +361,10 @@ while run_program:
 pygame.quit()
 
 # Delete audio file
-os.remove(file_audio)
+if save_audio:
+    print("Audio file saved: \"{}\"".format(file_audio))
+else:
+    print("Deleting audio file...")
+    os.remove(file_audio)
 
 print("All done!\n")
