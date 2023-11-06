@@ -239,100 +239,119 @@ class BinaryWaterfall:
         picture = pygame.image.frombytes(picture_bytes, (self.width, self.height), 'RGB', True)
         return picture, current_address
     
-    def run(self):
+    def init_window(self):
         # Start pygame
         pygame.init()
         
+        self.screen = pygame.display.set_mode(self.window_dim)
+        binary_filename = os.path.split(self.filename)[-1]
+        pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
+        pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
+        pygame.display.set_icon(pygame_icon)
+        self.fps_clock = pygame.time.Clock()
+    
+    def compute_audio(self):
         print("\nComputing audio...")
         try:
-            file_audio = self.save_audio_file(path=self.audio_path) # Create wave file
+            self.file_audio = self.save_audio_file(path=self.audio_path) # Create wave file
             # Get file length in ms
-            file_sound = pygame.mixer.Sound(file_audio)
-            file_length_ms = math.ceil(file_sound.get_length() * 1000)
-            del(file_sound)
+            self.file_sound = pygame.mixer.Sound(self.file_audio)
+            self.file_length_ms = math.ceil(self.file_sound.get_length() * 1000)
+            del(self.file_sound)
         except KeyboardInterrupt:
             print("Audio computation interrupted, exiting...\n")
             pygame.quit()
             os.remove(file_audio)
             sys.exit()
-
-        screen = pygame.display.set_mode(self.window_dim)
-        binary_filename = os.path.split(self.filename)[-1]
-        pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
-        pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
-        pygame.display.set_icon(pygame_icon)
-        fps_clock = pygame.time.Clock()
-
+    
+    def init_sound(self):
         if self.start_paused:
             print("Ready to display file! [Press SPACE to play/pause]")
         else:
             print("Displaying file... [Press SPACE to pause/play]")
+        
         # Start playing sound
         pygame.mixer.init()
-        pygame.mixer.music.load(file_audio)
+        pygame.mixer.music.load(self.file_audio)
         pygame.mixer.music.set_volume(self.volume / 100)
         if self.start_paused:
-            still_waiting = True
+            self.still_waiting = True
         else:
             pygame.mixer.music.play()
-            still_waiting = False
-        playing_audio = True
-        # Run display loop
-        run_program = True
-        address = 0
+            self.still_waiting = False
+        self.playing_audio = True
+    
+    def get_address(self, ms):
         address_block_size = self.width * self.color_bytes
         total_blocks = math.ceil(len(self.bytes) / address_block_size)
+        address_block_offset = round(ms * total_blocks / self.file_length_ms)
+        return address_block_offset * address_block_size
+        
+    
+    def display_loop(self):
+        # Run display loop
+        run_program = True
+        self.address = 0
         while run_program:
             try:
+                # Events handler
                 for event in pygame.event.get():
+                    # Quit on exit
                     if event.type == pygame.QUIT:
                         run_program = False
                     
+                    # Keypress handler
                     if event.type == pygame.KEYDOWN:
+                        # Space plays and pauses
                         if event.key == pygame.K_SPACE:
-                            if self.start_paused and still_waiting:
+                            if self.start_paused and self.still_waiting:
                                 pygame.mixer.music.play()
-                                still_waiting = False
-                            elif playing_audio:
+                                self.still_waiting = False
+                            elif self.playing_audio:
                                 pygame.mixer.music.pause()
-                                playing_audio = False
+                                self.playing_audio = False
                             else:
                                 pygame.mixer.music.unpause()
-                                playing_audio = True
+                                self.playing_audio = True
             
-                if not still_waiting:
+                if not self.still_waiting:
                     audio_ms = pygame.mixer.music.get_pos()
                     # If music is over
                     if audio_ms == -1:
                         run_program = False
                         break
                     
-                    address_block_offset = round(audio_ms * total_blocks / file_length_ms)
-                    address = address_block_offset * address_block_size
+                    self.address = self.get_address(audio_ms)
                     
-                    image, end_address = self.get_image(address)
+                    image, end_address = self.get_image(self.address)
                     if end_address == -1:
                         run_program = False
                     
                     if self.scale:
                         image = pygame.transform.scale(image, self.window_dim)
                     
-                    screen.blit(image, (0, 0))
+                    self.screen.blit(image, (0, 0))
                     pygame.display.flip()
                     
-                    fps_clock.tick(self.fps)
+                    self.fps_clock.tick(self.fps)
             except KeyboardInterrupt:
                 run_program = False
                 break
             
         pygame.quit()
+    
+    def run(self):
+        self.init_window()
+        self.compute_audio()
+        self.init_sound()
+        self.display_loop()
 
         # Delete audio file
         if self.save_audio:
-            print("Audio file saved: \"{}\"".format(file_audio))
+            print("Audio file saved: \"{}\"".format(self.file_audio))
         else:
             print("Deleting audio file...")
-            os.remove(file_audio)
+            os.remove(self.file_audio)
 
         print("All done!\n")
 
