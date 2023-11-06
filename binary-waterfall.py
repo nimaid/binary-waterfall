@@ -167,215 +167,229 @@ class BinaryWaterfall:
 
 
 
-# Parse arguments
+# Helper functions for the argument parser
 def file_path(string):
     if os.path.isfile(string):
         return string
     else:
         raise FileNotFoundError(string)
-parser = argparse.ArgumentParser(
-    description="Visualizes binary files with audio and video.\n\nDefault parameters are shown in [brackets].",
-    formatter_class=argparse.RawDescriptionHelpFormatter
-)
-parser.add_argument("-f", "--file", type=file_path, required=True,
-    help="the name of the file to visualize")
-parser.add_argument("-vw", "--viswidth", type=int, required=False, default=48,
-    help="the width of the visualization [48]")
-parser.add_argument("-vh", "--visheight", type=int, required=False, default=48,
-    help="the height of the visualization [48]")
-parser.add_argument("-fs", "--fps", type=int, required=False, default=120,
-    help="the maximum framerate of the visualization [120]")
-min_window_size = 600
-parser.add_argument("-ws", "--windowsize", type=int, required=False, default=-1,
-    help="the length of the longest edge of the viewer window [600]")
-parser.add_argument("-cf", "--colorformat", type=str, required=False, default="bgrx",
-    help="how to interpret the bytes into colored pixels, requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character [bgrx]")
-parser.add_argument("-v", "--volume", type=int, required=False, default=100,
-    help="the audio playback volume, from 0 to 100 [100]")
-parser.add_argument("-ac", "--audiochannels", type=int, required=False, default=1,
-    help="how many channels to make in audio (1 is mono, 2 is stereo) [1]")
-parser.add_argument("-ab", "--audiobytes", type=int, required=False, default=1,
-    help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]")
-parser.add_argument("-ar", "--audiorate", type=int, required=False, default=32000,
-    help="the sample rate to use [32000]")
-parser.add_argument("-sa", "--saveaudio", action="store_true",
-    help="add to prevent the program from deleting the computed .wav file")
-parser.add_argument("-p", "--pause", action="store_true",
-    help="add to make the program pause before playing (useful for screen recorder setup)")
-args = vars(parser.parse_args())
 
-waterfall_file = args["file"]
+# Parse arguments
+def parse_args(args):
+    parser = argparse.ArgumentParser(
+        description="Visualizes binary files with audio and video.\n\nDefault parameters are shown in [brackets].",
+        formatter_class=argparse.RawDescriptionHelpFormatter
+    )
+    
+    parser.add_argument("-f", "--file", dest="filename", type=file_path, required=True,
+        help="the name of the file to visualize")
+    parser.add_argument("-vw", "--viswidth", dest="px_wide", type=int, required=False, default=48,
+        help="the width of the visualization [48]")
+    parser.add_argument("-vh", "--visheight", dest="px_tall", type=int, required=False, default=48,
+        help="the height of the visualization [48]")
+    parser.add_argument("-fs", "--fps", dest="fps", type=int, required=False, default=120,
+        help="the maximum framerate of the visualization [120]")
+    parser.add_argument("-ws", "--windowsize", dest="long_edge_length", type=int, required=False, default=-1,
+        help="the length of the longest edge of the viewer window [600]")
+    parser.add_argument("-cf", "--colorformat", dest="format_string", type=str, required=False, default="bgrx",
+        help="how to interpret the bytes into colored pixels, requires exactly one of each \"r\", \"g\", and \"b\" character, and can have any number of unused bytes with an \"x\" character [bgrx]")
+    parser.add_argument("-v", "--volume", dest="volume_percentage", type=int, required=False, default=100,
+        help="the audio playback volume, from 0 to 100 [100]")
+    parser.add_argument("-ac", "--audiochannels", dest="channel_count", type=int, required=False, default=1,
+        help="how many channels to make in audio (1 is mono, 2 is stereo) [1]")
+    parser.add_argument("-ab", "--audiobytes", dest="bytes_per_sample", type=int, required=False, default=1,
+        help="how many bytes each sample uses (1 is 8-bit, 2 is 16-bit, etc.) [1]")
+    parser.add_argument("-ar", "--audiorate", dest="sample_rate", type=int, required=False, default=32000,
+        help="the sample rate to use [32000]")
+    parser.add_argument("-sa", "--saveaudio", dest="do_save", action="store_true",
+        help="add to prevent the program from deleting the computed .wav file")
+    parser.add_argument("-p", "--pause", dest="do_pause", action="store_true",
+        help="add to make the program pause before playing (useful for screen recorder setup)")
+    
+    return parser.parse_args()
 
-if args["viswidth"] < 4:
-    raise argparse.ArgumentError("Visualization width must be at least 4")
-view_width = args["viswidth"]
-if args["visheight"] < 4:
-    raise argparse.ArgumentError("Visualization height must be at least 4")
-view_height = args["visheight"]
+def main(args):
+    args = parse_args(args)
+    
+    # Validate arguments and set local vars
+    min_window_size = 600
+    
+    waterfall_file = args.filename
 
-if view_width > view_height:
-    largest_view_dim = view_width
-else:
-    largest_view_dim = view_height
+    if args.px_wide < 4:
+        raise argparse.ArgumentError("Visualization width must be at least 4")
+    view_width = args.px_wide
+    if args.px_tall < 4:
+        raise argparse.ArgumentError("Visualization height must be at least 4")
+    view_height = args.px_tall
 
-scale_window = True
-if args["windowsize"] == -1:
-    if min_window_size > largest_view_dim:
-        window_size = min_window_size
+    if view_width > view_height:
+        largest_view_dim = view_width
     else:
-        window_size = largest_view_dim
-        scale_window = False
-else:
-    window_size = args["windowsize"]
-    if window_size <= largest_view_dim:
-        scale_window = False
+        largest_view_dim = view_height
 
-if window_size < view_height or window_size < view_width:
-        raise argparse.ArgumentError("Window size is smaller than one of the visualization dimensions")
-   
-if view_width > view_height:
-    window_width = window_size
-    window_height = round(view_height * window_size / view_width)
-else:
-    window_height = window_size
-    window_width = round(view_width * window_size / view_height)
+    scale_window = True
+    if args.long_edge_length == -1:
+        if min_window_size > largest_view_dim:
+            window_size = min_window_size
+        else:
+            window_size = largest_view_dim
+            scale_window = False
+    else:
+        window_size = args.long_edge_length
+        if window_size <= largest_view_dim:
+            scale_window = False
 
-if args["fps"] < 1:
-        raise argparse.ArgumentError("FPS must be at least 1")
-fps = args["fps"]
+    if window_size < view_height or window_size < view_width:
+            raise argparse.ArgumentError("Window size is smaller than one of the visualization dimensions")
+       
+    if view_width > view_height:
+        window_width = window_size
+        window_height = round(view_height * window_size / view_width)
+    else:
+        window_height = window_size
+        window_width = round(view_width * window_size / view_height)
 
-if args["audiochannels"] not in [1, 2]:
-        raise argparse.ArgumentError("Invalid number of audio channels, must be either 1 or 2")
-audio_channels = args["audiochannels"]
+    if args.fps < 1:
+            raise argparse.ArgumentError("FPS must be at least 1")
+    fps = args.fps
 
-if args["audiobytes"] not in [1, 2, 3, 4]:
-        raise argparse.ArgumentError("Invalid sample size (bytes), must be either 1, 2, 3, or 4")
-audio_sample_bytes = args["audiobytes"]
+    if args.channel_count not in [1, 2]:
+            raise argparse.ArgumentError("Invalid number of audio channels, must be either 1 or 2")
+    audio_channels = args.channel_count
 
-if args["audiorate"] < 1:
-        raise argparse.ArgumentError("Invalid sample rate, must be at least 1")
-audio_sample_rate = args["audiorate"]
+    if args.bytes_per_sample not in [1, 2, 3, 4]:
+            raise argparse.ArgumentError("Invalid sample size (bytes), must be either 1, 2, 3, or 4")
+    audio_sample_bytes = args.bytes_per_sample
 
-wait_for_play = args["pause"]
+    if args.sample_rate < 1:
+            raise argparse.ArgumentError("Invalid sample rate, must be at least 1")
+    audio_sample_rate = args.sample_rate
 
-audio_volume = args["volume"]
-if audio_volume < 0 or audio_volume > 100:
-    raise argparse.ArgumentError("Volume must be between 0 and 100")
+    wait_for_play = args.do_pause
 
-audio_volume_val = audio_volume / 100 
+    audio_volume = args.volume_percentage
+    if audio_volume < 0 or audio_volume > 100:
+        raise argparse.ArgumentError("Volume must be between 0 and 100")
 
-color_format = args["colorformat"]
+    audio_volume_val = audio_volume / 100 
 
-save_audio = args["saveaudio"]
+    color_format = args.format_string
 
-# Save the wav file to the program path (NOT the binary file's path!)
-audio_path = PROG_PATH
+    save_audio = args.do_save
 
+    audio_path = PROG_PATH # Save the wav file to the program path (NOT the binary file's path!)
+    
+    # Start pygame
+    pygame.init()
 
-# Start pygame
-pygame.init()
+    waterfall = BinaryWaterfall(
+        waterfall_file,
+        width=view_width,
+        height=view_height,
+        color_format=color_format
+    )
 
-waterfall = BinaryWaterfall(
-    waterfall_file,
-    width=view_width,
-    height=view_height,
-    color_format=color_format
-)
-
-print("\nComputing audio...")
-try:
-    file_audio = waterfall.save_audio_file(
-        channels=audio_channels,
-        sample_bytes=audio_sample_bytes,
-        sample_rate=audio_sample_rate,
-        path=audio_path
-    ) # Create wave file
-    # Get file length in ms
-    file_sound = pygame.mixer.Sound(file_audio)
-    file_length_ms = math.ceil(file_sound.get_length() * 1000)
-    del(file_sound)
-except KeyboardInterrupt:
-    print("Audio computation interrupted, exiting...\n")
-    pygame.quit()
-    os.remove(file_audio)
-    sys.exit()
-
-screen = pygame.display.set_mode((window_width, window_height))
-binary_filename = os.path.split(waterfall.filename)[-1]
-pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
-pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
-pygame.display.set_icon(pygame_icon)
-fps_clock = pygame.time.Clock()
-
-if wait_for_play:
-    print("Ready to display file! [Press SPACE to play/pause]")
-else:
-    print("Displaying file... [Press SPACE to pause/play]")
-# Start playing sound
-pygame.mixer.init()
-pygame.mixer.music.load(file_audio)
-pygame.mixer.music.set_volume(audio_volume_val)
-if wait_for_play:
-    still_waiting = True
-else:
-    pygame.mixer.music.play()
-    still_waiting = False
-playing_audio = True
-# Run display loop
-run_program = True
-address = 0
-address_block_size = waterfall.width * waterfall.color_bytes
-total_blocks = math.ceil(len(waterfall.bytes) / address_block_size)
-while run_program:
+    print("\nComputing audio...")
     try:
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                run_program = False
-            
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_SPACE:
-                    if wait_for_play and still_waiting:
-                        pygame.mixer.music.play()
-                        still_waiting = False
-                    elif playing_audio:
-                        pygame.mixer.music.pause()
-                        playing_audio = False
-                    else:
-                        pygame.mixer.music.unpause()
-                        playing_audio = True
-    
-        if not still_waiting:
-            audio_ms = pygame.mixer.music.get_pos()
-            # If music is over
-            if audio_ms == -1:
-                run_program = False
-                break
-            
-            address_block_offset = round(audio_ms * total_blocks / file_length_ms)
-            address = address_block_offset * address_block_size
-            
-            image, end_address = waterfall.get_image(address)
-            if end_address == -1:
-                run_program = False
-            
-            if scale_window:
-                image = pygame.transform.scale(image, (window_width, window_height))
-            
-            screen.blit(image, (0, 0))
-            pygame.display.flip()
-            
-            fps_clock.tick(fps)
+        file_audio = waterfall.save_audio_file(
+            channels=audio_channels,
+            sample_bytes=audio_sample_bytes,
+            sample_rate=audio_sample_rate,
+            path=audio_path
+        ) # Create wave file
+        # Get file length in ms
+        file_sound = pygame.mixer.Sound(file_audio)
+        file_length_ms = math.ceil(file_sound.get_length() * 1000)
+        del(file_sound)
     except KeyboardInterrupt:
-        run_program = False
-        break
-    
-pygame.quit()
+        print("Audio computation interrupted, exiting...\n")
+        pygame.quit()
+        os.remove(file_audio)
+        sys.exit()
 
-# Delete audio file
-if save_audio:
-    print("Audio file saved: \"{}\"".format(file_audio))
-else:
-    print("Deleting audio file...")
-    os.remove(file_audio)
+    screen = pygame.display.set_mode((window_width, window_height))
+    binary_filename = os.path.split(waterfall.filename)[-1]
+    pygame.display.set_caption("Binary Waterfall - \"{}\"".format(binary_filename))
+    pygame_icon = pygame.image.load(os.path.join(PATH, "icon.png"))
+    pygame.display.set_icon(pygame_icon)
+    fps_clock = pygame.time.Clock()
 
-print("All done!\n")
+    if wait_for_play:
+        print("Ready to display file! [Press SPACE to play/pause]")
+    else:
+        print("Displaying file... [Press SPACE to pause/play]")
+    # Start playing sound
+    pygame.mixer.init()
+    pygame.mixer.music.load(file_audio)
+    pygame.mixer.music.set_volume(audio_volume_val)
+    if wait_for_play:
+        still_waiting = True
+    else:
+        pygame.mixer.music.play()
+        still_waiting = False
+    playing_audio = True
+    # Run display loop
+    run_program = True
+    address = 0
+    address_block_size = waterfall.width * waterfall.color_bytes
+    total_blocks = math.ceil(len(waterfall.bytes) / address_block_size)
+    while run_program:
+        try:
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT:
+                    run_program = False
+                
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_SPACE:
+                        if wait_for_play and still_waiting:
+                            pygame.mixer.music.play()
+                            still_waiting = False
+                        elif playing_audio:
+                            pygame.mixer.music.pause()
+                            playing_audio = False
+                        else:
+                            pygame.mixer.music.unpause()
+                            playing_audio = True
+        
+            if not still_waiting:
+                audio_ms = pygame.mixer.music.get_pos()
+                # If music is over
+                if audio_ms == -1:
+                    run_program = False
+                    break
+                
+                address_block_offset = round(audio_ms * total_blocks / file_length_ms)
+                address = address_block_offset * address_block_size
+                
+                image, end_address = waterfall.get_image(address)
+                if end_address == -1:
+                    run_program = False
+                
+                if scale_window:
+                    image = pygame.transform.scale(image, (window_width, window_height))
+                
+                screen.blit(image, (0, 0))
+                pygame.display.flip()
+                
+                fps_clock.tick(fps)
+        except KeyboardInterrupt:
+            run_program = False
+            break
+        
+    pygame.quit()
+
+    # Delete audio file
+    if save_audio:
+        print("Audio file saved: \"{}\"".format(file_audio))
+    else:
+        print("Deleting audio file...")
+        os.remove(file_audio)
+
+    print("All done!\n")
+
+def run():
+    main(sys.argv[1:])
+
+if __name__ == "__main__":
+    run()
