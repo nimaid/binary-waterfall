@@ -355,18 +355,20 @@ class BinaryWaterfall:
             
         pygame.quit()
     
-    def run(self):
-        self.init_window()
-        self.compute_audio()
-        self.display_loop()
-
+    def cleanup(self):
         # Delete audio file
         if self.save_audio:
             print("Audio file saved: \"{}\"".format(self.file_audio))
         else:
             print("Deleting audio file...")
             os.remove(self.file_audio)
-
+    
+    def run(self):
+        self.init_window()
+        self.compute_audio()
+        self.display_loop()
+        self.cleanup()
+        
         print("All done!\n")
 
 
