@@ -286,56 +286,71 @@ class BinaryWaterfall:
         total_blocks = math.ceil(len(self.bytes) / address_block_size)
         address_block_offset = round(ms * total_blocks / self.file_length_ms)
         return address_block_offset * address_block_size
+    
+    def play(self):
+        pygame.mixer.music.play()
+        self.still_waiting = False
+    
+    def pause(self):
+        pygame.mixer.music.pause()
+        self.playing_audio = False
+    
+    def unpause(self):
+        pygame.mixer.music.unpause()
+        self.playing_audio = True
+    
+    def handle_events(self):
+        # Events handler
+        for event in pygame.event.get():
+            # Quit on exit
+            if event.type == pygame.QUIT:
+                self.run_program = False
+            
+            # Keypress handler
+            if event.type == pygame.KEYDOWN:
+                # Space plays and pauses
+                if event.key == pygame.K_SPACE:
+                    if self.start_paused and self.still_waiting:
+                        self.play()
+                    elif self.playing_audio:
+                        self.pause()
+                    else:
+                        self.unpause()
+    
+    def display_frame(self, ms):
+        self.address = self.get_address(ms)
         
+        image, end_address = self.get_image(self.address)
+        if end_address == -1:
+            self.run_program = False
+        
+        if self.scale:
+            image = pygame.transform.scale(image, self.window_dim)
+        
+        self.screen.blit(image, (0, 0))
+        pygame.display.flip()
     
     def display_loop(self):
+        self.init_sound()
         # Run display loop
-        run_program = True
+        self.run_program = True
         self.address = 0
-        while run_program:
+        while self.run_program:
             try:
-                # Events handler
-                for event in pygame.event.get():
-                    # Quit on exit
-                    if event.type == pygame.QUIT:
-                        run_program = False
-                    
-                    # Keypress handler
-                    if event.type == pygame.KEYDOWN:
-                        # Space plays and pauses
-                        if event.key == pygame.K_SPACE:
-                            if self.start_paused and self.still_waiting:
-                                pygame.mixer.music.play()
-                                self.still_waiting = False
-                            elif self.playing_audio:
-                                pygame.mixer.music.pause()
-                                self.playing_audio = False
-                            else:
-                                pygame.mixer.music.unpause()
-                                self.playing_audio = True
+                self.handle_events()
             
                 if not self.still_waiting:
                     audio_ms = pygame.mixer.music.get_pos()
                     # If music is over
                     if audio_ms == -1:
-                        run_program = False
+                        self.run_program = False
                         break
                     
-                    self.address = self.get_address(audio_ms)
-                    
-                    image, end_address = self.get_image(self.address)
-                    if end_address == -1:
-                        run_program = False
-                    
-                    if self.scale:
-                        image = pygame.transform.scale(image, self.window_dim)
-                    
-                    self.screen.blit(image, (0, 0))
-                    pygame.display.flip()
+                    self.display_frame(audio_ms)
                     
                     self.fps_clock.tick(self.fps)
             except KeyboardInterrupt:
-                run_program = False
+                self.run_program = False
                 break
             
         pygame.quit()
@@ -343,7 +358,6 @@ class BinaryWaterfall:
     def run(self):
         self.init_window()
         self.compute_audio()
-        self.init_sound()
         self.display_loop()
 
         # Delete audio file
