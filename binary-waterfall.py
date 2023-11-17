@@ -382,7 +382,7 @@ def file_path(string):
 # Parse arguments
 def parse_args(args):
     parser = argparse.ArgumentParser(
-        description="Visualizes binary files with audio and video.\n\nDefault parameters are shown in [brackets].",
+        description="An audio-visual viewer for raw binary files.\n\nDefault parameters are shown in [brackets].",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
