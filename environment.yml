@@ -5,7 +5,6 @@ channels:
 dependencies:
   - python=3.10*
   - pip
-  - tk
   - opencv
   - pillow
   - pip:
@@ -13,3 +12,4 @@ dependencies:
     - pyinstaller-versionfile
     - pygame
     - numpy
+    - PyQt6

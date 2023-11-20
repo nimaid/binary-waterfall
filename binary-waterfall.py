@@ -10,8 +10,10 @@ import wave
 import audioop
 import cv2
 import numpy as np
-import tkinter as tk
-from PIL import Image, ImageTk
+from PIL import Image
+from PyQt6.QtCore import QSize, Qt
+from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
+
 
 # PyGame is used for it's cross-platform sound support
 # The line before the import prevents an extraneous console message
@@ -271,49 +273,63 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
+# My QMainWindow class
+#   Used to customize the main window.
+#   The actual object used to programmatically reference
+#   the "main window" is MainWindow
+class MyQMainWindow(QMainWindow):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Binary Waterfall")
+        
+        test_label = QLabel("Hello, world!")
+        
+        self.setCentralWidget(test_label)
+
 # Main window class
 #   Handles drawing and operating the main window.
 #   Any actual program functionality or additional dialogs are
 #   handled using different classes
 class MainWindow:
-    def __init__(self):
-        self.root = tk.Tk()
+    def __init__(self, qt_args):
+        self.app = QApplication(qt_args)
+        self.window = MyQMainWindow()
         
-        self.player = Player(root=self.root)
-        self.player.label.grid(row=0, column=0, columnspan=5, padx=0, pady=0)
-        
-        
+        self.player = Player()
+    
+    #TODO: Add player area
+    #TODO: Add menu, option to load a file
+    #TODO: Add transport control buttons
     #TODO: Play audio and sync the image to the audio
     
     def run(self):
-        self.root.mainloop()
+        self.window.show()
+        self.app.exec()
 
 # Image playback class
-#   Provides an abstraction for displaying images in a label
+#   Provides an abstraction for displaying images and audio in the GUI
 class Player:
     def __init__(self,
-        root,
         width=600,
         height=600
     ):
-        self.root = root
-        
-        self.label = tk.Label(self.root)
-        
         self.set_dims(width=width, height=height)
         
         # Initialize player as black
-        init_image = Image.new(
-            mode="RGB",
-            size=self.dim,
-            color=(0,0,0)
-        )
-        self.set_image(init_image)
+        self.clear_image()
     
     def set_dims(self, width, height):
         self.width = width
         self.height = height
         self.dim = (self.width, self.height)
+    
+    def clear_image(self):
+        black_image = Image.new(
+            mode="RGB",
+            size=self.dim,
+            color=(0,0,0)
+        )
+        self.set_image(black_image)
     
     def update_dims(self, width, height):
         # Change dims
@@ -327,8 +343,7 @@ class Player:
     
     def set_image(self, image):
         self.image = self.scale_image(image)
-        self.label.img = ImageTk.PhotoImage(image=self.image)
-        self.label.config(image=self.label.img)
+        #TODO: Set image somehow
 
 
 
@@ -355,12 +370,15 @@ def parse_args(args):
         help="the operation to perform on the arguments, either \"+\", \"-\", \"*\", or \"/\" [+]")
     '''
     
-    return parser.parse_args()
+    parsed_args, unparsed_args = parser.parse_known_args()
+    return parsed_args, unparsed_args
 
 def main(args):
-    args = parse_args(args)
+    parsed_args, unparsed_args = parse_args(args)
+    qt_args = [sys.argv[0]] + unparsed_args
     
-    print("Hello, world!")
+    main_window = MainWindow(qt_args)
+    main_window.run()
 
 def run():
     main(sys.argv[1:])
