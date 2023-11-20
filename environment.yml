@@ -1,9 +1,11 @@
 name: binary-waterfall
 channels:
   - defaults
+  - anaconda 
 dependencies:
   - python=3.10*
   - pip
+  - tk
   - pip:
     - pyinstaller
     - pyinstaller-versionfile
