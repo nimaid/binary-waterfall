@@ -1,9 +1,20 @@
+#!/usr/bin/env python3
+
 import os
 import sys
 import argparse
 from enum import Enum
 import math
 import wave
+import cv2
+import numpy as np
+import tkinter as tk
+from PIL import Image, ImageTk
+
+# PyGame is used for it's cross-platform sound support
+# The line before the import prevents an extraneous console message
+os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
+import pygame
 
 # Test if this is a PyInstaller executable or a .py file
 if getattr(sys, 'frozen', False):
@@ -17,64 +28,280 @@ else:
     PROG_PATH = os.path.dirname(PROG_FILE)
     PATH = PROG_PATH
 
-# Main class
+# Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
-#   into audio files and image frames
+#   into audio files and image frames. This object does not
+#   track time or handle playback, it only provides resources
+#   to other code in order to produce the videos
 class BinaryWaterfall:
     def __init__(self,
-        first,
-        second,
-        opcode
+        filename,
+        width=48,
+        height=48,
+        color_format_string="bgrx",
+        num_channels=1,
+        sample_bytes=1,
+        sample_rate=32000,
+        volume=100
     ):
-        self.first = first
-        self.second = second
-        self.opcode = opcode.strip()
+        # Init PyGame mixer
+        pygame.mixer.init()
         
-        if self.opcode not in self.OpCodes.VALID_OPTIONS.value:
-            raise argparse.ArgumentTypeError("The operation code must be either \"+\", \"-\", \"*\", or \"/\"")
-        if self.opcode == self.OpCodes.DIV.value and self.second == 0:
-            raise ZeroDivisionError("Cannot divide by zero!")
+        # Handle arguments
+        self.set_filename(
+            filename=filename
+        )
+        
+        self.set_visual_settings(
+            width=width,
+            height=height,
+            color_format_string=color_format_string
+        )
+        
+        self.set_audio_settings(
+            num_channels=num_channels,
+            sample_bytes=sample_bytes,
+            sample_rate=sample_rate,
+            volume=volume
+        )
+    
+    def __del__(self):
+        self.cleanup()
+    
+    def set_filename(self, filename):
+        if not os.path.isfile(filename):
+            raise FileNotFoundError(f"File not found: \"{filename}\"")
+        
+        self.filename = os.path.realpath(filename)
+        
+        # Load bytes
+        with open(self.filename, "rb") as f:
+            self.bytes = f.read()
+        self.total_bytes = len(self.bytes)
+        
+        # Compute audio file name
+        file_path, file_main_name = os.path.split(self.filename)
+        self.audio_filename = os.path.join(
+            PATH,
+            file_main_name + os.path.extsep + "wav"
+        )
+    
+    class ColorFmtCode(Enum):
+        RED = "r"
+        GREEN = "g"
+        BLUE = "b"
+        UNUSED = "x"
+        VALID_OPTIONS = "rgbx"
+    
+    def set_visual_settings(self,
+        width,
+        height,
+        color_format_string
+    ):
+        if width < 4:
+            raise ValueError("Visualization width must be at least 4")
+        
+        if height < 4:
+            raise ValueError("Visualization height must be at least 4")
+        
+        color_format_string = color_format_string.strip().lower()
+        red_count = color_format_string.count(self.ColorFmtCode.RED.value)
+        if red_count != 1:
+            raise ValueError(f"Exactly 1 red channel format specifier \"{self.ColorFmtCode.RED.value}\" needed, but {red_count} were given in format string \"{color_format_string}\"")
+        green_count = color_format_string.count(self.ColorFmtCode.GREEN.value)
+        if green_count != 1:
+            raise ValueError(f"Exactly 1 green channel format specifier \"{self.ColorFmtCode.GREEN.value}\" needed, but {green_count} were given in format string \"{color_format_string}\"")
+        blue_count = color_format_string.count(self.ColorFmtCode.BLUE.value)
+        if blue_count != 1:
+            raise ValueError(f"Exactly 1 blue channel format specifier \"{self.ColorFmtCode.BLUE.value}\" needed, but {blue_count} were given in format string \"{color_format_string}\"")
+        unused_count = color_format_string.count(self.ColorFmtCode.UNUSED.value)
+        
+        color_format_list = list()
+        for c in color_format_string:
+            if c not in self.ColorFmtCode.VALID_OPTIONS.value:
+                raise ValueError(f"Color formatting codes only accept \"{self.ColorFmtCode.RED.value}\" = red, \"{self.ColorFmtCode.GREEN.value}\" = green, \"{self.ColorFmtCode.BLUE.value}\" = blue, \"{self.ColorFmtCode.UNUSED.value}\" = unused")
+            
+            if c == self.ColorFmtCode.RED.value:
+                color_format_list.append(self.ColorFmtCode.RED)
+            elif c == self.ColorFmtCode.GREEN.value:
+                color_format_list.append(self.ColorFmtCode.GREEN)
+            elif c == self.ColorFmtCode.BLUE.value:
+                color_format_list.append(self.ColorFmtCode.BLUE)
+            elif c == self.ColorFmtCode.UNUSED.value:
+                color_format_list.append(self.ColorFmtCode.UNUSED)
+        
+        self.width = width
+        self.height = height
+        self.dim = (self.width, self.height)
+        self.used_color_bytes = red_count + green_count + blue_count
+        self.unused_color_bytes = unused_count
+        self.color_bytes = self.used_color_bytes + self.unused_color_bytes
+        self.color_format = color_format_list
+    
+    def set_audio_settings(self,
+        num_channels,
+        sample_bytes,
+        sample_rate,
+        volume
+    ):
+        if num_channels not in [1, 2]:
+            raise ValueError("Invalid number of audio channels, must be either 1 or 2")
+        
+        if sample_bytes not in [1, 2, 3, 4]:
+            raise ValueError("Invalid sample size (bytes), must be either 1, 2, 3, or 4")
+        
+        if sample_rate < 1:
+            raise ValueError("Invalid sample rate, must be at least 1")
+        
+        if volume < 0 or volume > 100:
+            raise ValueError("Volume must be between 0 and 100")
+        
+        self.num_channels = num_channels
+        self.sample_bytes = sample_bytes
+        self.sample_rate = sample_rate
+        self.volume = volume
+        
+        # Re-compute audio file
+        self.compute_audio()
+    
+    def delete_audio(self):
+        try:
+            os.remove(self.audio_filename)
+        except FileNotFoundError:
+            pass
+    
+    def compute_audio(self):
+        # Delete current file if it exists
+        self.delete_audio()
+        
+        # Compute the new file
+        with wave.open(self.audio_filename, "wb") as f:
+            f.setnchannels(self.num_channels)
+            f.setsampwidth(self.sample_bytes)
+            f.setframerate(self.sample_rate)
+            f.writeframesraw(self.bytes)
+        
+        # Get audio length
+        audio_length = pygame.mixer.Sound(self.audio_filename).get_length()
+        self.audio_length_ms = math.ceil(audio_length * 1000)
+    
+    def change_filename(self, new_filename):
+        self.set_filename(new_filename)
+        self.compute_audio()
+    
+    def get_address(self, ms):
+        address_block_size = self.width * self.color_bytes
+        total_blocks = math.ceil(self.total_bytes / address_block_size)
+        address_block_offset = round(ms * total_blocks / self.audio_length_ms)
+        return address_block_offset * address_block_size
+    
+    # A 1D Python byte string
+    def get_frame_bytestring(self, ms):
+        picture_bytes = bytes()
+        current_address = self.get_address(ms)
+        for row in range(self.height):
+            for col in range(self.width):
+                # Fill one BGR byte value
+                this_byte = [b'\x00', b'\x00', b'\x00']
+                for c in self.color_format:
+                    if c == self.ColorFmtCode.RED:
+                        this_byte[0] = self.bytes[current_address:current_address+1] # Red
+                    elif c == self.ColorFmtCode.GREEN:
+                        this_byte[1] = self.bytes[current_address:current_address+1] # Green
+                    elif c == self.ColorFmtCode.BLUE:
+                        this_byte[2] = self.bytes[current_address:current_address+1] # Blue
+                    
+                    current_address += 1
+                
+                picture_bytes += b"".join(this_byte)
+        
+        full_length = (self.width * self.height * self.used_color_bytes)
+        picture_bytes_length = len(picture_bytes)
+        # Pad picture data if we're near the end of the file
+        if picture_bytes_length < full_length:
+            pad_length = full_length - picture_bytes_length
+            picture_bytes += b"\x00" * pad_length
 
-    class OpCodes(Enum):
-        ADD = "+"
-        SUB = "-"
-        MULT = "*"
-        DIV = "/"
-        VALID_OPTIONS = "+-*/"
+        return picture_bytes
     
-    def add(self):
-        return self.first + self.second
+    # A 3D Nympy array
+    def get_frame_array(self, ms, flip=True):
+        frame_bytesring = self.get_frame_bytestring(ms)
+        frame_np = np.frombuffer(frame_bytesring, dtype=np.uint8)
+        frame_array = frame_np.reshape((self.width, self.height, 3))
+        if flip:
+            # Flip vertically
+            frame_array = np.flip(frame_array, axis=0)
+        
+        return frame_array
     
-    def sub(self):
-        return self.first - self.second
+    # A PIL Image
+    def get_frame_image(self, ms, flip=True):
+        frame_array = self.get_frame_array(ms, flip=flip)
+        img = Image.fromarray(frame_array)
+        
+        return img
     
-    def mult(self):
-        return self.first * self.second
+    def cleanup(self):
+        self.delete_audio()
+
+# Main window class
+#   Handles drawing and operating the main window.
+#   Any actual program functionality or additional dialogs are
+#   handled using different classes
+class MainWindow:
+    def __init__(self):
+        self.root = tk.Tk()
+        
+        self.player = Player(root=self.root)
+        self.player.label.pack()
     
-    def div(self):
-        return self.first / self.second
-    
-    def operate(self):
-        if self.opcode == self.OpCodes.ADD.value:
-            print(f"The equation is {self.first} + {self.second}")
-            return self.add()
-        elif self.opcode == self.OpCodes.SUB.value:
-            print(f"The equation is {self.first} - {self.second}")
-            return self.sub()
-        elif self.opcode == self.OpCodes.MULT.value:
-            print(f"The equation is {self.first} * {self.second}")
-            return self.mult()
-        elif self.opcode == self.OpCodes.DIV.value:
-            print(f"The equation is {self.first} / {self.second}")
-            return self.div()
-        else:
-            raise argparse.ArgumentTypeError(f"Invalid opcode: \"{self.opcode}\"")
+    #TODO: Play audio and sync the image to the audio
     
     def run(self):
-        result = self.operate()
-        print(f"The answer is {result}")
+        self.root.mainloop()
 
-
+# Image playback class
+#   Provides an abstraction for displaying images in a label
+class Player:
+    def __init__(self,
+        root,
+        width=600,
+        height=600
+    ):
+        self.root = root
+        
+        self.label = tk.Label(self.root)
+        
+        self.set_dims(width=width, height=height)
+        
+        # Initialize player as black
+        init_image = Image.new(
+            mode="RGB",
+            size=self.dim,
+            color=(0,0,0)
+        )
+        self.set_image(init_image)
+    
+    def set_dims(self, width, height):
+        self.width = width
+        self.height = height
+        self.dim = (self.width, self.height)
+    
+    def update_dims(self, width, height):
+        # Change dims
+        self.set_dims(width=width, height=height)
+        
+        # Update image
+        self.set_image(self.image)
+    
+    def scale_image(self, image):
+        return image.resize(self.dim, Image.NEAREST)
+    
+    def set_image(self, image):
+        self.image = self.scale_image(image)
+        self.label.img = ImageTk.PhotoImage(image=self.image)
+        self.label.config(image=self.label.img)
 
 # A helper function for the argument parser
 def file_path(string):
@@ -90,24 +317,21 @@ def parse_args(args):
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
+    '''
     parser.add_argument("-1", "--first", dest="first_arg", type=float, required=True,
         help="the first argument")
     parser.add_argument("-2", "--second", dest="second_arg", type=float, required=False, default=1.0,
         help="the second argument [1]")
     parser.add_argument("-o", "--operaton", dest="opcode", type=str, required=False, default="+",
         help="the operation to perform on the arguments, either \"+\", \"-\", \"*\", or \"/\" [+]")
+    '''
     
     return parser.parse_args()
 
 def main(args):
     args = parse_args(args)
     
-    binary_waterfall = BinaryWaterfall(
-        first=args.first_arg, 
-        second=args.second_arg, 
-        opcode=args.opcode)
-    
-    binary_waterfall.run()
+    print("Hello, world!")
 
 def run():
     main(sys.argv[1:])

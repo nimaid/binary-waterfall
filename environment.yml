@@ -1,12 +1,15 @@
 name: binary-waterfall
 channels:
   - defaults
-  - anaconda 
+  - conda-forge
 dependencies:
   - python=3.10*
   - pip
   - tk
+  - opencv
+  - pillow
   - pip:
     - pyinstaller
     - pyinstaller-versionfile
     - pygame
+    - numpy
