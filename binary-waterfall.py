@@ -4,8 +4,10 @@ import os
 import sys
 import argparse
 from enum import Enum
+import shutil
 import math
 import wave
+import audioop
 import cv2
 import numpy as np
 import tkinter as tk
@@ -27,6 +29,17 @@ else:
     PROG_FILE = os.path.realpath(__file__)
     PROG_PATH = os.path.dirname(PROG_FILE)
     PATH = PROG_PATH
+
+
+# A dict to store icon locations
+icon_base_path = os.path.join(PATH, "resources")
+icon_paths = {
+    "play": os.path.join(icon_base_path, "play.png"),
+    "pause": os.path.join(icon_base_path, "pause.png"),
+    "back": os.path.join(icon_base_path, "back.png"),
+    "forward": os.path.join(icon_base_path, "forward.png"),
+    "restart": os.path.join(icon_base_path, "restart.png")
+}
 
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
@@ -174,12 +187,25 @@ class BinaryWaterfall:
         # Delete current file if it exists
         self.delete_audio()
         
-        # Compute the new file
+        # Compute the new file (full volume)
         with wave.open(self.audio_filename, "wb") as f:
             f.setnchannels(self.num_channels)
             f.setsampwidth(self.sample_bytes)
             f.setframerate(self.sample_rate)
             f.writeframesraw(self.bytes)
+        
+        if self.volume != 100:
+            # Reduce the audio volume
+            factor = self.volume / 100
+            temp_filename = self.audio_filename + ".temp"
+            with wave.open(self.audio_filename, "rb") as f:
+                p = f.getparams()
+                with wave.open(temp_filename , "wb") as tempfile:
+                    tempfile.setparams(p)
+                    frames = f.readframes(p.nframes)
+                    tempfile.writeframesraw(audioop.mul(frames, p.sampwidth, factor))
+            self.delete_audio()
+            shutil.move(temp_filename, self.audio_filename)
         
         # Get audio length
         audio_length = pygame.mixer.Sound(self.audio_filename).get_length()
@@ -254,8 +280,9 @@ class MainWindow:
         self.root = tk.Tk()
         
         self.player = Player(root=self.root)
-        self.player.label.pack()
-    
+        self.player.label.grid(row=0, column=0, columnspan=5, padx=0, pady=0)
+        
+        
     #TODO: Play audio and sync the image to the audio
     
     def run(self):
@@ -302,6 +329,8 @@ class Player:
         self.image = self.scale_image(image)
         self.label.img = ImageTk.PhotoImage(image=self.image)
         self.label.config(image=self.label.img)
+
+
 
 # A helper function for the argument parser
 def file_path(string):
