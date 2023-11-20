@@ -13,12 +13,8 @@ import numpy as np
 from PIL import Image
 from PyQt6.QtCore import QSize, Qt
 from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
+import mutagen.wave
 
-
-# PyGame is used for it's cross-platform sound support
-# The line before the import prevents an extraneous console message
-os.environ['PYGAME_HIDE_SUPPORT_PROMPT'] = '1'
-import pygame
 
 # Test if this is a PyInstaller executable or a .py file
 if getattr(sys, 'frozen', False):
@@ -59,10 +55,6 @@ class BinaryWaterfall:
         sample_rate=32000,
         volume=100
     ):
-        # Init PyGame mixer
-        pygame.mixer.init()
-        
-        # Handle arguments
         self.set_filename(
             filename=filename
         )
@@ -210,7 +202,7 @@ class BinaryWaterfall:
             shutil.move(temp_filename, self.audio_filename)
         
         # Get audio length
-        audio_length = pygame.mixer.Sound(self.audio_filename).get_length()
+        audio_length = mutagen.wave.WAVE(self.audio_filename).info.length
         self.audio_length_ms = math.ceil(audio_length * 1000)
     
     def change_filename(self, new_filename):

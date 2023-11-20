@@ -10,6 +10,6 @@ dependencies:
   - pip:
     - pyinstaller
     - pyinstaller-versionfile
-    - pygame
     - numpy
     - PyQt6
+    - mutagen
