@@ -12,6 +12,7 @@ import audioop
 import mutagen.wave
 import cv2
 import numpy as np
+import time
 from PIL import Image
 from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import Qt, QUrl
@@ -524,7 +525,6 @@ class Player:
         else:
             self.set_image(self.bw.get_frame_image(self.position)) #TODO: Update elsewhere
             self.audio.setPosition(ms)
-            
     
     def play(self):
         self.audio.play()
@@ -546,12 +546,15 @@ class Player:
     def open_file(self, filename):
         self.pause()
         
+        if filename == None:
+            self.audio.stop()
+            time.sleep(0.001) # Without a short delay here, we crash
+            self.audio.setSource(QUrl(None))
+        
         self.bw.set_filename(filename)
         self.bw.compute_audio()
         
-        if self.bw.audio_filename == None:
-            self.audio.setSource(QUrl(None))
-        else:
+        if self.bw.audio_filename != None:
             self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
         
         self.restart()
