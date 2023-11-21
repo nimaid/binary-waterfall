@@ -17,10 +17,12 @@ from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QGridLayout, QLabel, QPushButton
+    QGridLayout, QLabel, QPushButton,
+    QFileDialog
 )
 from PyQt6.QtGui import (
-    QImage, QPixmap
+    QImage, QPixmap,
+    QAction, QIcon
 )
 
 # Test if this is a PyInstaller executable or a .py file
@@ -67,7 +69,7 @@ ICON_PATH = {
 #   to other code in order to produce the videos
 class BinaryWaterfall:
     def __init__(self,
-        filename,
+        filename=None,
         width=48,
         height=48,
         color_format_string="bgrx",
@@ -76,9 +78,7 @@ class BinaryWaterfall:
         sample_rate=32000,
         volume=100
     ):
-        self.set_filename(
-            filename=filename
-        )
+        self.set_filename(filename=filename)
         
         self.set_visual_settings(
             width=width,
@@ -97,6 +97,17 @@ class BinaryWaterfall:
         self.cleanup()
     
     def set_filename(self, filename):
+        if filename == None:
+            # Reset all vars
+            self.filename = None
+            self.bytes = None
+            self.total_bytes = None
+            self.audio_filename = None
+            return
+        
+        # Delete current audio file if it exists
+        self.delete_audio()
+        
         if not os.path.isfile(filename):
             raise FileNotFoundError(f"File not found: \"{filename}\"")
         
@@ -193,12 +204,20 @@ class BinaryWaterfall:
         self.compute_audio()
     
     def delete_audio(self):
+        if self.audio_filename == None:
+            # Do nothing
+            return
         try:
             os.remove(self.audio_filename)
         except FileNotFoundError:
             pass
     
     def compute_audio(self):
+        if self.filename == None:
+            # If there is no file set, reset the vars
+            self.audio_length_ms = None
+            return
+        
         # Delete current file if it exists
         self.delete_audio()
         
@@ -337,6 +356,15 @@ class MyQMainWindow(QMainWindow):
         self.main_widget.setLayout(self.main_layout)
         self.setCentralWidget(self.main_widget)
         
+        self.main_menu = self.menuBar()
+        
+        self.file_menu = self.main_menu.addMenu("&File")
+        
+        self.file_menu_open = QAction(QIcon.fromTheme("document-open"), "&Open...", self) #TODO: Fix icon?
+        self.file_menu_open.triggered.connect(self.open_file_clicked)
+        self.file_menu.addAction(self.file_menu_open)
+        
+        
         # Set window to content size
         self.resize_window()
     
@@ -362,9 +390,19 @@ class MyQMainWindow(QMainWindow):
     def restart_clicked(self):
         self.player.restart()
     
-    #TODO: Add player area
-    #TODO: Add menu, option to load a file
-    #TODO: Add transport control buttons
+    def open_file_clicked(self):
+        filename, filetype = QFileDialog.getOpenFileName(
+            self,
+            "Open File",
+            PROG_PATH,
+            "All Binary Files (*)"
+        )
+        
+        if filename != "":
+            self.player.open_file(filename=filename)
+            file_path, file_title = os.path.split(filename)
+            self.setWindowTitle(f"{TITLE} | {file_title}")
+    
     #TODO: Play audio and sync the image to the audio
     
 
@@ -388,6 +426,9 @@ class Player:
         
         # Keep track of the current player position (ms)
         self.position = 0
+        
+        # Make the BinaryWaterfall class
+        self.bw = BinaryWaterfall()
     
     def set_dims(self, width, height):
         self.width = width
@@ -425,6 +466,8 @@ class Player:
     def set_position(self, ms):
         #TODO: Validate it's in range, and if it's not, clip it
         self.position = ms
+        if self.bw.filename != None:
+            self.set_image(self.bw.get_frame_image(self.position))
     
     def play(self):
         self.playing = True
@@ -442,6 +485,15 @@ class Player:
     
     def restart(self):
         self.set_position(0)
+    
+    def open_file(self, filename):
+        self.pause()
+        
+        self.bw.set_filename(filename)
+        self.bw.compute_audio()
+        
+        self.restart()
+    
 
 # Main window class
 #   Handles variables related to the main window.
