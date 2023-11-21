@@ -14,7 +14,8 @@ import cv2
 import numpy as np
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from PyQt6.QtCore import Qt
+from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QGridLayout, QLabel, QPushButton,
@@ -387,20 +388,19 @@ class MyQMainWindow(QMainWindow):
     
     def pause_player(self):
         self.player.pause()
-        self.set_play_button(play=True)
+        self.set_play_button(play=True) #TODO: Update with the player state somehow
     
     def play_player(self):
         self.player.play()
-        self.set_play_button(play=False)
+        self.set_play_button(play=False) #TODO: Update with the player state somehow
     
     def play_clicked(self):
-        if self.player.playing:
+        if self.player.is_playing():
             # Already playing, pause
             self.pause_player()
         else:
             # Paused, start playing
-            self.set_play_button(play=False)
-            self.player.play()
+            self.play_player()
     
     def forward_clicked(self):
         self.player.forward()
@@ -432,9 +432,8 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
     
-    #TODO: Play/pause audio with a QMediaPlayer and sync the image to the audio
+    #TODO: Sync the image to the audio
     #TODO: Add transport bar (read-only)
-    #TODO: Add restart and button seeking
     #TODO: Make transport bar seekable
     
 
@@ -453,14 +452,17 @@ class Player:
         # Initialize player as black
         self.clear_image()
         
-        # Keep track if the player is playing or not
-        self.playing = False
-        
-        # Keep track of the current player position (ms)
-        self.position = 0 #TODO: Replace with actual position in QMediaPlayer
-        
         # Make the BinaryWaterfall class
         self.bw = BinaryWaterfall()
+        
+        # Make the QMediaPlayer for audio playback
+        self.audio = QMediaPlayer()
+        self.audio_output = QAudioOutput()
+        self.audio.setAudioOutput(self.audio_output)
+        
+        # Set audio playback settings
+        self.set_volume(100)
+        
     
     def set_dims(self, width, height):
         self.width = width
@@ -482,6 +484,9 @@ class Player:
         # Update image
         self.set_image(self.image)
     
+    def set_volume(self, volume):
+        self.audio_output.setVolume(volume)
+    
     def scale_image(self, image):
         return image.resize(self.dim, Image.NEAREST)
     
@@ -495,19 +500,37 @@ class Player:
         # Set the picture
         self.label.setPixmap(qpixmap)
     
+    def get_position(self):
+        return self.audio.position()
+    
+    def get_duration(self):
+        return self.audio.duration()
+    
     def set_position(self, ms):
-        #TODO: Validate it's in range, and if it's not, clip it
+        duration = self.get_duration()
+        
+        # Validate it's in range, and if it's not, clip it
+        ms = math.ceil(ms)
+        if ms < 0:
+            ms = 0
+        if ms > duration:
+            ms = duration
+        
+        #TODO: If the file is at the end, pause
+        
         self.position = ms
         if self.bw.filename == None:
-            self.clear_image()
+            self.clear_image() #TODO: Update elsewhere
         else:
-            self.set_image(self.bw.get_frame_image(self.position))
+            self.set_image(self.bw.get_frame_image(self.position)) #TODO: Update elsewhere
+            self.audio.setPosition(ms)
+            
     
     def play(self):
-        self.playing = True
+        self.audio.play()
     
     def pause(self):
-        self.playing = False
+        self.audio.pause()
     
     def forward(self, ms=5000):
         new_pos = self.position + ms
@@ -526,10 +549,24 @@ class Player:
         self.bw.set_filename(filename)
         self.bw.compute_audio()
         
+        if self.bw.audio_filename == None:
+            self.audio.setSource(QUrl(None))
+        else:
+            self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
+        
         self.restart()
     
     def close_file(self):
         self.open_file(filename=None)
+    
+    def file_is_open(self):
+        if self.bw.filename == None:
+            return False
+        else:
+            return True
+    
+    def is_playing(self):
+        return self.audio.isPlaying()
     
 
 # Main window class
