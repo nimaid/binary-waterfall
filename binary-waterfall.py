@@ -8,13 +8,19 @@ import shutil
 import math
 import wave
 import audioop
+import mutagen.wave
 import cv2
 import numpy as np
 from PIL import Image
-from PyQt6.QtCore import QSize, Qt
-from PyQt6.QtWidgets import QApplication, QMainWindow, QLabel
-import mutagen.wave
-
+from PIL.ImageQt import ImageQt
+from PyQt6.QtCore import Qt
+from PyQt6.QtWidgets import (
+    QApplication, QMainWindow, QWidget,
+    QGridLayout, QLabel
+)
+from PyQt6.QtGui import (
+    QImage, QPixmap
+)
 
 # Test if this is a PyInstaller executable or a .py file
 if getattr(sys, 'frozen', False):
@@ -27,6 +33,7 @@ else:
     PROG_FILE = os.path.realpath(__file__)
     PROG_PATH = os.path.dirname(PROG_FILE)
     PATH = PROG_PATH
+
 
 
 # A dict to store icon locations
@@ -244,7 +251,7 @@ class BinaryWaterfall:
 
         return picture_bytes
     
-    # A 3D Nympy array
+    # A 3D Nympy array (RGB)
     def get_frame_array(self, ms, flip=True):
         frame_bytesring = self.get_frame_bytestring(ms)
         frame_np = np.frombuffer(frame_bytesring, dtype=np.uint8)
@@ -255,7 +262,7 @@ class BinaryWaterfall:
         
         return frame_array
     
-    # A PIL Image
+    # A PIL Image (RGB)
     def get_frame_image(self, ms, flip=True):
         frame_array = self.get_frame_array(ms, flip=flip)
         img = Image.fromarray(frame_array)
@@ -274,37 +281,37 @@ class MyQMainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("Binary Waterfall")
         
-        test_label = QLabel("Hello, world!")
+        self.player_label = QLabel(self)
+        self.player_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
-        self.setCentralWidget(test_label)
-
-# Main window class
-#   Handles drawing and operating the main window.
-#   Any actual program functionality or additional dialogs are
-#   handled using different classes
-class MainWindow:
-    def __init__(self, qt_args):
-        self.app = QApplication(qt_args)
-        self.window = MyQMainWindow()
+        self.main_layout = QGridLayout()
+        self.main_layout.setContentsMargins(0,0,0,0)
+        self.main_layout.setSpacing(20)
         
-        self.player = Player()
+        self.main_layout.addWidget(self.player_label, 0, 0)
+        
+        self.main_widget = QWidget()
+        self.main_widget.setLayout(self.main_layout)
+        self.setCentralWidget(self.main_widget)
+        
+        self.player = Player(self.player_label)
     
     #TODO: Add player area
     #TODO: Add menu, option to load a file
     #TODO: Add transport control buttons
     #TODO: Play audio and sync the image to the audio
     
-    def run(self):
-        self.window.show()
-        self.app.exec()
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
 class Player:
     def __init__(self,
+        label,
         width=600,
         height=600
     ):
+        self.label = label
+        
         self.set_dims(width=width, height=height)
         
         # Initialize player as black
@@ -334,8 +341,27 @@ class Player:
         return image.resize(self.dim, Image.NEAREST)
     
     def set_image(self, image):
-        self.image = self.scale_image(image)
-        #TODO: Set image somehow
+        self.image = self.scale_image(image).convert("RGBA")
+        
+        # Compute the QPixmap version
+        qimage = ImageQt(self.image)
+        qpixmap = QPixmap.fromImage(qimage)
+        
+        # Set the picture
+        self.label.setPixmap(qpixmap)
+
+# Main window class
+#   Handles variables related to the main window.
+#   Any actual program functionality or additional dialogs are
+#   handled using different classes
+class MainWindow:
+    def __init__(self, qt_args):
+        self.app = QApplication(qt_args)
+        self.window = MyQMainWindow()
+    
+    def run(self):
+        self.window.show()
+        self.app.exec()
 
 
 
