@@ -4,6 +4,7 @@ import os
 import sys
 import argparse
 from enum import Enum
+import yaml
 import shutil
 import math
 import wave
@@ -16,7 +17,7 @@ from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import Qt
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QGridLayout, QLabel
+    QGridLayout, QLabel, QPushButton
 )
 from PyQt6.QtGui import (
     QImage, QPixmap
@@ -34,16 +35,29 @@ else:
     PROG_PATH = os.path.dirname(PROG_FILE)
     PATH = PROG_PATH
 
+# Read program version file
+VERSION_FILE = os.path.join(PATH, "version.yml")
+with open(VERSION_FILE, "r") as f:
+    version_file_dict = yaml.safe_load(f)
+    
+    VERSION = version_file_dict["Version"]
+    DESCRIPTION = version_file_dict["FileDescription"]
+    TITLE = version_file_dict["ProductName"]
+    COPYRIGHT = version_file_dict["LegalCopyright"]
+    
+    del(version_file_dict)
 
+
+# The path to the program's resources
+RESOURCE_PATH = os.path.join(PATH, "resources")
 
 # A dict to store icon locations
-icon_base_path = os.path.join(PATH, "resources")
-icon_paths = {
-    "play": os.path.join(icon_base_path, "play.png"),
-    "pause": os.path.join(icon_base_path, "pause.png"),
-    "back": os.path.join(icon_base_path, "back.png"),
-    "forward": os.path.join(icon_base_path, "forward.png"),
-    "restart": os.path.join(icon_base_path, "restart.png")
+ICON_PATH = {
+    "play": os.path.join(RESOURCE_PATH, "play.png"),
+    "pause": os.path.join(RESOURCE_PATH, "pause.png"),
+    "back": os.path.join(RESOURCE_PATH, "back.png"),
+    "forward": os.path.join(RESOURCE_PATH, "forward.png"),
+    "restart": os.path.join(RESOURCE_PATH, "restart.png")
 }
 
 # Binary Waterfall abstraction class
@@ -279,22 +293,74 @@ class BinaryWaterfall:
 class MyQMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Binary Waterfall")
+        self.setWindowTitle(f"{TITLE}")
         
-        self.player_label = QLabel(self)
+        self.player_label = QLabel(parent=self)
         self.player_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.player = Player(self.player_label)
+        
+        self.transport_height = 40
+        
+        self.transport_play = QPushButton(parent=self, text="Play")
+        self.transport_play.setFixedHeight(self.transport_height)
+        self.transport_play.clicked.connect(self.play_clicked)
+        
+        self.transport_forward = QPushButton(parent=self, text="5S >")
+        self.transport_forward.setFixedHeight(self.transport_height)
+        self.transport_forward.clicked.connect(self.forward_clicked)
+        
+        self.transport_back = QPushButton(parent=self, text="< 5S")
+        self.transport_back.setFixedHeight(self.transport_height)
+        self.transport_back.clicked.connect(self.back_clicked)
+        
+        self.transport_restart = QPushButton(parent=self, text="Restart")
+        self.transport_restart.setFixedHeight(self.transport_height)
+        self.transport_restart.clicked.connect(self.restart_clicked)
+        
+        self.version_label = QLabel(parent=self, text=f"v{VERSION}")
+        self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.version_label.setStyleSheet("color: #666")
         
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0,0,0,0)
-        self.main_layout.setSpacing(20)
+        self.main_layout.setSpacing(0)
         
-        self.main_layout.addWidget(self.player_label, 0, 0)
+        self.main_layout.addWidget(self.player_label, 0, 0, 1, 5)
+        self.main_layout.addWidget(self.transport_restart, 1, 0)
+        self.main_layout.addWidget(self.transport_back, 1, 1)
+        self.main_layout.addWidget(self.transport_play, 1, 2)
+        self.main_layout.addWidget(self.transport_forward, 1, 3)
+        self.main_layout.addWidget(self.version_label, 1, 4)
         
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
         self.setCentralWidget(self.main_widget)
         
-        self.player = Player(self.player_label)
+        # Set window to content size
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+        
+    def play_clicked(self):
+        if self.player.playing:
+            # Already playing, pause
+            self.transport_play.setText("Play")
+            self.player.pause()
+        else:
+            # Paused, start playing
+            self.transport_play.setText("Pause")
+            self.player.play()
+    
+    def forward_clicked(self):
+        self.player.forward()
+    
+    def back_clicked(self):
+        self.player.back()
+    
+    def restart_clicked(self):
+        self.player.restart()
     
     #TODO: Add player area
     #TODO: Add menu, option to load a file
@@ -316,6 +382,12 @@ class Player:
         
         # Initialize player as black
         self.clear_image()
+        
+        # Keep track if the player is playing or not
+        self.playing = False
+        
+        # Keep track of the current player position (ms)
+        self.position = 0
     
     def set_dims(self, width, height):
         self.width = width
@@ -349,6 +421,27 @@ class Player:
         
         # Set the picture
         self.label.setPixmap(qpixmap)
+    
+    def set_position(self, ms):
+        #TODO: Validate it's in range, and if it's not, clip it
+        self.position = ms
+    
+    def play(self):
+        self.playing = True
+    
+    def pause(self):
+        self.playing = False
+    
+    def forward(self, ms=5000):
+        new_pos = self.position + ms
+        self.set_position(new_pos)
+    
+    def back(self, ms=5000):
+        new_pos = self.position - ms
+        self.set_position(new_pos)
+    
+    def restart(self):
+        self.set_position(0)
 
 # Main window class
 #   Handles variables related to the main window.
@@ -375,7 +468,7 @@ def file_path(string):
 # Parse arguments
 def parse_args(args):
     parser = argparse.ArgumentParser(
-        description="An audio-visual viewer for raw binary files.\n\nDefault parameters are shown in [brackets].",
+        description=f"{DESCRIPTION}\n\nDefault parameters are shown in [brackets].",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
     
