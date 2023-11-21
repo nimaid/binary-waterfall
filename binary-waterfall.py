@@ -78,6 +78,7 @@ class BinaryWaterfall:
         sample_rate=32000,
         volume=100
     ):
+        self.audio_filename = None  # Pre-init this to make sure delete_audio works
         self.set_filename(filename=filename)
         
         self.set_visual_settings(
@@ -97,6 +98,9 @@ class BinaryWaterfall:
         self.cleanup()
     
     def set_filename(self, filename):
+        # Delete current audio file if it exists
+        self.delete_audio()
+        
         if filename == None:
             # Reset all vars
             self.filename = None
@@ -104,9 +108,6 @@ class BinaryWaterfall:
             self.total_bytes = None
             self.audio_filename = None
             return
-        
-        # Delete current audio file if it exists
-        self.delete_audio()
         
         if not os.path.isfile(filename):
             raise FileNotFoundError(f"File not found: \"{filename}\"")
@@ -337,9 +338,9 @@ class MyQMainWindow(QMainWindow):
         self.transport_restart.setFixedHeight(self.transport_height)
         self.transport_restart.clicked.connect(self.restart_clicked)
         
-        self.version_label = QLabel(parent=self, text=f"v{VERSION}")
-        self.version_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.version_label.setStyleSheet("color: #666")
+        self.error_label = QLabel(parent=self)
+        self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.error_label.setStyleSheet("color: #666")
         
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0,0,0,0)
@@ -350,7 +351,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.addWidget(self.transport_back, 1, 1)
         self.main_layout.addWidget(self.transport_play, 1, 2)
         self.main_layout.addWidget(self.transport_forward, 1, 3)
-        self.main_layout.addWidget(self.version_label, 1, 4)
+        self.main_layout.addWidget(self.error_label, 1, 4)
         
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
@@ -360,9 +361,13 @@ class MyQMainWindow(QMainWindow):
         
         self.file_menu = self.main_menu.addMenu("&File")
         
-        self.file_menu_open = QAction(QIcon.fromTheme("document-open"), "&Open...", self) #TODO: Fix icon?
+        self.file_menu_open = QAction(QIcon.fromTheme("document-open"), "&Open...", self)
         self.file_menu_open.triggered.connect(self.open_file_clicked)
         self.file_menu.addAction(self.file_menu_open)
+        
+        self.file_menu_close = QAction(QIcon.fromTheme("window-close"), "&Close", self)
+        self.file_menu_close.triggered.connect(self.close_file_clicked)
+        self.file_menu.addAction(self.file_menu_close)
         
         
         # Set window to content size
@@ -370,15 +375,31 @@ class MyQMainWindow(QMainWindow):
     
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
-        
+    
+    def set_error(self, error_text):
+        self.error_label.setText(error_text)
+    
+    def set_play_button(self, play):
+        if play:
+            self.transport_play.setText("Play")
+        else:
+            self.transport_play.setText("Pause")
+    
+    def pause_player(self):
+        self.player.pause()
+        self.set_play_button(play=True)
+    
+    def play_player(self):
+        self.player.play()
+        self.set_play_button(play=False)
+    
     def play_clicked(self):
         if self.player.playing:
             # Already playing, pause
-            self.transport_play.setText("Play")
-            self.player.pause()
+            self.pause_player()
         else:
             # Paused, start playing
-            self.transport_play.setText("Pause")
+            self.set_play_button(play=False)
             self.player.play()
     
     def forward_clicked(self):
@@ -391,6 +412,8 @@ class MyQMainWindow(QMainWindow):
         self.player.restart()
     
     def open_file_clicked(self):
+        self.pause_player()
+        
         filename, filetype = QFileDialog.getOpenFileName(
             self,
             "Open File",
@@ -403,7 +426,16 @@ class MyQMainWindow(QMainWindow):
             file_path, file_title = os.path.split(filename)
             self.setWindowTitle(f"{TITLE} | {file_title}")
     
-    #TODO: Play audio and sync the image to the audio
+    def close_file_clicked(self):
+        self.pause_player()
+        
+        self.player.close_file()
+        self.setWindowTitle(f"{TITLE}")
+    
+    #TODO: Play/pause audio with a QMediaPlayer and sync the image to the audio
+    #TODO: Add transport bar (read-only)
+    #TODO: Add restart and button seeking
+    #TODO: Make transport bar seekable
     
 
 # Image playback class
@@ -425,7 +457,7 @@ class Player:
         self.playing = False
         
         # Keep track of the current player position (ms)
-        self.position = 0
+        self.position = 0 #TODO: Replace with actual position in QMediaPlayer
         
         # Make the BinaryWaterfall class
         self.bw = BinaryWaterfall()
@@ -466,7 +498,9 @@ class Player:
     def set_position(self, ms):
         #TODO: Validate it's in range, and if it's not, clip it
         self.position = ms
-        if self.bw.filename != None:
+        if self.bw.filename == None:
+            self.clear_image()
+        else:
             self.set_image(self.bw.get_frame_image(self.position))
     
     def play(self):
@@ -493,6 +527,9 @@ class Player:
         self.bw.compute_audio()
         
         self.restart()
+    
+    def close_file(self):
+        self.open_file(filename=None)
     
 
 # Main window class
