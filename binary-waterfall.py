@@ -15,7 +15,7 @@ import numpy as np
 import time
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from PyQt6.QtCore import Qt, QUrl, QRunnable, QThreadPool, pyqtSlot
+from PyQt6.QtCore import Qt, QUrl, QTimer
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -308,21 +308,6 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
-# Thread worker custon QRunnable class
-#   A genral purpose class that allows a function, args, and
-#   kwargs to be passed. Used for multithreading
-class ThreadWorker(QRunnable):
-    def __init__(self, fn, *args, **kwargs):
-        super(ThreadWorker, self).__init__()
-        
-        self.fn = fn
-        self.args = args
-        self.kwargs = kwargs
-
-    @pyqtSlot()
-    def run(self):
-        self.fn(*self.args, **self.kwargs)
-
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -480,6 +465,9 @@ class Player:
         self.set_volume(100)
         
         #TODO: Somehow call update_image() regularly
+        self.video_timer = QTimer()
+        self.video_timer.timeout.connect(self.update_image)
+        self.video_timer.start(10)
     
     def set_dims(self, width, height):
         self.width = width
