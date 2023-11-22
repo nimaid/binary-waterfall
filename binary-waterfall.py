@@ -506,8 +506,7 @@ class Player:
         self.audio_output.setVolume(volume)
     
     def scale_image(self, image):
-        #return image.resize(self.dim, Image.NEAREST) #TODO
-        return image
+        return image.scaled(self.width, self.height)
     
     def set_image(self, image):
         self.image = self.scale_image(image)
