@@ -20,7 +20,8 @@ from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QGridLayout, QLabel, QPushButton,
-    QFileDialog
+    QFileDialog,
+    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 )
 from PyQt6.QtGui import (
     QImage, QPixmap,
@@ -333,10 +334,14 @@ class MyQMainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"{TITLE}")
         
-        self.player_label = QLabel(parent=self)
-        self.player_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.player_view = QGraphicsView()
+        self.player_scene = QGraphicsScene(self)
+        self.player_view.setScene(self.player_scene)
         
-        self.player = Player(self.player_label)
+        self.player_pixmap = QGraphicsPixmapItem()
+        self.player_scene.addItem(self.player_pixmap)
+        
+        self.player = Player(self.player_pixmap)
         
         self.transport_height = 40
         
@@ -364,7 +369,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0,0,0,0)
         self.main_layout.setSpacing(0)
         
-        self.main_layout.addWidget(self.player_label, 0, 0, 1, 5)
+        self.main_layout.addWidget(self.player_view, 0, 0, 1, 5) #TODO: Crash
         self.main_layout.addWidget(self.transport_restart, 1, 0)
         self.main_layout.addWidget(self.transport_back, 1, 1)
         self.main_layout.addWidget(self.transport_play, 1, 2)
@@ -448,7 +453,6 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
     
-    #TODO: Sync the image to the audio
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
     
@@ -457,11 +461,11 @@ class MyQMainWindow(QMainWindow):
 #   Provides an abstraction for displaying images and audio in the GUI
 class Player:
     def __init__(self,
-        label,
+        display,
         width=600,
         height=600
     ):
-        self.label = label
+        self.display = display
         
         self.set_dims(width=width, height=height)
         
@@ -515,7 +519,7 @@ class Player:
         qpixmap = QPixmap.fromImage(self.image)
         
         # Set the picture
-        self.label.setPixmap(qpixmap)
+        self.display.setPixmap(qpixmap)
     
     def get_position(self):
         return self.audio.position()
@@ -588,7 +592,6 @@ class Player:
         return self.audio.isPlaying()
     
     def update_image(self, ms):
-        #TODO: figure out where the lag comes from
         if self.bw.filename == None:
             self.clear_image()
         else:
