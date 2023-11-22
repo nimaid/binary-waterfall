@@ -15,7 +15,7 @@ import numpy as np
 import time
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from PyQt6.QtCore import Qt, QUrl, QTimer
+from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -287,7 +287,7 @@ class BinaryWaterfall:
 
         return picture_bytes
     
-    # A 3D Nympy array (RGB)
+    # A 3D Numpy array (RGB)
     def get_frame_array(self, ms, flip=True):
         frame_bytesring = self.get_frame_bytestring(ms)
         frame_np = np.frombuffer(frame_bytesring, dtype=np.uint8)
@@ -304,6 +304,22 @@ class BinaryWaterfall:
         img = Image.fromarray(frame_array)
         
         return img
+    
+    # A QImage (RGB)
+    def get_frame_qimage(self, ms, flip=True):
+        frame_bytesring = self.get_frame_bytestring(ms)
+        qimg = QImage(
+            frame_bytesring,
+            self.width,
+            self.height,
+            3 * self.width,
+            QImage.Format.Format_RGB888
+        )
+        if flip:
+            # Flip vertically
+            qimg.mirror(horizontal=False, vertical=True)
+        
+        return qimg
     
     def cleanup(self):
         self.delete_audio()
@@ -370,7 +386,6 @@ class MyQMainWindow(QMainWindow):
         self.file_menu_close = QAction("&Close", self)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
-        
         
         # Set window to content size
         self.resize_window()
@@ -464,10 +479,8 @@ class Player:
         # Set audio playback settings
         self.set_volume(100)
         
-        #TODO: Somehow call update_image() regularly
-        self.video_timer = QTimer()
-        self.video_timer.timeout.connect(self.update_image)
-        self.video_timer.start(10)
+        # Set update_image to run when the audio position is changed
+        self.audio.positionChanged.connect(self.update_image)
     
     def set_dims(self, width, height):
         self.width = width
@@ -480,7 +493,7 @@ class Player:
             size=self.dim,
             color=(0,0,0)
         )
-        self.set_image(black_image)
+        self.set_image(ImageQt(black_image))
     
     def update_dims(self, width, height):
         # Change dims
@@ -493,14 +506,14 @@ class Player:
         self.audio_output.setVolume(volume)
     
     def scale_image(self, image):
-        return image.resize(self.dim, Image.NEAREST)
+        #return image.resize(self.dim, Image.NEAREST) #TODO
+        return image
     
     def set_image(self, image):
-        self.image = self.scale_image(image).convert("RGBA")
+        self.image = self.scale_image(image)
         
         # Compute the QPixmap version
-        qimage = ImageQt(self.image)
-        qpixmap = QPixmap.fromImage(qimage)
+        qpixmap = QPixmap.fromImage(self.image)
         
         # Set the picture
         self.label.setPixmap(qpixmap)
@@ -544,23 +557,27 @@ class Player:
         self.set_position(0)
     
     def open_file(self, filename):
-        self.pause()
+        self.close_file()
         
-        if filename == None:
-            self.audio.stop()
-            time.sleep(0.001) # Without a short delay here, we crash
-            self.audio.setSource(QUrl(None))
-        
-        self.bw.set_filename(filename)
+        self.bw.change_filename(filename)
         self.bw.compute_audio()
         
-        if self.bw.audio_filename != None:
-            self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
+        self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
         
-        self.restart()
+        self.update_image(self.get_position())
     
     def close_file(self):
-        self.open_file(filename=None)
+        self.pause()
+        
+        self.audio.stop()
+        time.sleep(0.001) # Without a short delay here, we crash
+        self.audio.setSource(QUrl(None))
+        
+        self.bw.change_filename(None)
+        self.bw.compute_audio()
+        
+        self.restart()
+        self.clear_image()
     
     def file_is_open(self):
         if self.bw.filename == None:
@@ -571,11 +588,12 @@ class Player:
     def is_playing(self):
         return self.audio.isPlaying()
     
-    def update_image(self):
+    def update_image(self, ms):
+        #TODO: figure out where the lag comes from
         if self.bw.filename == None:
             self.clear_image()
         else:
-            self.set_image(self.bw.get_frame_image(self.get_position()))
+            self.set_image(self.bw.get_frame_qimage(ms))
     
 
 # Main window class
