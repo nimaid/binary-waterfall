@@ -15,7 +15,7 @@ import numpy as np
 import time
 from PIL import Image
 from PIL.ImageQt import ImageQt
-from PyQt6.QtCore import Qt, QUrl
+from PyQt6.QtCore import Qt, QUrl, QRunnable, QThreadPool, pyqtSlot
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -308,6 +308,21 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
+# Thread worker custon QRunnable class
+#   A genral purpose class that allows a function, args, and
+#   kwargs to be passed. Used for multithreading
+class ThreadWorker(QRunnable):
+    def __init__(self, fn, *args, **kwargs):
+        super(ThreadWorker, self).__init__()
+        
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+    @pyqtSlot()
+    def run(self):
+        self.fn(*self.args, **self.kwargs)
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -363,11 +378,11 @@ class MyQMainWindow(QMainWindow):
         
         self.file_menu = self.main_menu.addMenu("&File")
         
-        self.file_menu_open = QAction(QIcon.fromTheme("document-open"), "&Open...", self)
+        self.file_menu_open = QAction("&Open...", self)
         self.file_menu_open.triggered.connect(self.open_file_clicked)
         self.file_menu.addAction(self.file_menu_open)
         
-        self.file_menu_close = QAction(QIcon.fromTheme("window-close"), "&Close", self)
+        self.file_menu_close = QAction("&Close", self)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
         
@@ -464,6 +479,7 @@ class Player:
         # Set audio playback settings
         self.set_volume(100)
         
+        #TODO: Somehow call update_image() regularly
     
     def set_dims(self, width, height):
         self.width = width
@@ -519,11 +535,7 @@ class Player:
         
         #TODO: If the file is at the end, pause
         
-        self.position = ms
-        if self.bw.filename == None:
-            self.clear_image() #TODO: Update elsewhere
-        else:
-            self.set_image(self.bw.get_frame_image(self.position)) #TODO: Update elsewhere
+        if self.bw.filename != None:
             self.audio.setPosition(ms)
     
     def play(self):
@@ -533,11 +545,11 @@ class Player:
         self.audio.pause()
     
     def forward(self, ms=5000):
-        new_pos = self.position + ms
+        new_pos = self.get_position() + ms
         self.set_position(new_pos)
     
     def back(self, ms=5000):
-        new_pos = self.position - ms
+        new_pos = self.get_position() - ms
         self.set_position(new_pos)
     
     def restart(self):
@@ -570,6 +582,12 @@ class Player:
     
     def is_playing(self):
         return self.audio.isPlaying()
+    
+    def update_image(self):
+        if self.bw.filename == None:
+            self.clear_image()
+        else:
+            self.set_image(self.bw.get_frame_image(self.get_position()))
     
 
 # Main window class
