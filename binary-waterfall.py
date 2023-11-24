@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PySide6.QtCore import Qt, QUrl
+from PySide6.QtCore import Qt, QUrl, QTimer
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -409,7 +409,7 @@ class MyQMainWindow(QMainWindow):
     def pause_player(self):
         self.player.pause()
         self.set_play_button(play=True) #TODO: Update with the player state somehow
-        #TODO: Hint: stateChanged, state(), etc.
+        #TODO: Hint: stateChanged.connect, state(), etc.
     def play_player(self):
         self.player.play()
         self.set_play_button(play=False) #TODO: Update with the player state somehow
@@ -482,10 +482,15 @@ class Player:
         # Set audio playback settings
         self.set_volume(100)
         
-        # Set update_image to run when the audio position is changed
-        # Also, make sure it's updating frequently (default is too slow)
-        #self.audio.setNotifyInterval(10) #TODO: Not a feature in Qt6! Replace next line with a timer...
-        self.audio.positionChanged.connect(self.update_image)
+        # Set set_image_timestamp to run when the audio position is changed
+        self.audio.positionChanged.connect(self.set_image_timestamp)
+        # Also, make sure it's updating more frequently (positionChanged is too slow when playing)
+        self.display_timer = QTimer()
+        self.display_timer.timeout.connect(self.update_image)
+        self.display_timer.start(15) #TODO: This melts the computer AND isn't fast enough... maybe I should try threading?
+    
+    def __del__(self):
+        self.close_file()
     
     def set_dims(self, width, height):
         self.width = width
@@ -573,7 +578,7 @@ class Player:
         
         self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
         
-        self.update_image(self.get_position())
+        self.set_image_timestamp(self.get_position())
     
     def close_file(self):
         self.pause()
@@ -597,11 +602,15 @@ class Player:
     def is_playing(self):
         return self.audio.isPlaying()
     
-    def update_image(self, ms):
+    def set_image_timestamp(self, ms):
         if self.bw.filename == None:
             self.clear_image()
         else:
             self.set_image(self.bw.get_frame_qimage(ms))
+    
+    def update_image(self):
+        ms = self.get_position()
+        self.set_image_timestamp(ms)
     
 
 # Main window class
