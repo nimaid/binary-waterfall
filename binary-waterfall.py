@@ -409,7 +409,7 @@ class MyQMainWindow(QMainWindow):
     def pause_player(self):
         self.player.pause()
         self.set_play_button(play=True) #TODO: Update with the player state somehow
-    
+        #TODO: Hint: stateChanged, state(), etc.
     def play_player(self):
         self.player.play()
         self.set_play_button(play=False) #TODO: Update with the player state somehow
@@ -483,6 +483,8 @@ class Player:
         self.set_volume(100)
         
         # Set update_image to run when the audio position is changed
+        # Also, make sure it's updating frequently (default is too slow)
+        #self.audio.setNotifyInterval(10) #TODO: Not a feature... Maybe just use my own timer, or use PySide6?
         self.audio.positionChanged.connect(self.update_image)
     
     def set_dims(self, width, height):
