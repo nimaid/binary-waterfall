@@ -14,7 +14,6 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PIL.ImageQt import ImageQt
 from PyQt6.QtCore import Qt, QUrl
 from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PyQt6.QtWidgets import (
@@ -492,12 +491,17 @@ class Player:
         self.dim = (self.width, self.height)
     
     def clear_image(self):
-        black_image = Image.new(
-            mode="RGB",
-            size=self.dim,
-            color=(0,0,0)
+        img_bytestring = bytes([0 for x in range(self.width * self.height * 3)])
+        
+        qimg = QImage(
+            img_bytestring,
+            self.width,
+            self.height,
+            3 * self.width,
+            QImage.Format.Format_RGB888
         )
-        self.set_image(ImageQt(black_image))
+        
+        self.set_image(qimg)
     
     def update_dims(self, width, height):
         # Change dims
