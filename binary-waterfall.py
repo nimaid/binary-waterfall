@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PySide6.QtCore import Qt, QUrl, QTimer
+from PySide6.QtCore import Qt, QUrl, QRunnable, QThreadPool, Slot
 from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -324,6 +324,21 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
+# Thread worker custon QRunnable class
+#   A genral purpose class that allows a function, args, and
+#   kwargs to be passed. Used for multithreading
+class ThreadWorker(QRunnable):
+    def __init__(self, fn, *args, **kwargs):
+        super(ThreadWorker, self).__init__()
+
+        self.fn = fn
+        self.args = args
+        self.kwargs = kwargs
+
+    @Slot()
+    def run(self):
+        self.fn(*self.args, **self.kwargs)
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -485,12 +500,13 @@ class Player:
         # Set set_image_timestamp to run when the audio position is changed
         self.audio.positionChanged.connect(self.set_image_timestamp)
         # Also, make sure it's updating more frequently (positionChanged is too slow when playing)
-        self.display_timer = QTimer()
-        self.display_timer.timeout.connect(self.update_image)
-        self.display_timer.start(15) #TODO: This melts the computer AND isn't fast enough... maybe I should try threading?
-    
+        self.running = True
+        self.thread_pool = QThreadPool()
+        self.display_thread = ThreadWorker(self.update_image_loop)
+        #self.thread_pool.start(self.display_thread)
+        
     def __del__(self):
-        self.close_file()
+        self.running = False
     
     def set_dims(self, width, height):
         self.width = width
@@ -611,6 +627,20 @@ class Player:
     def update_image(self):
         ms = self.get_position()
         self.set_image_timestamp(ms)
+    
+    def update_image_loop(self):
+        frame_delay = 1.0
+        while self.running:
+            frame_start = time.time()
+            
+            
+            self.update_image()
+            
+            
+            frame_end = time.time()
+            frame_time = (frame_end - frame_start)
+            leftover_time = max(frame_delay - frame_time, 0)
+            time.sleep(leftover_time)
     
 
 # Main window class
