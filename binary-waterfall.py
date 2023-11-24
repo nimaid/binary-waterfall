@@ -14,15 +14,15 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtWidgets import (
+from PySide6.QtCore import Qt, QUrl
+from PySide6.QtMultimedia import QAudioOutput, QMediaPlayer
+from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QGridLayout, QLabel, QPushButton,
     QFileDialog,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 )
-from PyQt6.QtGui import (
+from PySide6.QtGui import (
     QImage, QPixmap,
     QAction, QIcon
 )
@@ -317,7 +317,7 @@ class BinaryWaterfall:
         )
         if flip:
             # Flip vertically
-            qimg.mirror(horizontal=False, vertical=True)
+            qimg.mirror(horizontally=False, vertically=True)
         
         return qimg
     
@@ -484,7 +484,7 @@ class Player:
         
         # Set update_image to run when the audio position is changed
         # Also, make sure it's updating frequently (default is too slow)
-        #self.audio.setNotifyInterval(10) #TODO: Not a feature... Maybe just use my own timer, or use PySide6?
+        #self.audio.setNotifyInterval(10) #TODO: Not a feature in Qt6! Replace next line with a timer...
         self.audio.positionChanged.connect(self.update_image)
     
     def set_dims(self, width, height):
