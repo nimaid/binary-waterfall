@@ -1,6 +1,4 @@
-# Binary Waterfall
-<img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/icon.png" width="100px" alt="Binary Waterfall"/>
-
+# Binary Waterfall <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/icon.png" height="40px" alt="Binary Waterfall"/>
 An audio-visual viewer for binary files.
 
 <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
