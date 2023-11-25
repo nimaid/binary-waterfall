@@ -11,5 +11,5 @@ dependencies:
     - pyinstaller
     - pyinstaller-versionfile
     - numpy
-    - PyQt6
+    - PyQt5
     - mutagen

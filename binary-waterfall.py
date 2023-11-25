@@ -14,17 +14,16 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PyQt6.QtCore import Qt, QUrl
-from PyQt6.QtMultimedia import QAudioOutput, QMediaPlayer
-from PyQt6.QtWidgets import (
+from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QGridLayout, QLabel, QPushButton,
-    QFileDialog,
+    QFileDialog, QAction,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
 )
-from PyQt6.QtGui import (
-    QImage, QPixmap,
-    QAction, QIcon
+from PyQt5.QtGui import (
+    QImage, QPixmap
 )
 
 # Test if this is a PyInstaller executable or a .py file
@@ -317,7 +316,7 @@ class BinaryWaterfall:
         )
         if flip:
             # Flip vertically
-            qimg.mirror(horizontal=False, vertical=True)
+            qimg = qimg.mirrored(horizontal=False, vertical=True)
         
         return qimg
     
@@ -461,11 +460,14 @@ class Player:
     def __init__(self,
         display,
         width=600,
-        height=600
+        height=600,
+        fps=120
     ):
         self.display = display
         
         self.set_dims(width=width, height=height)
+        
+        self.set_fps(fps)
         
         # Initialize player as black
         self.clear_image()
@@ -475,16 +477,16 @@ class Player:
         
         # Make the QMediaPlayer for audio playback
         self.audio = QMediaPlayer()
-        self.audio_output = QAudioOutput()
-        self.audio.setAudioOutput(self.audio_output)
+        #self.audio_output = QAudioOutput()
+        #self.audio.setAudioOutput(self.audio_output)
         
         # Set audio playback settings
         self.set_volume(100)
         
         # Set set_image_timestamp to run when the audio position is changed
         self.audio.positionChanged.connect(self.set_image_timestamp)
-        # Also, make sure it's updating more frequently (positionChanged is too slow when playing)
-        
+        # Also, make sure it's updating more frequently (default is too slow when playing)
+        self.audio.setNotifyInterval(self.fps_delay_ms)
         
     def __del__(self):
         self.running = False
@@ -493,6 +495,10 @@ class Player:
         self.width = width
         self.height = height
         self.dim = (self.width, self.height)
+    
+    def set_fps(self, fps):
+        self.fps = fps #TODO: Check range
+        self.fps_delay_ms = math.floor(1000 / self.fps)
     
     def clear_image(self):
         img_bytestring = bytes([0 for x in range(self.width * self.height * 3)])
@@ -515,7 +521,7 @@ class Player:
         self.set_image(self.image)
     
     def set_volume(self, volume):
-        self.audio_output.setVolume(volume)
+        self.audio.setVolume(volume)
     
     def scale_image(self, image):
         return image.scaled(self.width, self.height)
@@ -567,13 +573,21 @@ class Player:
     def restart(self):
         self.set_position(0)
     
+    def set_audio_file(self, filename):
+        if filename == None:
+            url = QUrl(None)
+        else:
+            url = QUrl.fromLocalFile(self.bw.audio_filename)
+        media = QMediaContent(url)
+        self.audio.setMedia(media)
+    
     def open_file(self, filename):
         self.close_file()
         
         self.bw.change_filename(filename)
         self.bw.compute_audio()
         
-        self.audio.setSource(QUrl.fromLocalFile(self.bw.audio_filename))
+        self.set_audio_file(self.bw.audio_filename)
         
         self.set_image_timestamp(self.get_position())
     
@@ -582,7 +596,7 @@ class Player:
         
         self.audio.stop()
         time.sleep(0.001) # Without a short delay here, we crash
-        self.audio.setSource(QUrl(None))
+        self.set_audio_file(None)
         
         self.bw.change_filename(None)
         self.bw.compute_audio()
@@ -597,7 +611,10 @@ class Player:
             return True
     
     def is_playing(self):
-        return self.audio.isPlaying()
+        if self.audio.state() == self.audio.PlayingState:
+            return True
+        else:
+            return False
     
     def set_image_timestamp(self, ms):
         if self.bw.filename == None:
