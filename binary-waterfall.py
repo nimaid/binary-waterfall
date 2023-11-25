@@ -14,7 +14,7 @@ import cv2
 import numpy as np
 import time
 from PIL import Image
-from PyQt5.QtCore import Qt, QUrl
+from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -501,7 +501,7 @@ class VideoSettings(QDialog):
         self.height = height
         self.color_format = color_format
         
-        self.width_label = QLabel("Width::")
+        self.width_label = QLabel("Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.width_entry = QSpinBox()
@@ -512,7 +512,7 @@ class VideoSettings(QDialog):
         self.width_entry.setValue(self.width)
         self.width_entry.valueChanged.connect(self.width_entry_changed)
         
-        self.height_label = QLabel("Width:")
+        self.height_label = QLabel("Height:")
         self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.height_entry = QSpinBox()
@@ -593,16 +593,20 @@ class MyQMainWindow(QMainWindow):
         
         self.bw = BinaryWaterfall()
         
+        '''
         self.player_view = QGraphicsView()
         self.player_scene = QGraphicsScene(self)
         self.player_view.setScene(self.player_scene)
         
         self.player_pixmap = QGraphicsPixmapItem()
         self.player_scene.addItem(self.player_pixmap)
+        '''
+        
+        self.player_label = QLabel()
         
         self.player = Player(
             binary_waterfall=self.bw,
-            display=self.player_pixmap,
+            display=self.player_label,
             set_playbutton_function=self.set_play_button
         )
         
@@ -632,7 +636,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0,0,0,0)
         self.main_layout.setSpacing(0)
         
-        self.main_layout.addWidget(self.player_view, 0, 0, 1, 5)
+        self.main_layout.addWidget(self.player_label, 0, 0, 1, 5)
         self.main_layout.addWidget(self.transport_restart, 1, 0)
         self.main_layout.addWidget(self.transport_back, 1, 1)
         self.main_layout.addWidget(self.transport_play, 1, 2)
@@ -755,15 +759,18 @@ class MyQMainWindow(QMainWindow):
         
         if result:
             video_settings = popup.get_video_settings()
-            print(video_settings)
             self.bw.set_dims(
                 width=video_settings["width"],
                 height=video_settings["height"]
             )
             self.bw.set_color_format(video_settings["color_format"])
+            self.player.refresh_dims()
             self.player.update_image()
+            
+            # We need to wait a moment for the size hint to be computed
+            QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Add player settings
+    #TODO: Add playback settings
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
     #TODO: Replace error label with a volume slider
@@ -779,15 +786,14 @@ class Player:
         binary_waterfall,
         display,
         set_playbutton_function=None,
-        width=600,
-        height=600,
+        max_dim=600,
         fps=120
     ):
         self.bw = binary_waterfall
         
         self.display = display
         
-        self.set_dims(width=width, height=height)
+        self.set_dims(max_dim=max_dim)
         
         self.set_play_button = set_playbutton_function
         
@@ -815,10 +821,15 @@ class Player:
     def __del__(self):
         self.running = False
     
-    def set_dims(self, width, height):
-        #TODO: make this use self.max_view_dim and self.bw.dim 
-        self.width = width
-        self.height = height
+    def set_dims(self, max_dim):
+        self.max_dim = max_dim
+        if self.bw.width > self.bw.height:
+            self.width = round(max_dim)
+            self.height = round(self.width * (self.bw.height / self.bw.width))
+        else:
+            self.height = round(max_dim)
+            self.width = round(self.height * (self.bw.width / self.bw.height))
+        
         self.dim = (self.width, self.height)
     
     def set_fps(self, fps):
@@ -839,12 +850,15 @@ class Player:
         
         self.set_image(qimg)
     
-    def update_dims(self, width, height):
+    def update_dims(self, max_dim):
         # Change dims
-        self.set_dims(width=width, height=height)
+        self.set_dims(max_dim=max_dim)
         
         # Update image
         self.set_image(self.image)
+    
+    def refresh_dims(self):
+        self.update_dims(self.max_dim)
     
     def set_volume(self, volume):
         self.audio.setVolume(volume)
