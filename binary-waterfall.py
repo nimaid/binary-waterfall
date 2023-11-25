@@ -20,7 +20,8 @@ from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
     QGridLayout, QLabel, QPushButton,
     QFileDialog, QAction,
-    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem
+    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
+    QDialog, QDialogButtonBox, QSpinBox, QComboBox
 )
 from PyQt5.QtGui import (
     QImage, QPixmap
@@ -82,11 +83,12 @@ class BinaryWaterfall:
         self.audio_filename = None  # Pre-init this to make sure delete_audio works
         self.set_filename(filename=filename)
         
-        self.set_visual_settings(
+        self.set_dims(
             width=width,
-            height=height,
-            color_format_string=color_format_string
+            height=height
         )
+        
+        self.set_color_format(color_format_string=color_format_string)
         
         self.set_audio_settings(
             num_channels=num_channels,
@@ -134,17 +136,18 @@ class BinaryWaterfall:
         UNUSED = "x"
         VALID_OPTIONS = "rgbx"
     
-    def set_visual_settings(self,
-        width,
-        height,
-        color_format_string
-    ):
+    def set_dims(self, width, height):
         if width < 4:
             raise ValueError("Visualization width must be at least 4")
         
         if height < 4:
             raise ValueError("Visualization height must be at least 4")
         
+        self.width = width
+        self.height = height
+        self.dim = (self.width, self.height)
+    
+    def set_color_format(self, color_format_string):
         color_format_string = color_format_string.strip().lower()
         red_count = color_format_string.count(self.ColorFmtCode.RED.value)
         if red_count != 1:
@@ -171,9 +174,6 @@ class BinaryWaterfall:
             elif c == self.ColorFmtCode.UNUSED.value:
                 color_format_list.append(self.ColorFmtCode.UNUSED)
         
-        self.width = width
-        self.height = height
-        self.dim = (self.width, self.height)
         self.used_color_bytes = red_count + green_count + blue_count
         self.unused_color_bytes = unused_count
         self.color_bytes = self.used_color_bytes + self.unused_color_bytes
@@ -252,6 +252,8 @@ class BinaryWaterfall:
         self.compute_audio()
     
     def get_address(self, ms):
+        #TODO: Incorrect for 2 channel audio, possibly other settings too?
+        #TODO: Maybe broken in original? If not, why not?
         address_block_size = self.width * self.color_bytes
         total_blocks = math.ceil(self.total_bytes / address_block_size)
         address_block_offset = round(ms * total_blocks / self.audio_length_ms)
@@ -323,6 +325,128 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
+# Audio settings input window
+#   User interface to set the audio settings (for computation)
+class AudioSettings(QDialog):
+    def __init__(self,
+        num_channels,
+        sample_bytes,
+        sample_rate,
+        volume
+    ):
+        super().__init__()
+        self.setWindowTitle("Audio Settings")
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.num_channels = num_channels
+        self.sample_bytes = sample_bytes
+        self.sample_rate = sample_rate
+        self.volume = volume
+        
+        self.channels_label = QLabel("Channels:")
+        self.channels_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.channels_entry = QComboBox()
+        self.channels_entry.addItems(["1 (mono)", "2 (stereo)"])
+        if self.num_channels == 1:
+            self.channels_entry.setCurrentIndex(0)
+        elif self.num_channels == 2:
+            self.channels_entry.setCurrentIndex(1)
+        self.channels_entry.currentIndexChanged.connect(self.channel_entry_changed)
+        
+        self.sample_size_label = QLabel("Sample Size:")
+        self.sample_size_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.sample_size_entry = QComboBox()
+        self.sample_size_entry.addItems(["8-bit", "16-bit", "24-bit", "32-bit"])
+        if self.sample_bytes == 1:
+            self.sample_size_entry.setCurrentIndex(0)
+        elif self.sample_bytes == 2:
+            self.sample_size_entry.setCurrentIndex(1)
+        elif self.sample_bytes == 3:
+            self.sample_size_entry.setCurrentIndex(2)
+        elif self.sample_bytes == 4:
+            self.sample_size_entry.setCurrentIndex(3)
+        self.sample_size_entry.currentIndexChanged.connect(self.sample_size_entry_changed)
+        
+        self.sample_rate_label = QLabel("Sample Rate:")
+        self.sample_rate_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.sample_rate_entry = QSpinBox()
+        self.sample_rate_entry.setMinimum(1)
+        self.sample_rate_entry.setMaximum(192000)
+        self.sample_rate_entry.setSingleStep(1000)
+        self.sample_rate_entry.setSuffix("Hz")
+        self.sample_rate_entry.setValue(self.sample_rate)
+        self.sample_rate_entry.valueChanged.connect(self.sample_rate_entry_changed)
+        
+        self.volume_label = QLabel("File Volume:")
+        self.volume_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.volume_entry = QSpinBox()
+        self.volume_entry.setMinimum(0)
+        self.volume_entry.setMaximum(100)
+        self.volume_entry.setSingleStep(5)
+        self.volume_entry.setSuffix("%")
+        self.volume_entry.setValue(self.volume)
+        self.volume_entry.valueChanged.connect(self.volume_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.channels_label, 0, 0)
+        self.main_layout.addWidget(self.channels_entry, 0, 1)
+        self.main_layout.addWidget(self.sample_size_label, 1, 0)
+        self.main_layout.addWidget(self.sample_size_entry, 1, 1)
+        self.main_layout.addWidget(self.sample_rate_label, 2, 0)
+        self.main_layout.addWidget(self.sample_rate_entry, 2, 1)
+        self.main_layout.addWidget(self.volume_label, 3, 0)
+        self.main_layout.addWidget(self.volume_entry, 3, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def get_audio_settings(self):
+        result = dict()
+        result["num_channels"] = self.num_channels
+        result["sample_bytes"] = self.sample_bytes
+        result["sample_rate"] = self.sample_rate
+        result["volume"] = self.volume
+        
+        return result
+    
+    def channel_entry_changed(self, idx):
+        if idx == 0:
+            self.num_channels = 1
+        elif idx == 1:
+            self.num_channels = 2
+    
+    def sample_size_entry_changed(self, idx):
+        if idx == 0:
+            self.sample_bytes = 1
+        elif idx == 1:
+            self.sample_bytes = 2
+        elif idx == 2:
+            self.sample_bytes = 3
+        elif idx == 3:
+            self.sample_bytes = 4
+    
+    def sample_rate_entry_changed(self, value):
+        self.sample_rate = value
+    
+    def volume_entry_changed(self, value):
+        self.volume = value
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -332,6 +456,8 @@ class MyQMainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle(f"{TITLE}")
         
+        self.bw = BinaryWaterfall()
+        
         self.player_view = QGraphicsView()
         self.player_scene = QGraphicsScene(self)
         self.player_view.setScene(self.player_scene)
@@ -340,6 +466,7 @@ class MyQMainWindow(QMainWindow):
         self.player_scene.addItem(self.player_pixmap)
         
         self.player = Player(
+            binary_waterfall=self.bw,
             display=self.player_pixmap,
             set_playbutton_function=self.set_play_button
         )
@@ -392,6 +519,12 @@ class MyQMainWindow(QMainWindow):
         self.file_menu_close = QAction("&Close", self)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
+        
+        self.settings_menu = self.file_menu = self.main_menu.addMenu("&Settings")
+        
+        self.settings_menu_audio = QAction("&Audio...", self)
+        self.settings_menu_audio.triggered.connect(self.audio_settings_clicked)
+        self.settings_menu.addAction(self.settings_menu_audio)
         
         # Set window to content size
         self.resize_window()
@@ -452,7 +585,26 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
     
-    #TODO: Add settings menu
+    def audio_settings_clicked(self):
+        popup = AudioSettings(
+            num_channels=self.bw.num_channels,
+            sample_bytes=self.bw.sample_bytes,
+            sample_rate=self.bw.sample_rate,
+            volume=self.bw.volume
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            audio_settings = popup.get_audio_settings()
+            self.bw.set_audio_settings(
+                num_channels=audio_settings["num_channels"],
+                sample_bytes=audio_settings["sample_bytes"],
+                sample_rate=audio_settings["sample_rate"],
+                volume=audio_settings["volume"],
+            )
+    
+    #TODO: Add video settings (playback AND computation)
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
     #TODO: Replace error label with a volume slider
@@ -465,12 +617,15 @@ class MyQMainWindow(QMainWindow):
 #   Provides an abstraction for displaying images and audio in the GUI
 class Player:
     def __init__(self,
+        binary_waterfall,
         display,
         set_playbutton_function=None,
         width=600,
         height=600,
         fps=120
     ):
+        self.bw = binary_waterfall
+        
         self.display = display
         
         self.set_dims(width=width, height=height)
@@ -479,9 +634,6 @@ class Player:
         
         # Initialize player as black
         self.clear_image()
-        
-        # Make the BinaryWaterfall class
-        self.bw = BinaryWaterfall()
         
         # Make the QMediaPlayer for audio playback
         self.audio = QMediaPlayer()
