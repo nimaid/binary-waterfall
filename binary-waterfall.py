@@ -339,7 +339,10 @@ class MyQMainWindow(QMainWindow):
         self.player_pixmap = QGraphicsPixmapItem()
         self.player_scene.addItem(self.player_pixmap)
         
-        self.player = Player(self.player_pixmap)
+        self.player = Player(
+            display=self.player_pixmap,
+            set_playbutton_function=self.set_play_button
+        )
         
         self.transport_height = 40
         
@@ -407,11 +410,9 @@ class MyQMainWindow(QMainWindow):
     
     def pause_player(self):
         self.player.pause()
-        self.set_play_button(play=True) #TODO: Update with the player state somehow
-        #TODO: Hint: stateChanged.connect, state(), etc.
+    
     def play_player(self):
         self.player.play()
-        self.set_play_button(play=False) #TODO: Update with the player state somehow
     
     def play_clicked(self):
         if self.player.is_playing():
@@ -451,12 +452,13 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
     
-    #TODO: Fix existing transport buttons (mainly play/pause)
     #TODO: Add settings menu
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
+    #TODO: Replace error label with a volume slider
     #TODO: Add export screenshot option
     #TODO: Add export audio option
+    #TODO: Add export image sequence option
     #TODO: Add export video option
 
 # Image playback class
@@ -464,6 +466,7 @@ class MyQMainWindow(QMainWindow):
 class Player:
     def __init__(self,
         display,
+        set_playbutton_function=None,
         width=600,
         height=600,
         fps=120
@@ -471,6 +474,8 @@ class Player:
         self.display = display
         
         self.set_dims(width=width, height=height)
+        
+        self.set_play_button = set_playbutton_function
         
         # Initialize player as black
         self.clear_image()
@@ -489,7 +494,12 @@ class Player:
         # Set set_image_timestamp to run when the audio position is changed
         self.audio.positionChanged.connect(self.set_image_timestamp)
         # Also, make sure it's updating more frequently (default is too slow when playing)
+        self.fps_min = 1
+        self.fps_max = 120
         self.set_fps(fps)
+        
+        # Setup change state handler
+        self.audio.stateChanged.connect(self.state_changed_handler)
         
     def __del__(self):
         self.running = False
@@ -500,7 +510,7 @@ class Player:
         self.dim = (self.width, self.height)
     
     def set_fps(self, fps):
-        self.fps = fps #TODO: Check range
+        self.fps = min(max(fps, self.fps_min), self.fps_max)
         self.fps_delay_ms = math.floor(1000 / self.fps)
         self.audio.setNotifyInterval(self.fps_delay_ms)
     
@@ -555,10 +565,24 @@ class Player:
         if ms > duration:
             ms = duration
         
-        #TODO: If the file is at the end, pause
-        
         if self.bw.filename != None:
             self.audio.setPosition(ms)
+        
+        # If the file is at the end, pause
+        if ms == duration:
+            self.pause()
+    
+    def set_playbutton_if_given(self, play):
+        if self.set_play_button != None:
+            self.set_play_button(play=play)
+    
+    def state_changed_handler(self, media_state):
+        if media_state == self.audio.PlayingState:
+            self.set_playbutton_if_given(play=False)
+        elif media_state == self.audio.PausedState:
+            self.set_playbutton_if_given(play=True)
+        elif media_state == self.audio.StoppedState:
+            self.set_playbutton_if_given(play=True)
     
     def play(self):
         self.audio.play()
