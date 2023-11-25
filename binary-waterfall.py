@@ -481,7 +481,7 @@ class AudioSettings(QDialog):
         self.setFixedSize(self.sizeHint())
 
 # Video settings input window
-#   User interface to set the video settings (for playback)
+#   User interface to set the video settings (for computation)
 class VideoSettings(QDialog):
     def __init__(self,
         bw,
@@ -582,6 +582,76 @@ class VideoSettings(QDialog):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
 
+# Player settings input window
+#   User interface to set the player settings (for playback)
+class PlayerSettings(QDialog):
+    def __init__(self,
+        max_view_dim,
+        fps,
+    ):
+        super().__init__()
+        self.setWindowTitle("Player Settings")
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.max_view_dim = max_view_dim
+        self.fps = fps
+        
+        self.max_dim_label = QLabel("Max. Dimension:")
+        self.max_dim_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.max_dim_entry = QSpinBox()
+        self.max_dim_entry.setMinimum(128)
+        self.max_dim_entry.setMaximum(7680)
+        self.max_dim_entry.setSingleStep(64)
+        self.max_dim_entry.setSuffix("px")
+        self.max_dim_entry.setValue(self.max_view_dim)
+        self.max_dim_entry.valueChanged.connect(self.max_dim_entry_changed)
+        
+        self.fps_label = QLabel("Framerate:")
+        self.fps_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.fps_entry = QSpinBox()
+        self.fps_entry.setMinimum(1)
+        self.fps_entry.setMaximum(120)
+        self.fps_entry.setSingleStep(1)
+        self.fps_entry.setSuffix("fps")
+        self.fps_entry.setValue(self.fps)
+        self.fps_entry.valueChanged.connect(self.fps_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.max_dim_label, 0, 0)
+        self.main_layout.addWidget(self.max_dim_entry, 0, 1)
+        self.main_layout.addWidget(self.fps_label, 1, 0)
+        self.main_layout.addWidget(self.fps_entry, 1, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def get_player_settings(self):
+        result = dict()
+        result["max_view_dim"] = self.max_view_dim
+        result["fps"] = self.fps
+        
+        return result
+    
+    def max_dim_entry_changed(self, value):
+        self.max_view_dim = value
+    
+    def fps_entry_changed(self, value):
+        self.fps = value
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -593,16 +663,8 @@ class MyQMainWindow(QMainWindow):
         
         self.bw = BinaryWaterfall()
         
-        '''
-        self.player_view = QGraphicsView()
-        self.player_scene = QGraphicsScene(self)
-        self.player_view.setScene(self.player_scene)
-        
-        self.player_pixmap = QGraphicsPixmapItem()
-        self.player_scene.addItem(self.player_pixmap)
-        '''
-        
         self.player_label = QLabel()
+        self.player_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.player = Player(
             binary_waterfall=self.bw,
@@ -668,6 +730,10 @@ class MyQMainWindow(QMainWindow):
         self.settings_menu_video = QAction("&Video...", self)
         self.settings_menu_video.triggered.connect(self.video_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_video)
+        
+        self.settings_menu_player = QAction("&Player...", self)
+        self.settings_menu_player.triggered.connect(self.player_settings_clicked)
+        self.settings_menu.addAction(self.settings_menu_player)
         
         # Set window to content size
         self.resize_window()
@@ -766,11 +832,24 @@ class MyQMainWindow(QMainWindow):
             self.bw.set_color_format(video_settings["color_format"])
             self.player.refresh_dims()
             self.player.update_image()
-            
             # We need to wait a moment for the size hint to be computed
             QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Add playback settings
+    def player_settings_clicked(self):
+        popup = PlayerSettings(
+            max_view_dim=self.player.max_dim,
+            fps=self.player.fps
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            player_settings = popup.get_player_settings()
+            self.player.set_fps(fps=player_settings["fps"])
+            self.player.update_dims(max_dim=player_settings["max_view_dim"])
+            # We need to wait a moment for the size hint to be computed
+            QTimer.singleShot(10, self.resize_window)
+    
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
     #TODO: Replace error label with a volume slider
@@ -786,7 +865,7 @@ class Player:
         binary_waterfall,
         display,
         set_playbutton_function=None,
-        max_dim=600,
+        max_dim=640,
         fps=120
     ):
         self.bw = binary_waterfall
@@ -855,7 +934,10 @@ class Player:
         self.set_dims(max_dim=max_dim)
         
         # Update image
-        self.set_image(self.image)
+        if self.bw.filename == None:
+            self.clear_image()
+        else:
+            self.set_image(self.image)
     
     def refresh_dims(self):
         self.update_dims(self.max_dim)
