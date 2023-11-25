@@ -21,7 +21,8 @@ from PyQt5.QtWidgets import (
     QGridLayout, QLabel, QPushButton,
     QFileDialog, QAction,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
-    QDialog, QDialogButtonBox, QSpinBox, QComboBox
+    QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
+    QMessageBox
 )
 from PyQt5.QtGui import (
     QImage, QPixmap
@@ -147,24 +148,38 @@ class BinaryWaterfall:
         self.height = height
         self.dim = (self.width, self.height)
     
-    def set_color_format(self, color_format_string):
+    def parse_color_format(self, color_format_string):
+        result = {
+            "is_valid": True
+        }
+    
         color_format_string = color_format_string.strip().lower()
         red_count = color_format_string.count(self.ColorFmtCode.RED.value)
         if red_count != 1:
-            raise ValueError(f"Exactly 1 red channel format specifier \"{self.ColorFmtCode.RED.value}\" needed, but {red_count} were given in format string \"{color_format_string}\"")
+            result["is_valid"] = False
+            result["message"] = f"Exactly 1 red channel format specifier \"{self.ColorFmtCode.RED.value}\" needed, but {red_count} were given in format string \"{color_format_string}\""
+            return result
+        
         green_count = color_format_string.count(self.ColorFmtCode.GREEN.value)
         if green_count != 1:
-            raise ValueError(f"Exactly 1 green channel format specifier \"{self.ColorFmtCode.GREEN.value}\" needed, but {green_count} were given in format string \"{color_format_string}\"")
+            result["is_valid"] = False
+            result["message"] = f"Exactly 1 green channel format specifier \"{self.ColorFmtCode.GREEN.value}\" needed, but {green_count} were given in format string \"{color_format_string}\""
+            return result
+        
         blue_count = color_format_string.count(self.ColorFmtCode.BLUE.value)
         if blue_count != 1:
-            raise ValueError(f"Exactly 1 blue channel format specifier \"{self.ColorFmtCode.BLUE.value}\" needed, but {blue_count} were given in format string \"{color_format_string}\"")
+            result["is_valid"] = False
+            result["message"] = f"Exactly 1 blue channel format specifier \"{self.ColorFmtCode.BLUE.value}\" needed, but {blue_count} were given in format string \"{color_format_string}\""
+            return result
+        
         unused_count = color_format_string.count(self.ColorFmtCode.UNUSED.value)
         
         color_format_list = list()
         for c in color_format_string:
             if c not in self.ColorFmtCode.VALID_OPTIONS.value:
-                raise ValueError(f"Color formatting codes only accept \"{self.ColorFmtCode.RED.value}\" = red, \"{self.ColorFmtCode.GREEN.value}\" = green, \"{self.ColorFmtCode.BLUE.value}\" = blue, \"{self.ColorFmtCode.UNUSED.value}\" = unused")
-            
+                result["is_valid"] = False
+                result["message"] = f"Color formatting codes only accept \"{self.ColorFmtCode.RED.value}\" = red, \"{self.ColorFmtCode.GREEN.value}\" = green, \"{self.ColorFmtCode.BLUE.value}\" = blue, \"{self.ColorFmtCode.UNUSED.value}\" = unused"
+                return result
             if c == self.ColorFmtCode.RED.value:
                 color_format_list.append(self.ColorFmtCode.RED)
             elif c == self.ColorFmtCode.GREEN.value:
@@ -174,10 +189,33 @@ class BinaryWaterfall:
             elif c == self.ColorFmtCode.UNUSED.value:
                 color_format_list.append(self.ColorFmtCode.UNUSED)
         
-        self.used_color_bytes = red_count + green_count + blue_count
-        self.unused_color_bytes = unused_count
-        self.color_bytes = self.used_color_bytes + self.unused_color_bytes
-        self.color_format = color_format_list
+        result["used_color_bytes"] = red_count + green_count + blue_count
+        result["unused_color_bytes"] = unused_count
+        result["color_bytes"] = result["used_color_bytes"] + result["unused_color_bytes"]
+        result["color_format"] = color_format_list
+        
+        return result
+    
+    def set_color_format(self, color_format_string):
+        parsed_string = self.parse_color_format(color_format_string)
+        
+        if parsed_string["is_valid"] == False:
+            raise ValueError(parsed_string["message"])
+        
+        self.used_color_bytes = parsed_string["used_color_bytes"]
+        self.unused_color_bytes = parsed_string["unused_color_bytes"]
+        self.color_bytes = parsed_string["color_bytes"]
+        self.color_format = parsed_string["color_format"]
+    
+    def get_color_format_string(self):
+        color_format_string = ""
+        for x in self.color_format:
+            color_format_string += x.value
+        
+        return color_format_string
+    
+    def is_color_format_valid(self, color_format_string):
+        return self.parse_color_format(color_format_string)["is_valid"]
     
     def set_audio_settings(self,
         num_channels,
@@ -249,8 +287,6 @@ class BinaryWaterfall:
         self.compute_audio()
     
     def get_address(self, ms):
-        #TODO: Incorrect for 2 channel audio, possibly other settings too?
-        #TODO: Maybe broken in original? If not, why not?
         address_block_size = self.width * self.color_bytes
         total_blocks = math.ceil(self.total_bytes / address_block_size)
         address_block_offset = round(ms * total_blocks / self.audio_length_ms)
@@ -443,7 +479,109 @@ class AudioSettings(QDialog):
     
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
+
+# Video settings input window
+#   User interface to set the video settings (for playback)
+class VideoSettings(QDialog):
+    def __init__(self,
+        bw,
+        width,
+        height,
+        color_format
+    ):
+        super().__init__()
+        self.setWindowTitle("Video Settings")
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.bw = bw
+        
+        self.width = width
+        self.height = height
+        self.color_format = color_format
+        
+        self.width_label = QLabel("Width::")
+        self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.width_entry = QSpinBox()
+        self.width_entry.setMinimum(4)
+        self.width_entry.setMaximum(1024)
+        self.width_entry.setSingleStep(4)
+        self.width_entry.setSuffix("px")
+        self.width_entry.setValue(self.width)
+        self.width_entry.valueChanged.connect(self.width_entry_changed)
+        
+        self.height_label = QLabel("Width:")
+        self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.height_entry = QSpinBox()
+        self.height_entry.setMinimum(4)
+        self.height_entry.setMaximum(1024)
+        self.height_entry.setSingleStep(4)
+        self.height_entry.setSuffix("px")
+        self.height_entry.setValue(self.height)
+        self.height_entry.valueChanged.connect(self.height_entry_changed)
+        
+        self.color_format_label = QLabel("Color Format:")
+        self.color_format_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.color_format_entry = QLineEdit()
+        self.color_format_entry.setMaxLength(64)
+        self.color_format_entry.setText(self.color_format)
+        self.color_format_entry.editingFinished.connect(self.color_format_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.width_label, 0, 0)
+        self.main_layout.addWidget(self.width_entry, 0, 1)
+        self.main_layout.addWidget(self.height_label, 1, 0)
+        self.main_layout.addWidget(self.height_entry, 1, 1)
+        self.main_layout.addWidget(self.color_format_label, 2, 0)
+        self.main_layout.addWidget(self.color_format_entry, 2, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 3, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+        
+    def get_video_settings(self):
+        result = dict()
+        result["width"] = self.width
+        result["height"] = self.height
+        result["color_format"] = self.color_format
+        
+        return result
     
+    def width_entry_changed(self, value):
+        self.width = value
+    
+    def height_entry_changed(self, value):
+        self.height = value
+    
+    def color_format_entry_changed(self):
+        color_format = self.color_format_entry.text()
+        parsed = self.bw.parse_color_format(color_format)
+        if parsed["is_valid"]:
+            self.color_format = color_format
+        else:
+            self.color_format_entry.setText(self.color_format)
+            self.color_format_entry.setFocus()
+            
+            error_popup = QMessageBox()
+            error_popup.setIcon(QMessageBox.Critical)
+            error_popup.setText("Invalid Color Format")
+            error_popup.setInformativeText(parsed["message"])
+            error_popup.setWindowTitle("Error")
+            error_popup.exec()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -523,6 +661,10 @@ class MyQMainWindow(QMainWindow):
         self.settings_menu_audio.triggered.connect(self.audio_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_audio)
         
+        self.settings_menu_video = QAction("&Video...", self)
+        self.settings_menu_video.triggered.connect(self.video_settings_clicked)
+        self.settings_menu.addAction(self.settings_menu_video)
+        
         # Set window to content size
         self.resize_window()
     
@@ -601,7 +743,27 @@ class MyQMainWindow(QMainWindow):
                 volume=audio_settings["volume"],
             )
     
-    #TODO: Add video settings (playback AND computation)
+    def video_settings_clicked(self):
+        popup = VideoSettings(
+            bw=self.bw,
+            width=self.bw.width,
+            height=self.bw.height,
+            color_format=self.bw.get_color_format_string()
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            video_settings = popup.get_video_settings()
+            print(video_settings)
+            self.bw.set_dims(
+                width=video_settings["width"],
+                height=video_settings["height"]
+            )
+            self.bw.set_color_format(video_settings["color_format"])
+            self.player.update_image()
+    
+    #TODO: Add player settings
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
     #TODO: Replace error label with a volume slider
@@ -654,6 +816,7 @@ class Player:
         self.running = False
     
     def set_dims(self, width, height):
+        #TODO: make this use self.max_view_dim and self.bw.dim 
         self.width = width
         self.height = height
         self.dim = (self.width, self.height)
