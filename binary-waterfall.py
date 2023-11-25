@@ -981,7 +981,7 @@ class MyQMainWindow(QMainWindow):
     
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
-    #TODO: Replace error label with a volume slider
+    #TODO: Add player volume slider
     #TODO: Add export screenshot option
     #TODO: Add export audio option
     #TODO: Add export image sequence option
