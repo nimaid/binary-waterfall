@@ -5,8 +5,8 @@ channels:
 dependencies:
   - python=3.10*
   - pip
-  - opencv
   - pillow
+  - ffmpeg
   - pip:
     - pyinstaller
     - pyinstaller-versionfile

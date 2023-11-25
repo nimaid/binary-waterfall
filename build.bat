@@ -20,7 +20,10 @@ if errorlevel 1 goto ERROR
 call conda run -n %ENVNAME% pyinstaller ^
     --clean ^
     --noconfirm ^
-	--add-data icon.png;. ^
+    --noconsole ^
+	--add-data resources\;resources\ ^
+    --add-data version.yml;. ^
+    --add-data icon.png;. ^
     --onefile ^
     --icon=icon.ico ^
     --version-file=%VERSION_INFO% ^

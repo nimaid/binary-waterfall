@@ -10,7 +10,6 @@ import math
 import wave
 import pydub
 import mutagen.wave
-import cv2
 import numpy as np
 import time
 from PIL import Image
@@ -25,7 +24,7 @@ from PyQt5.QtWidgets import (
     QMessageBox
 )
 from PyQt5.QtGui import (
-    QImage, QPixmap
+    QImage, QPixmap, QIcon
 )
 
 # Test if this is a PyInstaller executable or a .py file
@@ -47,7 +46,7 @@ with open(VERSION_FILE, "r") as f:
     
     VERSION = version_file_dict["Version"]
     DESCRIPTION = version_file_dict["FileDescription"]
-    TITLE = version_file_dict["ProductName"]
+    TITLE = version_file_dict["InternalName"]
     COPYRIGHT = version_file_dict["LegalCopyright"]
     
     del(version_file_dict)
@@ -58,11 +57,12 @@ RESOURCE_PATH = os.path.join(PATH, "resources")
 
 # A dict to store icon locations
 ICON_PATH = {
+    "binary-waterfall": os.path.join(PATH, "icon.png"),
     "play": os.path.join(RESOURCE_PATH, "play.png"),
     "pause": os.path.join(RESOURCE_PATH, "pause.png"),
     "back": os.path.join(RESOURCE_PATH, "back.png"),
     "forward": os.path.join(RESOURCE_PATH, "forward.png"),
-    "restart": os.path.join(RESOURCE_PATH, "restart.png")
+    "restart": os.path.join(RESOURCE_PATH, "restart.png"),
 }
 
 # Binary Waterfall abstraction class
@@ -369,6 +369,7 @@ class AudioSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Audio Settings")
+        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -491,6 +492,7 @@ class VideoSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Video Settings")
+        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -591,6 +593,7 @@ class PlayerSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Player Settings")
+        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -660,6 +663,7 @@ class MyQMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{TITLE}")
+        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
         
         self.bw = BinaryWaterfall()
         
