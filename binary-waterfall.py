@@ -233,15 +233,12 @@ class BinaryWaterfall:
         if self.volume != 100:
             # Reduce the audio volume
             factor = self.volume / 100
-            #TODO: fix reduce volume of self.audio_filename
-            '''
             audio = pydub.AudioSegment.from_file(file=self.audio_filename, format="wav")
-            audio.apply_gain(pydub.audio_segment.ratio_to_db(factor))
+            audio += pydub.audio_segment.ratio_to_db(factor)
             temp_filename = self.audio_filename + ".temp"
             audio.export(temp_filename, format="wav")
             self.delete_audio()
             shutil.move(temp_filename, self.audio_filename)
-            '''
         
         # Get audio length
         audio_length = mutagen.wave.WAVE(self.audio_filename).info.length
