@@ -8,7 +8,7 @@ import yaml
 import shutil
 import math
 import wave
-import audioop
+import pydub
 import mutagen.wave
 import cv2
 import numpy as np
@@ -233,15 +233,15 @@ class BinaryWaterfall:
         if self.volume != 100:
             # Reduce the audio volume
             factor = self.volume / 100
+            #TODO: fix reduce volume of self.audio_filename
+            '''
+            audio = pydub.AudioSegment.from_file(file=self.audio_filename, format="wav")
+            audio.apply_gain(pydub.audio_segment.ratio_to_db(factor))
             temp_filename = self.audio_filename + ".temp"
-            with wave.open(self.audio_filename, "rb") as f:
-                p = f.getparams()
-                with wave.open(temp_filename , "wb") as tempfile:
-                    tempfile.setparams(p)
-                    frames = f.readframes(p.nframes)
-                    tempfile.writeframesraw(audioop.mul(frames, p.sampwidth, factor))
+            audio.export(temp_filename, format="wav")
             self.delete_audio()
             shutil.move(temp_filename, self.audio_filename)
+            '''
         
         # Get audio length
         audio_length = mutagen.wave.WAVE(self.audio_filename).info.length
@@ -597,7 +597,7 @@ class MyQMainWindow(QMainWindow):
         
         if result:
             audio_settings = popup.get_audio_settings()
-            self.bw.set_audio_settings(
+            self.player.set_audio_settings(
                 num_channels=audio_settings["num_channels"],
                 sample_bytes=audio_settings["sample_bytes"],
                 sample_rate=audio_settings["sample_rate"],
@@ -805,6 +805,22 @@ class Player:
     def update_image(self):
         ms = self.get_position()
         self.set_image_timestamp(ms)
+    
+    def set_audio_settings(self,
+        num_channels,
+        sample_bytes,
+        sample_rate,
+        volume
+    ):
+        self.bw.set_audio_settings(
+            num_channels=num_channels,
+            sample_bytes=sample_bytes,
+            sample_rate=sample_rate,
+            volume=volume
+        )
+        # Re-open newly computed file
+        self.set_audio_file(None)
+        self.set_audio_file(self.bw.audio_filename)
 
 # Main window class
 #   Handles variables related to the main window.
