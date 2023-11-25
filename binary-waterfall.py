@@ -17,14 +17,16 @@ from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QGridLayout, QLabel, QPushButton,
+    QGridLayout, QHBoxLayout,
+    QLabel, QPushButton,
     QFileDialog, QAction,
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
     QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
-    QMessageBox
+    QMessageBox,
+    QAbstractButton
 )
 from PyQt5.QtGui import (
-    QImage, QPixmap, QIcon
+    QImage, QPixmap, QIcon, QPainter
 )
 
 # Test if this is a PyInstaller executable or a .py file
@@ -57,12 +59,34 @@ RESOURCE_PATH = os.path.join(PATH, "resources")
 
 # A dict to store icon locations
 ICON_PATH = {
-    "binary-waterfall": os.path.join(PATH, "icon.png"),
-    "play": os.path.join(RESOURCE_PATH, "play.png"),
-    "pause": os.path.join(RESOURCE_PATH, "pause.png"),
-    "back": os.path.join(RESOURCE_PATH, "back.png"),
-    "forward": os.path.join(RESOURCE_PATH, "forward.png"),
-    "restart": os.path.join(RESOURCE_PATH, "restart.png"),
+    "program": os.path.join(PATH, "icon.png"),
+    "button": {
+        "play": {
+            "base": os.path.join(RESOURCE_PATH, "play.png"),
+            "clicked": os.path.join(RESOURCE_PATH, "playC.png"),
+            "hover": os.path.join(RESOURCE_PATH, "playH.png")
+        },
+        "pause": {
+            "base": os.path.join(RESOURCE_PATH, "pause.png"),
+            "clicked": os.path.join(RESOURCE_PATH, "pauseC.png"),
+            "hover": os.path.join(RESOURCE_PATH, "pauseH.png")
+        },
+        "back": {
+            "base": os.path.join(RESOURCE_PATH, "back.png"),
+            "clicked": os.path.join(RESOURCE_PATH, "backC.png"),
+            "hover": os.path.join(RESOURCE_PATH, "backH.png")
+        },
+        "forward": {
+            "base": os.path.join(RESOURCE_PATH, "forward.png"),
+            "clicked": os.path.join(RESOURCE_PATH, "forwardC.png"),
+            "hover": os.path.join(RESOURCE_PATH, "forwardH.png")
+        },
+        "restart": {
+            "base": os.path.join(RESOURCE_PATH, "restart.png"),
+            "clicked": os.path.join(RESOURCE_PATH, "restartC.png"),
+            "hover": os.path.join(RESOURCE_PATH, "restartH.png")
+        }
+    }
 }
 
 # Binary Waterfall abstraction class
@@ -369,7 +393,7 @@ class AudioSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Audio Settings")
-        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -492,7 +516,7 @@ class VideoSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Video Settings")
-        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -593,7 +617,7 @@ class PlayerSettings(QDialog):
     ):
         super().__init__()
         self.setWindowTitle("Player Settings")
-        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
@@ -605,7 +629,7 @@ class PlayerSettings(QDialog):
         self.max_dim_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.max_dim_entry = QSpinBox()
-        self.max_dim_entry.setMinimum(128)
+        self.max_dim_entry.setMinimum(256)
         self.max_dim_entry.setMaximum(7680)
         self.max_dim_entry.setSingleStep(64)
         self.max_dim_entry.setSuffix("px")
@@ -655,6 +679,63 @@ class PlayerSettings(QDialog):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
 
+# Custom image-based button
+#   Allows very swaggy custom buttons
+class ImageButton(QAbstractButton):
+    def __init__(self,
+        pixmap,
+        pixmap_hover,
+        pixmap_pressed,
+        scale=1.0,
+        parent=None
+    ):
+        super(ImageButton, self).__init__(parent)
+        
+        self.set_scale(scale)
+        self.change_pixmaps(
+            pixmap=pixmap,
+            pixmap_hover=pixmap_hover,
+            pixmap_pressed=pixmap_pressed
+        )
+
+        self.pressed.connect(self.update)
+        self.released.connect(self.update)
+    
+    def change_pixmaps(self,
+        pixmap,
+        pixmap_hover,
+        pixmap_pressed
+    ):
+        self.pixmap = pixmap
+        self.pixmap_hover = pixmap_hover
+        self.pixmap_pressed = pixmap_pressed
+        
+        self.width = round(self.pixmap.width() * self.scale)
+        self.height = round(self.pixmap.height() * self.scale)
+    
+    def set_scale(self, scale_factor):
+        self.scale = scale_factor
+    
+    def paintEvent(self, event):
+        if self.isDown():
+            pix = self.pixmap_pressed
+        elif self.underMouse():
+            pix = self.pixmap_hover
+        else:
+            pix = self.pixmap
+
+        painter = QPainter(self)
+        painter.drawPixmap(event.rect(), pix)
+
+    def enterEvent(self, event):
+        self.update()
+
+    def leaveEvent(self, event):
+        self.update()
+
+    def sizeHint(self):
+        return self.pixmap.size()
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -663,7 +744,7 @@ class MyQMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle(f"{TITLE}")
-        self.setWindowIcon(QIcon(ICON_PATH["binary-waterfall"]))
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
         self.bw = BinaryWaterfall()
         
@@ -676,38 +757,77 @@ class MyQMainWindow(QMainWindow):
             set_playbutton_function=self.set_play_button
         )
         
-        self.transport_height = 40
+        # Save the pixmaps for later
+        self.play_icons = {
+            "play": {
+                "base": QPixmap(ICON_PATH["button"]["play"]["base"]),
+                "hover": QPixmap(ICON_PATH["button"]["play"]["hover"]),
+                "clicked": QPixmap(ICON_PATH["button"]["play"]["clicked"])
+            },
+            "pause": {
+                "base": QPixmap(ICON_PATH["button"]["pause"]["base"]),
+                "hover": QPixmap(ICON_PATH["button"]["pause"]["hover"]),
+                "clicked": QPixmap(ICON_PATH["button"]["pause"]["clicked"])
+            }
+        }
         
-        self.transport_play = QPushButton(parent=self, text="Play")
-        self.transport_play.setFixedHeight(self.transport_height)
+        self.transport_play = ImageButton(
+            pixmap=self.play_icons["play"]["base"],
+            pixmap_hover=self.play_icons["play"]["hover"],
+            pixmap_pressed=self.play_icons["play"]["clicked"],
+            scale=1.0,
+            parent=self
+        )
+        self.transport_play.setFixedSize(self.transport_play.width, self.transport_play.height)
         self.transport_play.clicked.connect(self.play_clicked)
         
-        self.transport_forward = QPushButton(parent=self, text="5S >")
-        self.transport_forward.setFixedHeight(self.transport_height)
+        self.transport_forward = ImageButton(
+            pixmap=QPixmap(ICON_PATH["button"]["forward"]["base"]),
+            pixmap_hover=QPixmap(ICON_PATH["button"]["forward"]["hover"]),
+            pixmap_pressed=QPixmap(ICON_PATH["button"]["forward"]["clicked"]),
+            scale=0.75,
+            parent=self
+        )
+        self.transport_forward.setFixedSize(self.transport_forward.width, self.transport_forward.height)
         self.transport_forward.clicked.connect(self.forward_clicked)
         
-        self.transport_back = QPushButton(parent=self, text="< 5S")
-        self.transport_back.setFixedHeight(self.transport_height)
+        self.transport_back = ImageButton(
+            pixmap=QPixmap(ICON_PATH["button"]["back"]["base"]),
+            pixmap_hover=QPixmap(ICON_PATH["button"]["back"]["hover"]),
+            pixmap_pressed=QPixmap(ICON_PATH["button"]["back"]["clicked"]),
+            scale=0.75,
+            parent=self
+        )
+        self.transport_back.setFixedSize(self.transport_back.width, self.transport_back.height)
         self.transport_back.clicked.connect(self.back_clicked)
         
-        self.transport_restart = QPushButton(parent=self, text="Restart")
-        self.transport_restart.setFixedHeight(self.transport_height)
+        self.transport_restart = ImageButton(
+            pixmap=QPixmap(ICON_PATH["button"]["restart"]["base"]),
+            pixmap_hover=QPixmap(ICON_PATH["button"]["restart"]["hover"]),
+            pixmap_pressed=QPixmap(ICON_PATH["button"]["restart"]["clicked"]),
+            scale=0.5,
+            parent=self
+        )
+        self.transport_restart.setFixedSize(self.transport_restart.width, self.transport_restart.height)
         self.transport_restart.clicked.connect(self.restart_clicked)
         
-        self.error_label = QLabel(parent=self)
-        self.error_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.error_label.setStyleSheet("color: #666")
+        self.transport_left_layout = QHBoxLayout()
+        self.transport_left_layout.setSpacing(10)
+        self.transport_left_layout.addWidget(self.transport_restart,)
+        self.transport_left_layout.addWidget(self.transport_back)
+        
+        self.transport_right_layout = QHBoxLayout()
+        self.transport_right_layout.setSpacing(10)
+        self.transport_right_layout.addWidget(self.transport_forward)
         
         self.main_layout = QGridLayout()
-        self.main_layout.setContentsMargins(0,0,0,0)
-        self.main_layout.setSpacing(0)
+        self.main_layout.setContentsMargins(0,0,0,10)
+        self.main_layout.setSpacing(10)
         
-        self.main_layout.addWidget(self.player_label, 0, 0, 1, 5)
-        self.main_layout.addWidget(self.transport_restart, 1, 0)
-        self.main_layout.addWidget(self.transport_back, 1, 1)
-        self.main_layout.addWidget(self.transport_play, 1, 2)
-        self.main_layout.addWidget(self.transport_forward, 1, 3)
-        self.main_layout.addWidget(self.error_label, 1, 4)
+        self.main_layout.addWidget(self.player_label, 0, 0, 1, 5, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addLayout(self.transport_left_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        self.main_layout.addWidget(self.transport_play, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addLayout(self.transport_right_layout, 1, 3, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
@@ -745,14 +865,19 @@ class MyQMainWindow(QMainWindow):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
     
-    def set_error(self, error_text):
-        self.error_label.setText(error_text)
-    
     def set_play_button(self, play):
         if play:
-            self.transport_play.setText("Play")
+            self.transport_play.change_pixmaps(
+                pixmap=self.play_icons["play"]["base"],
+                pixmap_hover=self.play_icons["play"]["hover"],
+                pixmap_pressed=self.play_icons["play"]["clicked"]
+            )
         else:
-            self.transport_play.setText("Pause")
+            self.transport_play.change_pixmaps(
+                pixmap=self.play_icons["pause"]["base"],
+                pixmap_hover=self.play_icons["pause"]["hover"],
+                pixmap_pressed=self.play_icons["pause"]["clicked"]
+            )
     
     def pause_player(self):
         self.player.pause()
