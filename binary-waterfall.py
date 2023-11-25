@@ -367,7 +367,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.setContentsMargins(0,0,0,0)
         self.main_layout.setSpacing(0)
         
-        self.main_layout.addWidget(self.player_view, 0, 0, 1, 5) #TODO: Crash
+        self.main_layout.addWidget(self.player_view, 0, 0, 1, 5)
         self.main_layout.addWidget(self.transport_restart, 1, 0)
         self.main_layout.addWidget(self.transport_back, 1, 1)
         self.main_layout.addWidget(self.transport_play, 1, 2)
@@ -451,8 +451,13 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
     
+    #TODO: Fix existing transport buttons (mainly play/pause)
+    #TODO: Add settings menu
     #TODO: Add transport bar (read-only)
     #TODO: Make transport bar seekable
+    #TODO: Add export screenshot option
+    #TODO: Add export audio option
+    #TODO: Add export video option
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
@@ -466,8 +471,6 @@ class Player:
         self.display = display
         
         self.set_dims(width=width, height=height)
-        
-        self.set_fps(fps)
         
         # Initialize player as black
         self.clear_image()
@@ -486,7 +489,7 @@ class Player:
         # Set set_image_timestamp to run when the audio position is changed
         self.audio.positionChanged.connect(self.set_image_timestamp)
         # Also, make sure it's updating more frequently (default is too slow when playing)
-        self.audio.setNotifyInterval(self.fps_delay_ms)
+        self.set_fps(fps)
         
     def __del__(self):
         self.running = False
@@ -499,6 +502,7 @@ class Player:
     def set_fps(self, fps):
         self.fps = fps #TODO: Check range
         self.fps_delay_ms = math.floor(1000 / self.fps)
+        self.audio.setNotifyInterval(self.fps_delay_ms)
     
     def clear_image(self):
         img_bytestring = bytes([0 for x in range(self.width * self.height * 3)])
