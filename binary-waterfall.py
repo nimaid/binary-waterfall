@@ -905,6 +905,7 @@ class ExportSequence(QDialog):
         self.height = height
         self.fps = 60.0
         self.keep_aspect = False
+        self.format = Renderer.ImageFormatCode.PNG
         
         self.fps_label = QLabel("FPS:")
         self.fps_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -946,6 +947,19 @@ class ExportSequence(QDialog):
         self.aspect_entry.setChecked(self.keep_aspect)
         self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
         
+        self.format_label = QLabel("Image Format:")
+        self.format_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.format_entry = QComboBox()
+        self.format_entry.addItems(["PNG (.png)", "JPEG (.jpg)", "BMP (.bmp)"])
+        if self.format == Renderer.ImageFormatCode.PNG:
+            self.format_entry.setCurrentIndex(0)
+        elif self.format == Renderer.ImageFormatCode.JPEG:
+            self.format_entry.setCurrentIndex(1)
+        elif self.format == Renderer.ImageFormatCode.BITMAP:
+            self.format_entry.setCurrentIndex(2)
+        self.format_entry.currentIndexChanged.connect(self.format_entry_changed)
+        
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
@@ -960,7 +974,9 @@ class ExportSequence(QDialog):
         self.main_layout.addWidget(self.height_entry, 2, 1)
         self.main_layout.addWidget(self.aspect_label, 3, 0)
         self.main_layout.addWidget(self.aspect_entry, 3, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+        self.main_layout.addWidget(self.format_label, 4, 0)
+        self.main_layout.addWidget(self.format_entry, 4, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 5, 0, 1, 2)
 
         self.setLayout(self.main_layout)
         
@@ -975,6 +991,7 @@ class ExportSequence(QDialog):
         result["height"] = self.height
         result["fps"] = self.fps
         result["keep_aspect"] = self.keep_aspect
+        result["format"] = self.format
         
         return result
     
@@ -992,6 +1009,15 @@ class ExportSequence(QDialog):
     
     def fps_entry_changed(self, value):
         self.fps = value
+    
+    def format_entry_changed(self, value):
+        if value == 0:
+            self.format = Renderer.ImageFormatCode.PNG
+        elif value == 1:
+            self.format = Renderer.ImageFormatCode.JPEG
+        elif value == 2:
+            self.format = Renderer.ImageFormatCode.BITMAP
+        #self.format = value
 
 # Custom image-based button
 #   Allows very swaggy custom buttons
@@ -1505,28 +1531,29 @@ class MyQMainWindow(QMainWindow):
         if result:
             settings = popup.get_settings()
             
-            filename, filetype = QFileDialog.getSaveFileName(
+            file_dir = QFileDialog.getExistingDirectory(
                 self,
                 "Export Image Sequence To...",
-                os.path.join(PROG_PATH, f"{self.file_savename}"),
-                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+                PROG_PATH
             )
             
-            frame_count = self.renderer.get_frame_count(
-                fps=settings["fps"]
-            )
-            progress_popup = QProgressDialog("Exporting image sequence...", "Abort", 0, frame_count, self)
-            progress_popup.setWindowModality(Qt.WindowModal)
-            progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
-            progress_popup.setWindowTitle("Exporting Images...")
-            progress_popup.setFixedSize(300, 100)
-            
-            if filename != "":
+            if file_dir != "":
+                frame_count = self.renderer.get_frame_count(
+                    fps=settings["fps"]
+                )
+                progress_popup = QProgressDialog("Exporting image sequence...", "Abort", 0, frame_count, self)
+                progress_popup.setWindowModality(Qt.WindowModal)
+                progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+                progress_popup.setWindowTitle("Exporting Images...")
+                progress_popup.setFixedSize(300, 100)
+                
+                
                 self.renderer.export_sequence(
-                    filename=filename,
+                    directory=file_dir,
                     size=(settings["width"], settings["height"]),
                     fps=settings["fps"],
                     keep_aspect=settings["keep_aspect"],
+                    format=settings["format"],
                     progress_dialog=progress_popup
                 )
     
@@ -1890,23 +1917,25 @@ class Renderer:
         return frame_count
     
     def export_sequence(self,
-        filename,
+        directory,
         fps,
         size=None,
         keep_aspect=False,
+        format=None,
         progress_dialog=None
     ):
-        filename_main, filename_ext = os.path.splitext(filename)
-        
-        self.make_file_path(filename)
+        self.make_file_path(directory)
         
         frame_count = self.get_frame_count(fps)
         
         frame_number_digits = len(str(frame_count))
         
+        if format == None:
+            format = self.ImageFormatCode.PNG
+        
         for f in range(frame_count):
             frame_number = str(f).rjust(frame_number_digits, "0")
-            frame_filename = os.path.join(filename_main, f"{frame_number}{filename_ext}")
+            frame_filename = os.path.join(directory, f"{frame_number}{format.value}")
             frame_ms = round((f / fps) * 1000)
             
             if progress_dialog != None:
