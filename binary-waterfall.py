@@ -25,7 +25,8 @@ from PyQt5.QtWidgets import (
     QMessageBox,
     QAbstractButton,
     QSlider, QDial,
-    QStyle
+    QStyle,
+    QProgressDialog
 )
 from PyQt5.QtGui import (
     QImage, QPixmap, QIcon,
@@ -894,7 +895,7 @@ class ExportSequence(QDialog):
         height
     ):
         super().__init__()
-        self.setWindowTitle("Export Image Sequence")
+        self.setWindowTitle("Export Sequence")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
         # Hide "?" button
@@ -1355,7 +1356,8 @@ class MyQMainWindow(QMainWindow):
             self.player.open_file(filename=filename)
             
             file_path, file_title = os.path.split(filename)
-            self.set_file_savename(file_title)
+            file_savename, file_ext = os.path.splitext(file_title)
+            self.set_file_savename(file_savename)
             self.setWindowTitle(f"{TITLE} | {file_title}")
             
             self.update_seekbar()
@@ -1505,17 +1507,27 @@ class MyQMainWindow(QMainWindow):
             
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
-                "Export Image Sequence As...",
-                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
+                "Export Image Sequence To...",
+                os.path.join(PROG_PATH, f"{self.file_savename}"),
                 f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
             )
-        
+            
+            frame_count = self.renderer.get_frame_count(
+                fps=settings["fps"]
+            )
+            progress_popup = QProgressDialog("Exporting image sequence...", "Abort", 0, frame_count, self)
+            progress_popup.setWindowModality(Qt.WindowModal)
+            progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+            progress_popup.setWindowTitle("Exporting Images...")
+            progress_popup.setFixedSize(300, 100)
+            
             if filename != "":
                 self.renderer.export_sequence(
                     filename=filename,
                     size=(settings["width"], settings["height"]),
                     fps=settings["fps"],
-                    keep_aspect=settings["keep_aspect"]
+                    keep_aspect=settings["keep_aspect"],
+                    progress_dialog=progress_popup
                 )
     
     #TODO: Add registration dialog (help menu)
@@ -1871,27 +1883,37 @@ class Renderer:
             # Use Pydub to export FLAC
             pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="flac")
     
+    def get_frame_count(self, fps):
+        audio_duration = self.bw.get_audio_length() / 1000
+        frame_count = round(audio_duration * fps)
+        
+        return frame_count
+    
     def export_sequence(self,
         filename,
         fps,
         size=None,
-        keep_aspect=False
+        keep_aspect=False,
+        progress_dialog=None
     ):
         filename_main, filename_ext = os.path.splitext(filename)
         
         self.make_file_path(filename)
         
-        audio_duration = self.bw.get_audio_length() / 1000
-        frame_count = round(audio_duration * fps)
+        frame_count = self.get_frame_count(fps)
         
         frame_number_digits = len(str(frame_count))
         
         for f in range(frame_count):
             frame_number = str(f).rjust(frame_number_digits, "0")
-            frame_filename = f"{filename_main}_{frame_number}{filename_ext}"
+            frame_filename = os.path.join(filename_main, f"{frame_number}{filename_ext}")
             frame_ms = round((f / fps) * 1000)
             
-            print(f"Exporting frame {f+1}/{frame_count}") #TODO: Replace with actual progress bar on a blocking popup
+            if progress_dialog != None:
+                progress_dialog.setValue(f)
+                
+                if progress_dialog.wasCanceled():
+                    break
             
             self.export_frame(
                 ms=frame_ms,
@@ -1899,6 +1921,9 @@ class Renderer:
                 size=size,
                 keep_aspect=keep_aspect
             )
+        
+        if progress_dialog != None:
+            progress_dialog.setValue(frame_count)
 
 # Main window class
 #   Handles variables related to the main window.
