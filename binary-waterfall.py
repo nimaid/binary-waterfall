@@ -5,6 +5,7 @@ import sys
 import argparse
 from enum import Enum
 import yaml
+import re
 import shutil
 import math
 import wave
@@ -53,7 +54,6 @@ with open(VERSION_FILE, "r") as f:
     
     del(version_file_dict)
 
-
 # The path to the program's resources
 RESOURCE_PATH = os.path.join(PATH, "resources")
 
@@ -88,6 +88,62 @@ ICON_PATH = {
         }
     }
 }
+
+# Key validation class
+class KeyValidate:
+    def __init__(self,
+        program_id
+    ):
+        self.set_program_id(program_id)
+    
+    def set_program_id(self, program_id):
+        self.program_id = program_id.strip()
+        self.program_int = 0
+        for x in self.program_id:
+            self.program_int += ord(x)
+        self.program_int %= 0x10000
+        self.program_offset = self.program_int % 5
+    
+    def is_key_valid(self, key):
+        if not re.match(r"^[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}$", key):
+            return False
+        
+        groups = key.split("-")
+        key = ""
+        for idx, group in enumerate(groups):
+            key_idx = (self.program_int-idx)%5
+            key += group[key_idx]
+        
+        if int(key, 16) == self.program_int:
+            return True
+        else:
+            return False
+
+# Get licensing status
+USER_DIR = os.path.expanduser("~")
+if sys.platform == "win32":
+     APPDATA_DIR = os.path.join(USER_DIR, "AppData", "Roaming")
+elif sys.platform == "linux":
+    APPDATA_DIR = os.path.join(USER_DIR, ".local", "share")
+elif sys.platform == "darwin":
+    APPDATA_DIR = os.path.join(USER_DIR, "Library", "Application Support")
+else:
+    APPDATA_DIR = USER_DIR
+KEY_FILE = os.path.join(APPDATA_DIR, TITLE, "key")
+if IS_EXE:
+    if os.path.isfile(KEY_FILE):
+        with open(KEY_FILE, "r") as f:
+            key = f.read()
+        key = key.strip("\n").strip("\r").strip()
+        IS_REGISTERED = KeyValidate(TITLE).is_key_valid(key)
+        del(key)
+        
+        if not IS_REGISTERED:
+            os.remove(KEY_FILE)
+    else:
+        IS_REGISTERED = False
+else:
+    IS_REGISTERED = True
 
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
