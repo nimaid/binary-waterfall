@@ -24,10 +24,12 @@ from PyQt5.QtWidgets import (
     QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
     QMessageBox,
     QAbstractButton,
-    QSlider, QDial
+    QSlider, QDial,
+    QStyle
 )
 from PyQt5.QtGui import (
-    QImage, QPixmap, QIcon, QPainter
+    QImage, QPixmap, QIcon,
+    QPainter
 )
 
 # Test if this is a PyInstaller executable or a .py file
@@ -845,6 +847,32 @@ class ImageButton(QAbstractButton):
     def sizeHint(self):
         return self.pixmap.size()
 
+class SeekBar(QSlider):
+    def __init__(self,
+        position_changed_function=None,
+        parent=None
+    ):
+        super(SeekBar, self).__init__(parent)
+        
+        self.position_changed_function = position_changed_function
+    
+    def set_position_changed_function(self, position_changed_function):
+        self.position_changed_function = position_changed_function
+    
+    def set_position_if_set(self, value):
+        if self.position_changed_function == None:
+            self.setValue(value)
+        else:
+            self.position_changed_function(value)
+    
+    def mousePressEvent(self, event):
+        value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), event.x(), self.width())
+        self.set_position_if_set(value)
+    
+    def mouseMoveEvent(self, event):
+        value = QStyle.sliderValueFromPosition(self.minimum(), self.maximum(), event.x(), self.width())
+        self.set_position_if_set(value)
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -859,7 +887,8 @@ class MyQMainWindow(QMainWindow):
         
         self.padding_px = 10
         
-        self.seek_bar = QSlider(Qt.Horizontal)
+        self.seek_bar = SeekBar()
+        self.seek_bar.setOrientation(Qt.Horizontal)
         self.seek_bar.setMinimum(0)
         self.update_seekbar()
         self.seek_bar.sliderMoved.connect(self.seekbar_moved)
@@ -873,6 +902,9 @@ class MyQMainWindow(QMainWindow):
             set_playbutton_function=self.set_play_button,
             set_seekbar_function=self.seek_bar.setValue
         )
+        
+        # Setup seek bar to correctly change player location
+        self.seek_bar.set_position_changed_function(self.seekbar_moved)
         
         # Save the pixmaps for later
         self.play_icons = {
@@ -1163,7 +1195,6 @@ class MyQMainWindow(QMainWindow):
             # We need to wait a moment for the size hint to be computed
             QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Make the seek bar respond to clicks
     #TODO: Make the seek bar look nicer
     #TODO: Add export screenshot option
     #TODO: Add export audio option
