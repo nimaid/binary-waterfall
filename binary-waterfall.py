@@ -503,6 +503,112 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
 
+# Define some stateless helper functions used throught the program
+def get_size_for_fit_frame(content_size, frame_size):
+    content_width, content_height = content_size
+    frame_width, frame_height = frame_size
+    
+    
+    # First, figure out which dim is limiting
+    aspect_ratio = content_width / content_height
+    height_if_limit_width = round(frame_width / aspect_ratio)
+    width_if_limit_height = round(frame_height * aspect_ratio)
+    if height_if_limit_width > frame_height:
+        limit_width = False
+    else:
+        limit_width = True
+    
+    # Now, compute the new content size
+    if limit_width:
+        fit_width = frame_width
+        fit_height = height_if_limit_width
+    else:
+        fit_width = width_if_limit_height
+        fit_height = frame_height
+    
+    fit_size = (fit_width, fit_height)
+    
+    result = {
+        "size": fit_size,
+        "limit_width": limit_width
+    }
+    
+    return result
+
+def fit_to_frame(
+    image,
+    frame_size,
+    scaling=Image.NEAREST,
+    transparent=False
+):
+    # Get new content size
+    fit_settings = get_size_for_fit_frame(
+        content_size=image.size,
+        frame_size=frame_size
+    )
+    content_size = fit_settings["size"]
+    
+    content_width, content_height = content_size
+    frame_width, frame_height = frame_size
+    
+    # Actually scale the content
+    resized_content = image.resize(content_size, scaling)
+    
+
+    # Make a black image
+    resized = Image.new(
+        mode="RGBA",
+        size=frame_size,
+        color="#000"
+    )
+    
+    # Set opacity
+    if transparent:
+        resized.setalpha(0)
+    
+    # Paste the content onto the background
+    if fit_settings["limit_width"]:
+        paste_x = 0
+        paste_y = round((frame_height - content_height) / 2)
+    else:
+        paste_x = round((frame_width - content_width) / 2)
+        paste_y = 0
+    resized.paste(resized_content, (paste_x, paste_y), resized_content)
+    
+    return resized
+
+# Watermarker class
+#   Handles watermarking images
+class Watermarker:
+    def __init__(self,
+        alpha=15
+    ):
+        self.img = Image.open(ICON_PATH["watermark"])
+        self.set_alpha(alpha)
+    
+    
+    
+    def set_alpha(self, alpha):
+        if alpha < 0 or alpha > 255:
+            raise ValueError("Alpha must be within the range 0-255")
+        
+        self.alpha = alpha
+    
+    def mark(self, image):
+        this_mark = self.img.copy()
+        this_mark.putalpha(self.alpha)
+        this_mark = fit_to_frame(
+            image=this_mark,
+            frame_size=image.size,
+            scaling=Image.BICUBIC
+        )
+        
+        output_image = image.copy()
+        
+        output_image.paste(this_mark, (0, 0), this_mark)
+        
+        return output_image
+
 # Audio settings input window
 #   User interface to set the audio settings (for computation)
 class AudioSettings(QDialog):
@@ -1285,6 +1391,12 @@ class MyQMainWindow(QMainWindow):
         self.export_menu_sequence.triggered.connect(self.export_sequence_clicked)
         self.export_menu.addAction(self.export_menu_sequence)
         
+        self.help_menu = self.main_menu.addMenu("&Help")
+        
+        self.help_menu_registration = QAction("&Registration...", self)
+        self.help_menu_registration.triggered.connect(self.registration_clicked)
+        self.help_menu.addAction(self.help_menu_registration)
+        
         # Set window to content size
         self.resize_window()
     
@@ -1558,6 +1670,9 @@ class MyQMainWindow(QMainWindow):
                     progress_dialog=progress_popup
                 )
     
+    def registration_clicked(self):
+        print("Wow")
+    
     #TODO: Add registration dialog (help menu)
     #TODO: Add an about dialog
     #TODO: Add export video option (require registration for no watermark)
@@ -1633,11 +1748,7 @@ class Player:
             color="#000"
         )
         
-        watermark = Image.open(ICON_PATH["watermark"])
-        watermark = watermark.resize((self.width, self.height), Image.BICUBIC)
-        
-        watermark.putalpha(15)
-        background_image.paste(watermark, (0, 0), watermark)
+        background_image = Watermarker().mark(background_image)
         
         img_bytestring = background_image.convert("RGB").tobytes()
         
@@ -1849,48 +1960,12 @@ class Renderer:
         if size == None:
             resized = source
         else:
-            width, height = size
-            
-            # First, figure out which dim is limiting
-            aspect_ratio = self.bw.width / self.bw.height
-            height_if_limit_width = round(width / aspect_ratio)
-            width_if_limit_height = round(height * aspect_ratio)
-            if height_if_limit_width > height:
-                limit_width = False
-            else:
-                limit_width = True
-            
-            # Now, compute the new content size
-            if limit_width:
-                content_width = width
-                content_height = height_if_limit_width
-            else:
-                content_width = width_if_limit_height
-                content_height = height
-            
-            content_size = (content_width, content_height)
-            
-            # Actually scale the content
-            resized_content = source.resize(content_size, Image.NEAREST)
-            
-            if keep_aspect:
-                resized = resized_content
-            else:
-                # Make a black image
-                resized = Image.new(
-                    mode="RGBA",
-                    size=size,
-                    color="#000"
-                )
-                
-                # Paste the content onto the background
-                if limit_width:
-                    paste_x = 0
-                    paste_y = round((height - content_height) / 2)
-                else:
-                    paste_x = round((width - content_width) / 2)
-                    paste_y = 0
-                resized.paste(resized_content, (paste_x, paste_y), resized_content)
+            resized = fit_to_frame(
+                image=source,
+                frame_size=size,
+                scaling=Image.NEAREST,
+                transparent=False
+            )
         
         final = resized.convert("RGB")
         
