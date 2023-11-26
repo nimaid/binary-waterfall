@@ -231,8 +231,13 @@ class BinaryWaterfall:
         RED = "r"
         GREEN = "g"
         BLUE = "b"
+        WHITE = "w"
         UNUSED = "x"
-        VALID_OPTIONS = "rgbx"
+        VALID_OPTIONS = "rgbwx"
+    
+    class ColorModeCode(Enum):
+        GRAYSCALE = 0
+        RGB = 1
     
     def set_dims(self, width, height):
         if width < 4:
@@ -251,31 +256,55 @@ class BinaryWaterfall:
         }
     
         color_format_string = color_format_string.strip().lower()
+        
         red_count = color_format_string.count(self.ColorFmtCode.RED.value)
-        if red_count != 1:
-            result["is_valid"] = False
-            result["message"] = f"Exactly 1 red channel format specifier \"{self.ColorFmtCode.RED.value}\" needed, but {red_count} were given in format string \"{color_format_string}\""
-            return result
-        
         green_count = color_format_string.count(self.ColorFmtCode.GREEN.value)
-        if green_count != 1:
-            result["is_valid"] = False
-            result["message"] = f"Exactly 1 green channel format specifier \"{self.ColorFmtCode.GREEN.value}\" needed, but {green_count} were given in format string \"{color_format_string}\""
-            return result
-        
         blue_count = color_format_string.count(self.ColorFmtCode.BLUE.value)
-        if blue_count != 1:
-            result["is_valid"] = False
-            result["message"] = f"Exactly 1 blue channel format specifier \"{self.ColorFmtCode.BLUE.value}\" needed, but {blue_count} were given in format string \"{color_format_string}\""
-            return result
-        
+        white_count = color_format_string.count(self.ColorFmtCode.WHITE.value)
         unused_count = color_format_string.count(self.ColorFmtCode.UNUSED.value)
+        
+        rgb_count = red_count + green_count + blue_count
+        
+        if white_count > 0:
+            color_mode = self.ColorModeCode.GRAYSCALE
+            
+            if rgb_count > 0:
+                result["is_valid"] = False
+                result["message"] = f"When using the grayscale mode formatter \"{self.ColorFmtCode.WHITE.value}\", you cannot use any of the RGB mode formatters \"{self.ColorFmtCode.RED.value}\", \"{self.ColorFmtCode.GREEN.value}\", or \"{self.ColorFmtCode.BLUE.value}\""
+                return result
+            
+            if white_count > 1:
+                result["is_valid"] = False
+                result["message"] = f"Exactly 1 white channel format specifier \"{self.ColorFmtCode.WHITE.value}\" needed, but {white_count} were given in format string \"{color_format_string}\""
+                return result
+        else:
+            color_mode = self.ColorModeCode.RGB
+            
+            if rgb_count < 1:
+                result["is_valid"] = False
+                result["message"] = f"A minimum of 1 color format specifer (\"{self.ColorFmtCode.RED.value}\", \"{self.ColorFmtCode.GREEN.value}\", \"{self.ColorFmtCode.BLUE.value}\", or \"{self.ColorFmtCode.WHITE.value}\") is required, but none were given in format string \"{color_format_string}\""
+                return result
+            
+            if red_count > 1:
+                result["is_valid"] = False
+                result["message"] = f"Exactly 1 red channel format specifier \"{self.ColorFmtCode.RED.value}\" allowed, but {red_count} were given in format string \"{color_format_string}\""
+                return result
+            
+            if green_count > 1:
+                result["is_valid"] = False
+                result["message"] = f"Exactly 1 green channel format specifier \"{self.ColorFmtCode.GREEN.value}\" allowed, but {green_count} were given in format string \"{color_format_string}\""
+                return result
+            
+            if blue_count > 1:
+                result["is_valid"] = False
+                result["message"] = f"Exactly 1 blue channel format specifier \"{self.ColorFmtCode.BLUE.value}\" allowed, but {blue_count} were given in format string \"{color_format_string}\""
+                return result
         
         color_format_list = list()
         for c in color_format_string:
             if c not in self.ColorFmtCode.VALID_OPTIONS.value:
                 result["is_valid"] = False
-                result["message"] = f"Color formatting codes only accept \"{self.ColorFmtCode.RED.value}\" = red, \"{self.ColorFmtCode.GREEN.value}\" = green, \"{self.ColorFmtCode.BLUE.value}\" = blue, \"{self.ColorFmtCode.UNUSED.value}\" = unused"
+                result["message"] = f"Color formatting codes only accept \"{self.ColorFmtCode.RED.value}\" = red, \"{self.ColorFmtCode.GREEN.value}\" = green, \"{self.ColorFmtCode.BLUE.value}\" = blue, \"{self.ColorFmtCode.WHITE.value}\" = white, \"{self.ColorFmtCode.UNUSED.value}\" = unused"
                 return result
             if c == self.ColorFmtCode.RED.value:
                 color_format_list.append(self.ColorFmtCode.RED)
@@ -283,12 +312,15 @@ class BinaryWaterfall:
                 color_format_list.append(self.ColorFmtCode.GREEN)
             elif c == self.ColorFmtCode.BLUE.value:
                 color_format_list.append(self.ColorFmtCode.BLUE)
+            elif c == self.ColorFmtCode.WHITE.value:
+                color_format_list.append(self.ColorFmtCode.WHITE)
             elif c == self.ColorFmtCode.UNUSED.value:
                 color_format_list.append(self.ColorFmtCode.UNUSED)
         
-        result["used_color_bytes"] = red_count + green_count + blue_count
+        result["used_color_bytes"] = rgb_count + white_count
         result["unused_color_bytes"] = unused_count
         result["color_bytes"] = result["used_color_bytes"] + result["unused_color_bytes"]
+        result["color_mode"] = color_mode
         result["color_format"] = color_format_list
         
         return result
@@ -403,6 +435,10 @@ class BinaryWaterfall:
                     elif c == self.ColorFmtCode.GREEN:
                         this_byte[1] = self.bytes[current_address:current_address+1] # Green
                     elif c == self.ColorFmtCode.BLUE:
+                        this_byte[2] = self.bytes[current_address:current_address+1] # Blue
+                    elif c == self.ColorFmtCode.WHITE:
+                        this_byte[0] = self.bytes[current_address:current_address+1] # Red
+                        this_byte[1] = self.bytes[current_address:current_address+1] # Green
                         this_byte[2] = self.bytes[current_address:current_address+1] # Blue
                     
                     current_address += 1
