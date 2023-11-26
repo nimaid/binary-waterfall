@@ -21,7 +21,7 @@ from PyQt5.QtWidgets import (
     QGridLayout, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton,
     QFileDialog, QAction,
-    QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
+    QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit, QCheckBox,
     QMessageBox,
     QAbstractButton,
     QSlider, QDial,
@@ -807,8 +807,9 @@ class ExportFrame(QDialog):
         
         self.width = width
         self.height = height
+        self.force_aspect = False
         
-        self.width_label = QLabel("Width:")
+        self.width_label = QLabel("Export Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.width_entry = QSpinBox()
@@ -819,7 +820,7 @@ class ExportFrame(QDialog):
         self.width_entry.setValue(self.width)
         self.width_entry.valueChanged.connect(self.width_entry_changed)
         
-        self.height_label = QLabel("Height:")
+        self.height_label = QLabel("Export Height:")
         self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.height_entry = QSpinBox()
@@ -829,6 +830,13 @@ class ExportFrame(QDialog):
         self.height_entry.setSuffix("px")
         self.height_entry.setValue(self.height)
         self.height_entry.valueChanged.connect(self.height_entry_changed)
+        
+        self.aspect_label = QLabel("Aspect Ratio:")
+        self.aspect_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.aspect_entry = QCheckBox("Force")
+        self.aspect_entry.setChecked(self.force_aspect)
+        self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
         
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
@@ -840,7 +848,9 @@ class ExportFrame(QDialog):
         self.main_layout.addWidget(self.width_entry, 0, 1)
         self.main_layout.addWidget(self.height_label, 1, 0)
         self.main_layout.addWidget(self.height_entry, 1, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
+        self.main_layout.addWidget(self.aspect_label, 2, 0)
+        self.main_layout.addWidget(self.aspect_entry, 2, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 3, 0, 1, 2)
 
         self.setLayout(self.main_layout)
         
@@ -853,6 +863,7 @@ class ExportFrame(QDialog):
         result = dict()
         result["width"] = self.width
         result["height"] = self.height
+        result["keep_aspect"] = self.keep_aspect
         
         return result
     
@@ -861,6 +872,12 @@ class ExportFrame(QDialog):
     
     def height_entry_changed(self, value):
         self.height = value
+    
+    def aspect_entry_changed(self, value):
+        if value == 0:
+            self.keep_aspect = False
+        else:
+            self.keep_aspect = True
     
 # Custom image-based button
 #   Allows very swaggy custom buttons
@@ -1300,7 +1317,8 @@ class MyQMainWindow(QMainWindow):
                 self.renderer.export_frame(
                     ms=self.player.get_position(),
                     filename=filename,
-                    size=(settings["width"], settings["height"])
+                    size=(settings["width"], settings["height"]),
+                    keep_aspect=settings["keep_aspect"]
                 )
     
     #TODO: Add export audio option
@@ -1567,7 +1585,8 @@ class Renderer:
     def export_frame(self,
         ms,
         filename,
-        size=None
+        size=None,
+        keep_aspect=False
     ):
         if self.bw.audio_filename == None:
             # If no file is loaded, make a black image
@@ -1579,11 +1598,52 @@ class Renderer:
         else:
             source = self.bw.get_frame_image(ms).convert("RGBA")
         
-        #TODO: Resize with aspect ratio, paste onto black/transparent
+        # Resize with aspect ratio, paste onto black
         if size == None:
             resized = source
         else:
-            resized = source.resize(size, Image.NEAREST)
+            width, height = size
+            
+            # First, figure out which dim is limiting
+            aspect_ratio = self.bw.width / self.bw.height
+            height_if_limit_width = round(width / aspect_ratio)
+            width_if_limit_height = round(height * aspect_ratio)
+            if height_if_limit_width > height:
+                limit_width = False
+            else:
+                limit_width = True
+            
+            # Now, compute the new content size
+            if limit_width:
+                content_width = width
+                content_height = height_if_limit_width
+            else:
+                content_width = width_if_limit_height
+                content_height = height
+            
+            content_size = (content_width, content_height)
+            
+            # Actually scale the content
+            resized_content = source.resize(content_size, Image.NEAREST)
+            
+            if keep_aspect:
+                resized = resized_content
+            else:
+                # Make a black image
+                resized = Image.new(
+                    mode="RGBA",
+                    size=size,
+                    color="#000"
+                )
+                
+                # Paste the content onto the background
+                if limit_width:
+                    paste_x = 0
+                    paste_y = round((height - content_height) / 2)
+                else:
+                    paste_x = round((width - content_width) / 2)
+                    paste_y = 0
+                resized.paste(resized_content, (paste_x, paste_y), resized_content)
         
         final = resized.convert("RGB")
         
