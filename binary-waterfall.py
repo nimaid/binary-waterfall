@@ -153,17 +153,19 @@ KEY_FILE = os.path.join(APPDATA_DIR, TITLE, "key")
 if IS_EXE:
     if os.path.isfile(KEY_FILE):
         with open(KEY_FILE, "r") as f:
-            key = f.read()
-        key = key.strip("\n").strip("\r").strip()
-        IS_REGISTERED = KeyValidate(TITLE).is_key_valid(key)
-        del(key)
+            SERIAL_KEY = f.read()
+        SERIAL_KEY = SERIAL_KEY.strip("\n").strip("\r").strip()
+        IS_REGISTERED = KeyValidate(TITLE).is_key_valid(SERIAL_KEY)
         
         if not IS_REGISTERED:
             os.remove(KEY_FILE)
+            SERIAL_KEY = None
     else:
         IS_REGISTERED = False
+        SERIAL_KEY = None
 else:
     IS_REGISTERED = True
+    SERIAL_KEY = None
 
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
@@ -791,6 +793,75 @@ class PlayerSettings(QDialog):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
 
+class ExportFrame(QDialog):
+    def __init__(self,
+        width,
+        height
+    ):
+        super().__init__()
+        self.setWindowTitle("Export Image")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.width = width
+        self.height = height
+        
+        self.width_label = QLabel("Width:")
+        self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.width_entry = QSpinBox()
+        self.width_entry.setMinimum(64)
+        self.width_entry.setMaximum(7680)
+        self.width_entry.setSingleStep(64)
+        self.width_entry.setSuffix("px")
+        self.width_entry.setValue(self.width)
+        self.width_entry.valueChanged.connect(self.width_entry_changed)
+        
+        self.height_label = QLabel("Height:")
+        self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.height_entry = QSpinBox()
+        self.height_entry.setMinimum(64)
+        self.height_entry.setMaximum(7680)
+        self.height_entry.setSingleStep(64)
+        self.height_entry.setSuffix("px")
+        self.height_entry.setValue(self.height)
+        self.height_entry.valueChanged.connect(self.height_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.width_label, 0, 0)
+        self.main_layout.addWidget(self.width_entry, 0, 1)
+        self.main_layout.addWidget(self.height_label, 1, 0)
+        self.main_layout.addWidget(self.height_entry, 1, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
+    def get_settings(self):
+        result = dict()
+        result["width"] = self.width
+        result["height"] = self.height
+        
+        return result
+    
+    def width_entry_changed(self, value):
+        self.width = value
+    
+    def height_entry_changed(self, value):
+        self.height = value
+    
 # Custom image-based button
 #   Allows very swaggy custom buttons
 class ImageButton(QAbstractButton):
@@ -886,6 +957,10 @@ class MyQMainWindow(QMainWindow):
         
         self.bw = BinaryWaterfall()
         
+        self.renderer = Renderer(
+            binary_waterfall=self.bw
+        )
+        
         self.padding_px = 10
         
         self.seek_bar = SeekBar()
@@ -906,6 +981,7 @@ class MyQMainWindow(QMainWindow):
         
         # Setup seek bar to correctly change player location
         self.seek_bar.set_position_changed_function(self.seekbar_moved)
+        
         
         # Save the pixmaps for later
         self.play_icons = {
@@ -1203,9 +1279,30 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
     
     def export_image_clicked(self):
-        print("I want image export!")
+        popup = ExportFrame(
+            width=self.player.width,
+            height=self.player.height
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            settings = popup.get_settings()
+            
+            filename, filetype = QFileDialog.getSaveFileName(
+                self,
+                "Export Image As...",
+                PROG_PATH,
+                f"JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;PNG (*{self.renderer.ImageFormatCode.PNG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+            )
+        
+            if filename != "":
+                self.renderer.export_frame(
+                    ms=self.player.get_position(),
+                    filename=filename,
+                    size=(settings["width"], settings["height"])
+                )
     
-    #TODO: Add export screenshot option
     #TODO: Add export audio option
     #TODO: Add export image sequence option
     #TODO: Add registration dialog (help menu)
@@ -1453,6 +1550,46 @@ class Player:
         # Re-open newly computed file
         self.set_audio_file(None)
         self.set_audio_file(self.bw.audio_filename)
+
+# Renderer class
+#   Provides an abstraction for rendering images, audio, and video to files
+class Renderer:
+    def __init__(self,
+        binary_waterfall,
+    ):
+        self.bw = binary_waterfall
+    
+    class ImageFormatCode(Enum):
+        JPEG = ".jpg"
+        PNG = ".png"
+        BITMAP = ".bmp"
+    
+    def export_frame(self,
+        ms,
+        filename,
+        size=None
+    ):
+        if self.bw.audio_filename == None:
+            # If no file is loaded, make a black image
+            source = Image.new(
+            mode="RGBA",
+            size=(self.bw.width, self.bw.height),
+            color="#000"
+        )
+        else:
+            source = self.bw.get_frame_image(ms).convert("RGBA")
+        
+        #TODO: Resize with aspect ratio, paste onto black/transparent
+        if size == None:
+            resized = source
+        else:
+            resized = source.resize(size, Image.NEAREST)
+        
+        final = resized.convert("RGB")
+        
+        final.save(filename)
+    
+    
 
 # Main window class
 #   Handles variables related to the main window.
