@@ -24,7 +24,8 @@ from PyQt5.QtWidgets import (
     QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
     QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
     QMessageBox,
-    QAbstractButton
+    QAbstractButton,
+    QSlider
 )
 from PyQt5.QtGui import (
     QImage, QPixmap, QIcon, QPainter
@@ -817,13 +818,21 @@ class MyQMainWindow(QMainWindow):
         
         self.bw = BinaryWaterfall()
         
+        self.padding_px = 10
+        
+        self.seek_bar = QSlider(Qt.Horizontal)
+        self.seek_bar.setMinimum(0)
+        self.update_seekbar()
+        self.seek_bar.sliderMoved.connect(self.seekbar_moved)
+        
         self.player_label = QLabel()
         self.player_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         
         self.player = Player(
             binary_waterfall=self.bw,
             display=self.player_label,
-            set_playbutton_function=self.set_play_button
+            set_playbutton_function=self.set_play_button,
+            set_seekbar_function=self.seek_bar.setValue
         )
         
         # Save the pixmaps for later
@@ -881,22 +890,23 @@ class MyQMainWindow(QMainWindow):
         self.transport_restart.clicked.connect(self.restart_clicked)
         
         self.transport_left_layout = QHBoxLayout()
-        self.transport_left_layout.setSpacing(10)
+        self.transport_left_layout.setSpacing(self.padding_px)
         self.transport_left_layout.addWidget(self.transport_restart,)
         self.transport_left_layout.addWidget(self.transport_back)
         
         self.transport_right_layout = QHBoxLayout()
-        self.transport_right_layout.setSpacing(10)
+        self.transport_right_layout.setSpacing(self.padding_px)
         self.transport_right_layout.addWidget(self.transport_forward)
         
         self.main_layout = QGridLayout()
-        self.main_layout.setContentsMargins(0,0,0,10)
-        self.main_layout.setSpacing(10)
+        self.main_layout.setContentsMargins(0,0,0,self.padding_px)
+        self.main_layout.setSpacing(self.padding_px)
         
         self.main_layout.addWidget(self.player_label, 0, 0, 1, 5, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addLayout(self.transport_left_layout, 1, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-        self.main_layout.addWidget(self.transport_play, 1, 2, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.main_layout.addLayout(self.transport_right_layout, 1, 3, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.main_layout.addWidget(self.seek_bar, 1, 0, 1, 5, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addLayout(self.transport_left_layout, 2, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        self.main_layout.addWidget(self.transport_play, 2, 2, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addLayout(self.transport_right_layout, 2, 3, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
@@ -932,7 +942,9 @@ class MyQMainWindow(QMainWindow):
         self.resize_window()
     
     def resize_window(self):
-        self.setFixedSize(self.sizeHint())
+        size_hint = self.sizeHint()
+        self.setFixedSize(size_hint)
+        self.seek_bar.setFixedSize(size_hint.width()-(self.padding_px*2), 20)
     
     def set_play_button(self, play):
         if play:
@@ -947,6 +959,17 @@ class MyQMainWindow(QMainWindow):
                 pixmap_hover=self.play_icons["pause"]["hover"],
                 pixmap_pressed=self.play_icons["pause"]["clicked"]
             )
+    
+    def update_seekbar(self):
+        if self.bw.filename == None:
+            self.seek_bar.setEnabled(False)
+            self.seek_bar.setValue(0)
+        else:
+            self.seek_bar.setMaximum(self.bw.audio_length_ms)
+            self.seek_bar.setEnabled(True)
+    
+    def seekbar_moved(self, position):
+        self.player.set_position(position)
     
     def pause_player(self):
         self.player.pause()
@@ -983,14 +1006,19 @@ class MyQMainWindow(QMainWindow):
         
         if filename != "":
             self.player.open_file(filename=filename)
+            
             file_path, file_title = os.path.split(filename)
             self.setWindowTitle(f"{TITLE} | {file_title}")
+            
+            self.update_seekbar()
     
     def close_file_clicked(self):
         self.pause_player()
         
         self.player.close_file()
         self.setWindowTitle(f"{TITLE}")
+        
+        self.update_seekbar()
     
     def audio_settings_clicked(self):
         popup = AudioSettings(
@@ -1048,9 +1076,9 @@ class MyQMainWindow(QMainWindow):
             # We need to wait a moment for the size hint to be computed
             QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Add transport bar (read-only)
-    #TODO: Make transport bar seekable
-    #TODO: Add player volume slider
+    #TODO: Add player volume
+    #TODO: Make the seek bar respond to clicks
+    #TODO: Make the seek bar look nicer
     #TODO: Add export screenshot option
     #TODO: Add export audio option
     #TODO: Add export image sequence option
@@ -1065,6 +1093,7 @@ class Player:
         binary_waterfall,
         display,
         set_playbutton_function=None,
+        set_seekbar_function=None,
         max_dim=640,
         fps=120
     ):
@@ -1075,6 +1104,8 @@ class Player:
         self.set_dims(max_dim=max_dim)
         
         self.set_play_button = set_playbutton_function
+        
+        self.set_seekbar_function = set_seekbar_function
         
         # Initialize player as black
         self.clear_image()
@@ -1089,6 +1120,7 @@ class Player:
         
         # Set set_image_timestamp to run when the audio position is changed
         self.audio.positionChanged.connect(self.set_image_timestamp)
+        self.audio.positionChanged.connect(self.set_seekbar_if_given)
         # Also, make sure it's updating more frequently (default is too slow when playing)
         self.fps_min = 1
         self.fps_max = 120
@@ -1183,6 +1215,10 @@ class Player:
     def set_playbutton_if_given(self, play):
         if self.set_play_button != None:
             self.set_play_button(play=play)
+    
+    def set_seekbar_if_given(self, ms):
+        if self.set_seekbar_function != None:
+            self.set_seekbar_function(ms)
     
     def state_changed_handler(self, media_state):
         if media_state == self.audio.PlayingState:
