@@ -92,7 +92,8 @@ ICON_PATH = {
     "volume": {
         "base": os.path.join(RESOURCE_PATH, "volume.png"),
         "mute": os.path.join(RESOURCE_PATH, "mute.png")
-    }
+    },
+    "watermark": os.path.join(RESOURCE_PATH, "watermark.png")
 }
 
 # Get licensing status
@@ -1021,7 +1022,7 @@ class MyQMainWindow(QMainWindow):
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
         
-        self.settings_menu = self.file_menu = self.main_menu.addMenu("&Settings")
+        self.settings_menu = self.main_menu.addMenu("&Settings")
         
         self.settings_menu_audio = QAction("&Audio...", self)
         self.settings_menu_audio.triggered.connect(self.audio_settings_clicked)
@@ -1034,6 +1035,12 @@ class MyQMainWindow(QMainWindow):
         self.settings_menu_player = QAction("&Player...", self)
         self.settings_menu_player.triggered.connect(self.player_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_player)
+        
+        self.export_menu = self.main_menu.addMenu("&Export")
+        
+        self.export_menu_image = QAction("&Image...", self)
+        self.export_menu_image.triggered.connect(self.export_image_clicked)
+        self.export_menu.addAction(self.export_menu_image)
         
         # Set window to content size
         self.resize_window()
@@ -1195,13 +1202,16 @@ class MyQMainWindow(QMainWindow):
             # We need to wait a moment for the size hint to be computed
             QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Make the seek bar look nicer
+    def export_image_clicked(self):
+        print("I want image export!")
+    
     #TODO: Add export screenshot option
     #TODO: Add export audio option
     #TODO: Add export image sequence option
-    #TODO: Add export video option (require registration)
     #TODO: Add registration dialog (help menu)
     #TODO: Add an about dialog
+    #TODO: Add export video option (require registration for no watermark)
+    #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
@@ -1266,7 +1276,19 @@ class Player:
         self.audio.setNotifyInterval(self.fps_delay_ms)
     
     def clear_image(self):
-        img_bytestring = bytes([0 for x in range(self.width * self.height * 3)])
+        background_image = Image.new(
+            mode="RGBA",
+            size=(self.width, self.height),
+            color="#000"
+        )
+        
+        watermark = Image.open(ICON_PATH["watermark"])
+        watermark = watermark.resize((self.width, self.height), Image.BICUBIC)
+        
+        watermark.putalpha(15)
+        background_image.paste(watermark, (0, 0), watermark)
+        
+        img_bytestring = background_image.convert("RGB").tobytes()
         
         qimg = QImage(
             img_bytestring,
