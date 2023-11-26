@@ -89,7 +89,7 @@ ICON_PATH = {
     }
 }
 
-# Key validation class
+# Get licensing status
 class KeyValidate:
     def __init__(self,
         program_id
@@ -104,6 +104,21 @@ class KeyValidate:
         self.program_int %= 0x10000
         self.program_offset = self.program_int % 5
     
+    def get_program_hex(self):
+        hex_string = hex(self.program_int)[2:].upper()
+        while len(hex_string) < 4:
+            hex_string = "0" + hex_string
+        return hex_string
+    
+    def get_magic(self, hex_string=None):
+        if hex_string == None:
+            hex_string = self.get_program_hex()
+        int_list = [int(x, 16) for x in hex_string]
+        magic_list = [x-min(int_list) for x in int_list]
+        magic = "".join([hex(x)[2:] for x in magic_list]).upper()
+        
+        return magic
+    
     def is_key_valid(self, key):
         if not re.match(r"^[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}-[A-F0-9]{5}$", key):
             return False
@@ -114,12 +129,10 @@ class KeyValidate:
             key_idx = (self.program_int-idx)%5
             key += group[key_idx]
         
-        if int(key, 16) == self.program_int:
+        if self.get_magic(key) == self.get_magic(key):
             return True
         else:
             return False
-
-# Get licensing status
 USER_DIR = os.path.expanduser("~")
 if sys.platform == "win32":
      APPDATA_DIR = os.path.join(USER_DIR, "AppData", "Roaming")
@@ -1041,7 +1054,9 @@ class MyQMainWindow(QMainWindow):
     #TODO: Add export screenshot option
     #TODO: Add export audio option
     #TODO: Add export image sequence option
-    #TODO: Add export video option
+    #TODO: Add export video option (require registration)
+    #TODO: Add registration dialog (help menu)
+    #TODO: Add an about dialog
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
