@@ -18,14 +18,13 @@ from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QGridLayout, QHBoxLayout,
+    QGridLayout, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton,
     QFileDialog, QAction,
-    QGraphicsView, QGraphicsScene, QGraphicsPixmapItem,
     QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit,
     QMessageBox,
     QAbstractButton,
-    QSlider
+    QSlider, QDial
 )
 from PyQt5.QtGui import (
     QImage, QPixmap, QIcon, QPainter
@@ -889,6 +888,17 @@ class MyQMainWindow(QMainWindow):
         self.transport_restart.setFixedSize(self.transport_restart.width, self.transport_restart.height)
         self.transport_restart.clicked.connect(self.restart_clicked)
         
+        self.volume_label = QLabel("Vol.:")
+        
+        self.volume_dial = QDial()
+        self.volume_dial.setFixedSize(50, 50)
+        self.volume_dial.setMinimum(0)
+        self.volume_dial.setMaximum(100)
+        self.volume_dial.setNotchesVisible(True)
+        self.volume_dial.setNotchTarget(5.2)
+        self.volume_dial.setValue(self.player.volume)
+        self.volume_dial.sliderMoved.connect(self.volume_slider_changed)
+        
         self.transport_left_layout = QHBoxLayout()
         self.transport_left_layout.setSpacing(self.padding_px)
         self.transport_left_layout.addWidget(self.transport_restart,)
@@ -897,6 +907,12 @@ class MyQMainWindow(QMainWindow):
         self.transport_right_layout = QHBoxLayout()
         self.transport_right_layout.setSpacing(self.padding_px)
         self.transport_right_layout.addWidget(self.transport_forward)
+        
+        self.voume_layout = QHBoxLayout()
+        self.voume_layout.addWidget(self.volume_label, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        self.voume_layout.addWidget(self.volume_dial, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.voume_layout.setSpacing(0)
+        self.voume_layout.setContentsMargins(0,0,self.padding_px,0)
         
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0,0,0,self.padding_px)
@@ -907,6 +923,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.addLayout(self.transport_left_layout, 2, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         self.main_layout.addWidget(self.transport_play, 2, 2, alignment=Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addLayout(self.transport_right_layout, 2, 3, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.main_layout.addLayout(self.voume_layout, 2, 4, alignment=Qt.AlignmentFlag.AlignCenter)
         
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
@@ -942,8 +959,16 @@ class MyQMainWindow(QMainWindow):
         self.resize_window()
     
     def resize_window(self):
+        # First, make largest elements smaller
+        self.seek_bar.setFixedSize(20, 20)
+        
+        # We need to wait a sec for the sizeHint to recompute
+        QTimer.singleShot(10, self.resize_window_helper)
+    
+    def resize_window_helper(self):
         size_hint = self.sizeHint()
         self.setFixedSize(size_hint)
+        
         self.seek_bar.setFixedSize(size_hint.width()-(self.padding_px*2), 20)
     
     def set_play_button(self, play):
@@ -993,6 +1018,9 @@ class MyQMainWindow(QMainWindow):
     
     def restart_clicked(self):
         self.player.restart()
+    
+    def volume_slider_changed(self, value):
+        self.player.set_volume(value)
     
     def open_file_clicked(self):
         self.pause_player()
@@ -1076,7 +1104,6 @@ class MyQMainWindow(QMainWindow):
             # We need to wait a moment for the size hint to be computed
             QTimer.singleShot(10, self.resize_window)
     
-    #TODO: Add player volume
     #TODO: Make the seek bar respond to clicks
     #TODO: Make the seek bar look nicer
     #TODO: Add export screenshot option
@@ -1175,6 +1202,7 @@ class Player:
         self.update_dims(self.max_dim)
     
     def set_volume(self, volume):
+        self.volume = volume
         self.audio.setVolume(volume)
     
     def scale_image(self, image):
