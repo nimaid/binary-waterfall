@@ -20,7 +20,8 @@ from PyQt5.QtWidgets import (
     QGridLayout, QHBoxLayout, QVBoxLayout,
     QLabel, QPushButton,
     QFileDialog, QAction,
-    QDialog, QDialogButtonBox, QSpinBox, QComboBox, QLineEdit, QCheckBox,
+    QDialog, QDialogButtonBox, QComboBox, QLineEdit, QCheckBox,
+    QSpinBox, QDoubleSpinBox,
     QMessageBox,
     QAbstractButton,
     QSlider, QDial,
@@ -385,6 +386,12 @@ class BinaryWaterfall:
         except FileNotFoundError:
             pass
     
+    def get_audio_length(self):
+        audio_length = pydub.AudioSegment.from_file(self.audio_filename).duration_seconds
+        audio_length_ms = math.ceil(audio_length * 1000)
+        
+        return audio_length_ms
+    
     def compute_audio(self):
         if self.filename == None:
             # If there is no file set, reset the vars
@@ -412,8 +419,7 @@ class BinaryWaterfall:
             shutil.move(temp_filename, self.audio_filename)
         
         # Get audio length
-        audio_length = pydub.AudioSegment.from_file(self.audio_filename).duration_seconds
-        self.audio_length_ms = math.ceil(audio_length * 1000)
+        self.audio_length_ms = self.get_audio_length()
     
     def change_filename(self, new_filename):
         self.set_filename(new_filename)
@@ -880,6 +886,112 @@ class ExportFrame(QDialog):
         else:
             self.keep_aspect = True
 
+# Export image sequence dialog
+#   User interface to export an image sequence
+class ExportSequence(QDialog):
+    def __init__(self,
+        width,
+        height
+    ):
+        super().__init__()
+        self.setWindowTitle("Export Image Sequence")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.width = width
+        self.height = height
+        self.fps = 60.0
+        self.keep_aspect = False
+        
+        self.fps_label = QLabel("FPS:")
+        self.fps_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.fps_entry = QDoubleSpinBox()
+        self.fps_entry.setMinimum(1.0)
+        self.fps_entry.setMaximum(120.0)
+        self.fps_entry.setSingleStep(1.0)
+        self.fps_entry.setSuffix("fps")
+        self.fps_entry.setValue(self.fps)
+        self.fps_entry.valueChanged.connect(self.fps_entry_changed)
+        
+        self.width_label = QLabel("Export Width:")
+        self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.width_entry = QSpinBox()
+        self.width_entry.setMinimum(64)
+        self.width_entry.setMaximum(7680)
+        self.width_entry.setSingleStep(64)
+        self.width_entry.setSuffix("px")
+        self.width_entry.setValue(self.width)
+        self.width_entry.valueChanged.connect(self.width_entry_changed)
+        
+        self.height_label = QLabel("Export Height:")
+        self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.height_entry = QSpinBox()
+        self.height_entry.setMinimum(64)
+        self.height_entry.setMaximum(7680)
+        self.height_entry.setSingleStep(64)
+        self.height_entry.setSuffix("px")
+        self.height_entry.setValue(self.height)
+        self.height_entry.valueChanged.connect(self.height_entry_changed)
+        
+        self.aspect_label = QLabel("Aspect Ratio:")
+        self.aspect_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.aspect_entry = QCheckBox("Force")
+        self.aspect_entry.setChecked(self.keep_aspect)
+        self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.fps_label, 0, 0)
+        self.main_layout.addWidget(self.fps_entry, 0, 1)
+        self.main_layout.addWidget(self.width_label, 1, 0)
+        self.main_layout.addWidget(self.width_entry, 1, 1)
+        self.main_layout.addWidget(self.height_label, 2, 0)
+        self.main_layout.addWidget(self.height_entry, 2, 1)
+        self.main_layout.addWidget(self.aspect_label, 3, 0)
+        self.main_layout.addWidget(self.aspect_entry, 3, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
+    def get_settings(self):
+        result = dict()
+        result["width"] = self.width
+        result["height"] = self.height
+        result["fps"] = self.fps
+        result["keep_aspect"] = self.keep_aspect
+        
+        return result
+    
+    def width_entry_changed(self, value):
+        self.width = value
+    
+    def height_entry_changed(self, value):
+        self.height = value
+    
+    def aspect_entry_changed(self, value):
+        if value == 0:
+            self.keep_aspect = False
+        else:
+            self.keep_aspect = True
+    
+    def fps_entry_changed(self, value):
+        self.fps = value
+
 # Custom image-based button
 #   Allows very swaggy custom buttons
 class ImageButton(QAbstractButton):
@@ -1141,6 +1253,10 @@ class MyQMainWindow(QMainWindow):
         self.export_menu_image.triggered.connect(self.export_image_clicked)
         self.export_menu.addAction(self.export_menu_image)
         
+        self.export_menu_sequence = QAction("&Image Sequence...", self)
+        self.export_menu_sequence.triggered.connect(self.export_sequence_clicked)
+        self.export_menu.addAction(self.export_menu_sequence)
+        
         # Set window to content size
         self.resize_window()
     
@@ -1366,9 +1482,42 @@ class MyQMainWindow(QMainWindow):
             self.renderer.export_audio(
                 filename=filename
             )
-
-    #TODO: Add export audio option
-    #TODO: Add export image sequence option
+    
+    def export_sequence_clicked(self):
+        if self.bw.audio_filename == None:
+            choice = QMessageBox.critical(
+                None,
+                "Error",
+                "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
+                QMessageBox.Cancel
+            )
+            return
+        
+        popup = ExportSequence(
+            width=self.player.width,
+            height=self.player.height
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            settings = popup.get_settings()
+            
+            filename, filetype = QFileDialog.getSaveFileName(
+                self,
+                "Export Image Sequence As...",
+                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
+                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+            )
+        
+            if filename != "":
+                self.renderer.export_sequence(
+                    filename=filename,
+                    size=(settings["width"], settings["height"]),
+                    fps=settings["fps"],
+                    keep_aspect=settings["keep_aspect"]
+                )
+    
     #TODO: Add registration dialog (help menu)
     #TODO: Add an about dialog
     #TODO: Add export video option (require registration for no watermark)
@@ -1633,12 +1782,18 @@ class Renderer:
         MP3 = ".mp3"
         FLAC = ".flac"
     
+    def make_file_path(self, filename):
+        file_path, file_title = os.path.split(filename)
+        os.makedirs(file_path, exist_ok=True)
+    
     def export_frame(self,
         ms,
         filename,
         size=None,
         keep_aspect=False
     ):
+        self.make_file_path(filename)
+        
         if self.bw.audio_filename == None:
             # If no file is loaded, make a black image
             source = Image.new(
@@ -1704,6 +1859,8 @@ class Renderer:
         filename_main, filename_ext = os.path.splitext(filename)
         filename_ext = filename_ext.lower()
         
+        self.make_file_path(filename)
+        
         if filename_ext == self.AudioFormatCode.WAVE.value:
             # Just copy the .wav file
             shutil.copy(self.bw.audio_filename, filename)
@@ -1713,6 +1870,35 @@ class Renderer:
         elif filename_ext == self.AudioFormatCode.FLAC.value:
             # Use Pydub to export FLAC
             pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="flac")
+    
+    def export_sequence(self,
+        filename,
+        fps,
+        size=None,
+        keep_aspect=False
+    ):
+        filename_main, filename_ext = os.path.splitext(filename)
+        
+        self.make_file_path(filename)
+        
+        audio_duration = self.bw.get_audio_length() / 1000
+        frame_count = round(audio_duration * fps)
+        
+        frame_number_digits = len(str(frame_count))
+        
+        for f in range(frame_count):
+            frame_number = str(f).rjust(frame_number_digits, "0")
+            frame_filename = f"{filename_main}_{frame_number}{filename_ext}"
+            frame_ms = round((f / fps) * 1000)
+            
+            print(f"Exporting frame {f+1}/{frame_count}") #TODO: Replace with actual progress bar on a blocking popup
+            
+            self.export_frame(
+                ms=frame_ms,
+                filename=frame_filename,
+                size=size,
+                keep_aspect=keep_aspect
+            )
 
 # Main window class
 #   Handles variables related to the main window.
