@@ -167,6 +167,7 @@ if IS_EXE:
 else:
     IS_REGISTERED = True
     SERIAL_KEY = None
+REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386"
 
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
@@ -1561,6 +1562,7 @@ class MyQMainWindow(QMainWindow):
     #TODO: Add an about dialog
     #TODO: Add export video option (require registration for no watermark)
     #TODO: Make the seek bar look nicer (rounded handle)
+    #TODO: Make the volume control look nicer
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
