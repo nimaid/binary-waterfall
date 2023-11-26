@@ -10,7 +10,6 @@ import shutil
 import math
 import wave
 import pydub
-import mutagen.wave
 import numpy as np
 import time
 from PIL import Image
@@ -413,7 +412,7 @@ class BinaryWaterfall:
             shutil.move(temp_filename, self.audio_filename)
         
         # Get audio length
-        audio_length = mutagen.wave.WAVE(self.audio_filename).info.length
+        audio_length = pydub.AudioSegment.from_file(self.audio_filename).duration_seconds
         self.audio_length_ms = math.ceil(audio_length * 1000)
     
     def change_filename(self, new_filename):
@@ -793,6 +792,8 @@ class PlayerSettings(QDialog):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
 
+# Export image dialog
+#   User interface to export a single frame
 class ExportFrame(QDialog):
     def __init__(self,
         width,
@@ -878,7 +879,7 @@ class ExportFrame(QDialog):
             self.keep_aspect = False
         else:
             self.keep_aspect = True
-    
+
 # Custom image-based button
 #   Allows very swaggy custom buttons
 class ImageButton(QAbstractButton):
@@ -1132,13 +1133,13 @@ class MyQMainWindow(QMainWindow):
         
         self.export_menu = self.main_menu.addMenu("&Export")
         
-        self.export_menu_image = QAction("&Image...", self)
-        self.export_menu_image.triggered.connect(self.export_image_clicked)
-        self.export_menu.addAction(self.export_menu_image)
-        
         self.export_menu_audio = QAction("&Audio...", self)
         self.export_menu_audio.triggered.connect(self.export_audio_clicked)
         self.export_menu.addAction(self.export_menu_audio)
+        
+        self.export_menu_image = QAction("&Image...", self)
+        self.export_menu_image.triggered.connect(self.export_image_clicked)
+        self.export_menu.addAction(self.export_menu_image)
         
         # Set window to content size
         self.resize_window()
@@ -1310,6 +1311,15 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
     
     def export_image_clicked(self):
+        if self.bw.audio_filename == None:
+            choice = QMessageBox.critical(
+                None,
+                "Error",
+                "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
+                QMessageBox.Cancel
+            )
+            return
+        
         popup = ExportFrame(
             width=self.player.width,
             height=self.player.height
@@ -1336,8 +1346,27 @@ class MyQMainWindow(QMainWindow):
                 )
     
     def export_audio_clicked(self):
-        print("Wow")
+        if self.bw.audio_filename == None:
+            choice = QMessageBox.critical(
+                None,
+                "Error",
+                "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
+                QMessageBox.Cancel
+            )
+            return
+        
+        filename, filetype = QFileDialog.getSaveFileName(
+            self,
+            "Export Audio As...",
+            os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.AudioFormatCode.MP3.value}"),
+            f"MP3 (*{self.renderer.AudioFormatCode.MP3.value});;WAV (*{self.renderer.AudioFormatCode.WAVE.value});;FLAC (*{self.renderer.AudioFormatCode.FLAC.value})"
+        )
     
+        if filename != "":
+            self.renderer.export_audio(
+                filename=filename
+            )
+
     #TODO: Add export audio option
     #TODO: Add export image sequence option
     #TODO: Add registration dialog (help menu)
@@ -1599,6 +1628,11 @@ class Renderer:
         PNG = ".png"
         BITMAP = ".bmp"
     
+    class AudioFormatCode(Enum):
+        WAVE = ".wav"
+        MP3 = ".mp3"
+        FLAC = ".flac"
+    
     def export_frame(self,
         ms,
         filename,
@@ -1666,7 +1700,19 @@ class Renderer:
         
         final.save(filename)
     
-    
+    def export_audio(self, filename):
+        filename_main, filename_ext = os.path.splitext(filename)
+        filename_ext = filename_ext.lower()
+        
+        if filename_ext == self.AudioFormatCode.WAVE.value:
+            # Just copy the .wav file
+            shutil.copy(self.bw.audio_filename, filename)
+        elif filename_ext == self.AudioFormatCode.MP3.value:
+            # Use Pydub to export MP3
+            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="mp3")
+        elif filename_ext == self.AudioFormatCode.FLAC.value:
+            # Use Pydub to export FLAC
+            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="flac")
 
 # Main window class
 #   Handles variables related to the main window.

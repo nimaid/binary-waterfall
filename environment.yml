@@ -12,5 +12,4 @@ dependencies:
     - pyinstaller-versionfile
     - numpy
     - PyQt5
-    - mutagen
     - pydub
