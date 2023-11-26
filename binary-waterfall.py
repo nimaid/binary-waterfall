@@ -807,7 +807,7 @@ class ExportFrame(QDialog):
         
         self.width = width
         self.height = height
-        self.force_aspect = False
+        self.keep_aspect = False
         
         self.width_label = QLabel("Export Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -835,7 +835,7 @@ class ExportFrame(QDialog):
         self.aspect_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         
         self.aspect_entry = QCheckBox("Force")
-        self.aspect_entry.setChecked(self.force_aspect)
+        self.aspect_entry.setChecked(self.keep_aspect)
         self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
         
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
@@ -999,6 +999,7 @@ class MyQMainWindow(QMainWindow):
         # Setup seek bar to correctly change player location
         self.seek_bar.set_position_changed_function(self.seekbar_moved)
         
+        self.set_file_savename()
         
         # Save the pixmaps for later
         self.play_icons = {
@@ -1135,6 +1136,10 @@ class MyQMainWindow(QMainWindow):
         self.export_menu_image.triggered.connect(self.export_image_clicked)
         self.export_menu.addAction(self.export_menu_image)
         
+        self.export_menu_audio = QAction("&Audio...", self)
+        self.export_menu_audio.triggered.connect(self.export_audio_clicked)
+        self.export_menu.addAction(self.export_menu_audio)
+        
         # Set window to content size
         self.resize_window()
     
@@ -1213,6 +1218,12 @@ class MyQMainWindow(QMainWindow):
         else:
             self.set_volume_icon(mute=False)
     
+    def set_file_savename(self, name=None):
+        if name == None:
+            self.file_savename = "Untitled"
+        else:
+            self.file_savename = name
+    
     def open_file_clicked(self):
         self.pause_player()
         
@@ -1227,6 +1238,7 @@ class MyQMainWindow(QMainWindow):
             self.player.open_file(filename=filename)
             
             file_path, file_title = os.path.split(filename)
+            self.set_file_savename(file_title)
             self.setWindowTitle(f"{TITLE} | {file_title}")
             
             self.update_seekbar()
@@ -1235,6 +1247,8 @@ class MyQMainWindow(QMainWindow):
         self.pause_player()
         
         self.player.close_file()
+        
+        self.set_file_savename()
         self.setWindowTitle(f"{TITLE}")
         
         self.update_seekbar()
@@ -1309,8 +1323,8 @@ class MyQMainWindow(QMainWindow):
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Image As...",
-                PROG_PATH,
-                f"JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;PNG (*{self.renderer.ImageFormatCode.PNG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
+                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
             )
         
             if filename != "":
@@ -1320,6 +1334,9 @@ class MyQMainWindow(QMainWindow):
                     size=(settings["width"], settings["height"]),
                     keep_aspect=settings["keep_aspect"]
                 )
+    
+    def export_audio_clicked(self):
+        print("Wow")
     
     #TODO: Add export audio option
     #TODO: Add export image sequence option
