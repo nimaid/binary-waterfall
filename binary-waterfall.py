@@ -86,6 +86,10 @@ ICON_PATH = {
             "clicked": os.path.join(RESOURCE_PATH, "restartC.png"),
             "hover": os.path.join(RESOURCE_PATH, "restartH.png")
         }
+    },
+    "volume": {
+        "base": os.path.join(RESOURCE_PATH, "volume.png"),
+        "mute": os.path.join(RESOURCE_PATH, "mute.png")
     }
 }
 
@@ -888,7 +892,15 @@ class MyQMainWindow(QMainWindow):
         self.transport_restart.setFixedSize(self.transport_restart.width, self.transport_restart.height)
         self.transport_restart.clicked.connect(self.restart_clicked)
         
-        self.volume_label = QLabel("Vol.:")
+        self.volume_icons = {
+            "base": QPixmap(ICON_PATH["volume"]["base"]),
+            "mute": QPixmap(ICON_PATH["volume"]["mute"]),
+        }
+        
+        self.volume_label = QLabel()
+        self.volume_label.setScaledContents(True)
+        self.volume_label.setFixedSize(20, 20)
+        self.set_volume_icon(mute=False)
         
         self.volume_dial = QDial()
         self.volume_dial.setFixedSize(50, 50)
@@ -911,7 +923,7 @@ class MyQMainWindow(QMainWindow):
         self.voume_layout = QHBoxLayout()
         self.voume_layout.addWidget(self.volume_label, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
         self.voume_layout.addWidget(self.volume_dial, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self.voume_layout.setSpacing(0)
+        self.voume_layout.setSpacing(self.padding_px)
         self.voume_layout.setContentsMargins(0,0,self.padding_px,0)
         
         self.main_layout = QGridLayout()
@@ -985,6 +997,12 @@ class MyQMainWindow(QMainWindow):
                 pixmap_pressed=self.play_icons["pause"]["clicked"]
             )
     
+    def set_volume_icon(self, mute):
+        if mute:
+            self.volume_label.setPixmap(self.volume_icons["mute"])
+        else:
+            self.volume_label.setPixmap(self.volume_icons["base"])
+    
     def update_seekbar(self):
         if self.bw.filename == None:
             self.seek_bar.setEnabled(False)
@@ -1021,6 +1039,11 @@ class MyQMainWindow(QMainWindow):
     
     def volume_slider_changed(self, value):
         self.player.set_volume(value)
+        
+        if value == 0:
+            self.set_volume_icon(mute=True)
+        else:
+            self.set_volume_icon(mute=False)
     
     def open_file_clicked(self):
         self.pause_player()
