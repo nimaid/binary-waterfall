@@ -190,6 +190,8 @@ class BinaryWaterfall:
         sample_rate=32000,
         volume=100
     ):
+        self.temp_dir = tempfile.mkdtemp()
+        
         self.audio_filename = None  # Pre-init this to make sure delete_audio works
         self.set_filename(filename=filename)
         
@@ -235,7 +237,7 @@ class BinaryWaterfall:
         # Compute audio file name
         file_path, file_main_name = os.path.split(self.filename)
         self.audio_filename = os.path.join(
-            PATH,
+            self.temp_dir,
             file_main_name + os.path.extsep + "wav"
         )
     
@@ -389,7 +391,7 @@ class BinaryWaterfall:
             # Do nothing
             return
         try:
-            os.remove(self.audio_filename)
+           os.remove(self.audio_filename)
         except FileNotFoundError:
             pass
     
@@ -499,6 +501,7 @@ class BinaryWaterfall:
     
     def cleanup(self):
         self.delete_audio()
+        shutil.rmtree(self.temp_dir)
 
 # Define some stateless helper functions used throught the program
 def get_size_for_fit_frame(content_size, frame_size):
