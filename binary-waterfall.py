@@ -14,6 +14,7 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 import numpy as np
 import time
 import tempfile
+from proglog import ProgressBarLogger
 from PIL import Image, ImageOps
 from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
@@ -598,6 +599,24 @@ class Watermarker:
         output_image.paste(this_mark, (0, 0), this_mark)
         
         return output_image
+
+# Custom proglog class for QProgressDialogs
+#   Handles updating the progress in a QProgressDialog
+#   Designed to work with moviepy's export option
+class QtBarLoggerMoviepy(ProgressBarLogger):
+    def set_progress_dialog(self, progress_dialog):
+        self.progress_dialog = progress_dialog
+        progress_dialog.setMaximum(100)
+    
+    def callback(self, **changes):
+        if "message" in changes:
+            message = changes["message"].lower()
+            if "building" in message:
+                self.progress_dialog.setValue(5)
+            elif "writing" in message:
+                self.progress_dialog.setValue(10)
+            elif "ready" in message:
+                self.progress_dialog.setValue(100)
 
 # Audio settings input window
 #   User interface to set the audio settings (for computation)
@@ -2051,9 +2070,9 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Make a custom Proglog class to handle updating a Qt progress dialog (https://github.com/Edinburgh-Genome-Foundry/Proglog)
+    #TODO: Make the volume control look nicer (slider)
+    #TODO: Make speaker icon a button to toggle mute
     #TODO: Make the seek bar look nicer (rounded handle)
-    #TODO: Make the volume control look nicer
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
@@ -2460,17 +2479,17 @@ class Renderer:
                 shutil.rmtree(temp_dir)
                 return
             
-            # Reset progress dialog and enable reset at max
-            progress_dialog.setValue(0)
-            progress_dialog.setMaximum(100)
-            progress_dialog.setAutoReset(True)
+            # Reset progress dialog
             progress_dialog.setLabelText("Splicing final video file...")
+            progress_dialog.setValue(0)
+            
         
         # Export audio
         self.export_audio(audio_file)
         
-        if progress_dialog != None:
-            progress_dialog.setValue(1)
+        # Prepare the custom logger to update the progress box
+        custom_logger = QtBarLoggerMoviepy()
+        custom_logger.set_progress_dialog(progress_dialog)
         
         # Make a list of the image filenames
         frames_list = list()
@@ -2483,14 +2502,18 @@ class Renderer:
         audio_clip = AudioFileClip(audio_file)
         
         video_clip = sequence_clip.set_audio(audio_clip)
-        video_clip.write_videofile(video_file, logger=None)
+        video_clip.write_videofile(video_file, logger=custom_logger)
         
         if progress_dialog != None:
-            progress_dialog.setValue(99)
-            
             if progress_dialog.wasCanceled():
                 shutil.rmtree(temp_dir)
                 return
+            
+            # Reset progress dialog and set to exit on completion
+            progress_dialog.setLabelText("Wrapping up...")
+            progress_dialog.setValue(0)
+            progress_dialog.setMaximum(100)
+            progress_dialog.setAutoReset(True)
         
         # Move video to final location
         os.makedirs(filename_path, exist_ok=True)
