@@ -1652,12 +1652,15 @@ class MyQMainWindow(QMainWindow):
         
         self.transport_left_layout = QHBoxLayout()
         self.transport_left_layout.setSpacing(self.padding_px)
-        self.transport_left_layout.addWidget(self.transport_restart,)
+        self.transport_left_layout.addWidget(self.transport_restart)
         self.transport_left_layout.addWidget(self.transport_back)
+        
+        self.restart_counterpad = QLabel()
         
         self.transport_right_layout = QHBoxLayout()
         self.transport_right_layout.setSpacing(self.padding_px)
         self.transport_right_layout.addWidget(self.transport_forward)
+        self.transport_right_layout.addWidget(self.restart_counterpad)
         
         self.voume_layout = QGridLayout()
         self.voume_layout.setContentsMargins(0,0,self.padding_px,0)
@@ -1742,6 +1745,9 @@ class MyQMainWindow(QMainWindow):
         # First, make largest elements smaller
         self.seek_bar.setFixedSize(20, 20)
         
+        # Next, we update counterpadding
+        self.update_counterpad_size()
+        
         # We need to wait a sec for the sizeHint to recompute
         QTimer.singleShot(10, self.resize_window_helper)
     
@@ -1750,6 +1756,9 @@ class MyQMainWindow(QMainWindow):
         self.setFixedSize(size_hint)
         
         self.seek_bar.setFixedSize(size_hint.width()-(self.padding_px*2), 20)
+    
+    def update_counterpad_size(self):
+        self.restart_counterpad.setFixedSize(self.transport_restart.sizeHint())
     
     def set_play_button(self, play):
         if play:
@@ -2100,7 +2109,6 @@ class MyQMainWindow(QMainWindow):
         result = popup.exec()
     
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
-    #TODO: Fix center buttons being offset (maybe add an empty padding label with the volume layout sizeHint?)
     #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
@@ -2385,7 +2393,6 @@ class Renderer:
             color="#000"
         )
         else:
-            #TODO: Not exporting correct bw size? Outdated...
             source = self.bw.get_frame_image(ms).convert("RGBA")
         
         # Resize with aspect ratio, paste onto black
