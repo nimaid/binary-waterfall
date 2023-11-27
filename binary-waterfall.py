@@ -1628,19 +1628,23 @@ class MyQMainWindow(QMainWindow):
             "mute": QPixmap(ICON_PATH["volume"]["mute"]),
         }
         
-        self.volume_label = QLabel()
-        self.volume_label.setScaledContents(True)
-        self.volume_label.setFixedSize(20, 20)
+        self.mute_label = QLabel()
+        self.mute_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.mute_label.setScaledContents(True)
+        self.mute_label.setFixedSize(20, 20)
         self.set_volume_icon(mute=False)
         
-        self.volume_dial = QDial()
-        self.volume_dial.setFixedSize(50, 50)
-        self.volume_dial.setMinimum(0)
-        self.volume_dial.setMaximum(100)
-        self.volume_dial.setNotchesVisible(True)
-        self.volume_dial.setNotchTarget(5.2)
-        self.volume_dial.setValue(self.player.volume)
-        self.volume_dial.sliderMoved.connect(self.volume_slider_changed)
+        self.volume_label = QLabel()
+        self.volume_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.volume_label.setFixedWidth(30)
+        self.set_volume_label_value(self.player.volume)
+        
+        self.volume_slider = QSlider(Qt.Vertical)
+        self.volume_slider.setFixedSize(20, 50)
+        self.volume_slider.setMinimum(0)
+        self.volume_slider.setMaximum(100)
+        self.volume_slider.setValue(self.player.volume)
+        self.volume_slider.valueChanged.connect(self.volume_slider_changed)
         
         self.transport_left_layout = QHBoxLayout()
         self.transport_left_layout.setSpacing(self.padding_px)
@@ -1651,11 +1655,13 @@ class MyQMainWindow(QMainWindow):
         self.transport_right_layout.setSpacing(self.padding_px)
         self.transport_right_layout.addWidget(self.transport_forward)
         
-        self.voume_layout = QHBoxLayout()
-        self.voume_layout.addWidget(self.volume_label, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-        self.voume_layout.addWidget(self.volume_dial, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.voume_layout = QGridLayout()
         self.voume_layout.setSpacing(self.padding_px)
         self.voume_layout.setContentsMargins(0,0,self.padding_px,0)
+        
+        self.voume_layout.addWidget(self.mute_label, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.voume_layout.addWidget(self.volume_label, 1, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.voume_layout.addWidget(self.volume_slider, 0, 1, 2, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0,0,0,self.padding_px)
@@ -1758,9 +1764,12 @@ class MyQMainWindow(QMainWindow):
     
     def set_volume_icon(self, mute):
         if mute:
-            self.volume_label.setPixmap(self.volume_icons["mute"])
+            self.mute_label.setPixmap(self.volume_icons["mute"])
         else:
-            self.volume_label.setPixmap(self.volume_icons["base"])
+            self.mute_label.setPixmap(self.volume_icons["base"])
+    
+    def set_volume_label_value(self, value):
+        self.volume_label.setText(f"{value}%")
     
     def update_seekbar(self):
         if self.bw.filename == None:
@@ -1798,6 +1807,7 @@ class MyQMainWindow(QMainWindow):
     
     def volume_slider_changed(self, value):
         self.player.set_volume(value)
+        self.set_volume_label_value(value)
         
         if value == 0:
             self.set_volume_icon(mute=True)
@@ -2070,7 +2080,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Make the volume control look nicer (slider)
     #TODO: Make speaker icon a button to toggle mute
     #TODO: Make the seek bar look nicer (rounded handle)
 
