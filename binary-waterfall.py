@@ -556,18 +556,20 @@ def fit_to_frame(
     
     # Actually scale the content
     resized_content = image.resize(content_size, scaling)
-    
 
     # Make a black image
-    resized = Image.new(
-        mode="RGBA",
-        size=frame_size,
-        color="#000"
-    )
-    
-    # Set opacity
     if transparent:
-        resized.setalpha(0)
+        resized = Image.new(
+            mode="RGBA",
+            size=frame_size,
+            color=(0, 0, 0, 0)
+        )
+    else:
+        resized = Image.new(
+            mode="RGBA",
+            size=frame_size,
+            color=(0, 0, 0, 255)
+        )
     
     # Paste the content onto the background
     if fit_settings["limit_width"]:
@@ -583,31 +585,19 @@ def fit_to_frame(
 # Watermarker class
 #   Handles watermarking images
 class Watermarker:
-    def __init__(self,
-        alpha=15
-    ):
-        self.img = Image.open(ICON_PATH["watermark"])
-        self.set_alpha(alpha)
-    
-    
-    
-    def set_alpha(self, alpha):
-        if alpha < 0 or alpha > 255:
-            raise ValueError("Alpha must be within the range 0-255")
-        
-        self.alpha = alpha
+    def __init__(self):
+        self.img = Image.open(ICON_PATH["watermark"]).convert("RGBA")
     
     def mark(self, image):
         this_mark = self.img.copy()
-        this_mark.putalpha(self.alpha)
         this_mark = fit_to_frame(
             image=this_mark,
             frame_size=image.size,
-            scaling=Image.BICUBIC
+            scaling=Image.BICUBIC,
+            transparent=True
         )
         
         output_image = image.copy()
-        
         output_image.paste(this_mark, (0, 0), this_mark)
         
         return output_image
@@ -2141,6 +2131,7 @@ class Renderer:
         binary_waterfall,
     ):
         self.bw = binary_waterfall
+        self.watermarker = Watermarker()
     
     class ImageFormatCode(Enum):
         JPEG = ".jpg"
@@ -2160,7 +2151,8 @@ class Renderer:
         ms,
         filename,
         size=None,
-        keep_aspect=False
+        keep_aspect=False,
+        watermark=True
     ):
         self.make_file_path(filename)
         
@@ -2184,6 +2176,10 @@ class Renderer:
                 scaling=Image.NEAREST,
                 transparent=False
             )
+        
+        # Watermark
+        if watermark:
+            resized = self.watermarker.mark(resized)
         
         final = resized.convert("RGB")
         
