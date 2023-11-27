@@ -2099,8 +2099,7 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Make speaker icon a button to toggle mute
-    #TODO: Bind keypress events (volume, skip, play/pause)
+    #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
     #TODO: Fix center buttons being offset (maybe add an empty padding label with the volume layout sizeHint?)
     #TODO: Make the seek bar look nicer (rounded handle)
 
