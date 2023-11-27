@@ -462,7 +462,7 @@ class BinaryWaterfall:
                 
                 picture_bytes += b"".join(this_byte)
         
-        full_length = (self.width * self.height * self.used_color_bytes)
+        full_length = (self.width * self.height * 3)
         picture_bytes_length = len(picture_bytes)
         # Pad picture data if we're near the end of the file
         if picture_bytes_length < full_length:
@@ -2018,7 +2018,7 @@ class MyQMainWindow(QMainWindow):
                 frame_count = self.renderer.get_frame_count(
                     fps=settings["fps"]
                 )
-                progress_popup = QProgressDialog("Exporting video...", "Abort", 0, frame_count, self)
+                progress_popup = QProgressDialog("Rendering frames...", "Abort", 0, frame_count, self)
                 progress_popup.setWindowModality(Qt.WindowModal)
                 progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
                 progress_popup.setWindowTitle("Exporting Video...")
@@ -2048,7 +2048,7 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Give feedback for 2nd and 3rd render steps (make a MultiProgressDialog class to handle making new windows after the 1st) (will have an internal dict with the popup objects)
+    #TODO: Change temp wav file path to a tempfile one
     #TODO: Make a custom Proglog class to handle updating a Qt progress dialog (https://github.com/Edinburgh-Genome-Foundry/Proglog)
     #TODO: Make the seek bar look nicer (rounded handle)
     #TODO: Make the volume control look nicer
@@ -2438,6 +2438,10 @@ class Renderer:
         frames_file = os.path.join(temp_dir, "frames.txt")
         video_file = os.path.join(temp_dir, f"video{filename_ext}")
         
+        # Set progress dialog to not close when at max
+        if progress_dialog != None:
+            progress_dialog.setAutoReset(False)
+        
         # Export image sequence
         self.export_sequence(
             directory=image_dir,
@@ -2449,12 +2453,22 @@ class Renderer:
             progress_dialog=progress_dialog
         )
         
-        if progress_dialog.wasCanceled():
-            shutil.rmtree(temp_dir)
-            return
+        if progress_dialog != None:
+            if progress_dialog.wasCanceled():
+                shutil.rmtree(temp_dir)
+                return
+            
+            # Reset progress dialog and enable reset at max
+            progress_dialog.setValue(0)
+            progress_dialog.setMaximum(100)
+            progress_dialog.setAutoReset(True)
+            progress_dialog.setLabelText("Splicing final video file...")
         
         # Export audio
         self.export_audio(audio_file)
+        
+        if progress_dialog != None:
+            progress_dialog.setValue(1)
         
         # Make a list of the image filenames
         frames_list = list()
@@ -2469,12 +2483,22 @@ class Renderer:
         video_clip = sequence_clip.set_audio(audio_clip)
         video_clip.write_videofile(video_file, logger=None)
         
+        if progress_dialog != None:
+            progress_dialog.setValue(99)
+            
+            if progress_dialog.wasCanceled():
+                shutil.rmtree(temp_dir)
+                return
+        
         # Move video to final location
         os.makedirs(filename_path, exist_ok=True)
         shutil.move(video_file, filename)
         
         # Delete temporary files
         shutil.rmtree(temp_dir)
+        
+        if progress_dialog != None:
+            progress_dialog.setValue(100)
 
 # Main window class
 #   Handles variables related to the main window.
@@ -2501,18 +2525,9 @@ def file_path(string):
 # Parse arguments
 def parse_args(args):
     parser = argparse.ArgumentParser(
-        description=f"{DESCRIPTION}\n\nDefault parameters are shown in [brackets].",
+        description=f"{DESCRIPTION}",
         formatter_class=argparse.RawDescriptionHelpFormatter
     )
-    
-    '''
-    parser.add_argument("-1", "--first", dest="first_arg", type=float, required=True,
-        help="the first argument")
-    parser.add_argument("-2", "--second", dest="second_arg", type=float, required=False, default=1.0,
-        help="the second argument [1]")
-    parser.add_argument("-o", "--operaton", dest="opcode", type=str, required=False, default="+",
-        help="the operation to perform on the arguments, either \"+\", \"-\", \"*\", or \"/\" [+]")
-    '''
     
     parsed_args, unparsed_args = parser.parse_known_args()
     return parsed_args, unparsed_args
