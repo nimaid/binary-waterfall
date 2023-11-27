@@ -2127,7 +2127,7 @@ class Player:
         display,
         set_playbutton_function=None,
         set_seekbar_function=None,
-        max_dim=640,
+        max_dim=512,
         fps=120
     ):
         self.bw = binary_waterfall
