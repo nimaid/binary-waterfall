@@ -14,6 +14,7 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 import numpy as np
 import time
 import tempfile
+import webbrowser
 from proglog import ProgressBarLogger
 from PIL import Image, ImageOps
 from PyQt5.QtCore import Qt, QUrl, QTimer, QSize
@@ -1377,8 +1378,12 @@ class RegistrationEntry(QDialog):
         self.serial_entry.setText(self.serial)
         self.serial_entry.editingFinished.connect(self.serial_entry_changed)
         
+        self.buy_button = QPushButton("Buy...")
+        self.buy_button.clicked.connect(self.buy_button_clicked)
+        
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
         self.confirm_buttons.button(QDialogButtonBox.Ok).setText("Register")
+        self.confirm_buttons.addButton(self.buy_button, QDialogButtonBox.ResetRole)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
         
@@ -1410,7 +1415,10 @@ class RegistrationEntry(QDialog):
             self.key_is_valid = True
         else:
             self.key_is_valid = False
-
+    
+    def buy_button_clicked(self):
+        webbrowser.open(REGISTER_URL)
+    
 # About dialog
 #   Gives info about the program
 class About(QDialog):
@@ -1686,55 +1694,55 @@ class MyQMainWindow(QMainWindow):
         
         self.main_menu = self.menuBar()
         
-        self.file_menu = self.main_menu.addMenu("&File")
+        self.file_menu = self.main_menu.addMenu("File")
         
-        self.file_menu_open = QAction("&Open...", self)
+        self.file_menu_open = QAction("Open...", self)
         self.file_menu_open.triggered.connect(self.open_file_clicked)
         self.file_menu.addAction(self.file_menu_open)
         
-        self.file_menu_close = QAction("&Close", self)
+        self.file_menu_close = QAction("Close", self)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
         
-        self.settings_menu = self.main_menu.addMenu("&Settings")
+        self.settings_menu = self.main_menu.addMenu("Settings")
         
-        self.settings_menu_audio = QAction("&Audio...", self)
+        self.settings_menu_audio = QAction("Audio...", self)
         self.settings_menu_audio.triggered.connect(self.audio_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_audio)
         
-        self.settings_menu_video = QAction("&Video...", self)
+        self.settings_menu_video = QAction("Video...", self)
         self.settings_menu_video.triggered.connect(self.video_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_video)
         
-        self.settings_menu_player = QAction("&Player...", self)
+        self.settings_menu_player = QAction("Player...", self)
         self.settings_menu_player.triggered.connect(self.player_settings_clicked)
         self.settings_menu.addAction(self.settings_menu_player)
         
-        self.export_menu = self.main_menu.addMenu("&Export")
+        self.export_menu = self.main_menu.addMenu("Export")
         
-        self.export_menu_audio = QAction("&Audio...", self)
+        self.export_menu_audio = QAction("Audio...", self)
         self.export_menu_audio.triggered.connect(self.export_audio_clicked)
         self.export_menu.addAction(self.export_menu_audio)
         
-        self.export_menu_image = QAction("&Image...", self)
+        self.export_menu_image = QAction("Image...", self)
         self.export_menu_image.triggered.connect(self.export_image_clicked)
         self.export_menu.addAction(self.export_menu_image)
         
-        self.export_menu_sequence = QAction("&Image Sequence...", self)
+        self.export_menu_sequence = QAction("Image Sequence...", self)
         self.export_menu_sequence.triggered.connect(self.export_sequence_clicked)
         self.export_menu.addAction(self.export_menu_sequence)
         
-        self.export_menu_video = QAction("&Video...", self)
+        self.export_menu_video = QAction("Video...", self)
         self.export_menu_video.triggered.connect(self.export_video_clicked)
         self.export_menu.addAction(self.export_menu_video)
         
-        self.help_menu = self.main_menu.addMenu("&Help")
+        self.help_menu = self.main_menu.addMenu("Help")
         
-        self.help_menu_registration = QAction("&Registration...", self)
+        self.help_menu_registration = QAction("Registration...", self)
         self.help_menu_registration.triggered.connect(self.registration_clicked)
         self.help_menu.addAction(self.help_menu_registration)
         
-        self.help_menu_about = QAction(f"&About...", self)
+        self.help_menu_about = QAction("About...", self)
         self.help_menu_about.triggered.connect(self.about_clicked)
         self.help_menu.addAction(self.help_menu_about)
         
@@ -2108,6 +2116,7 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
+    #TODO: Add a button to buy a key in the browser
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
     #TODO: Make the seek bar look nicer (rounded handle)
 
