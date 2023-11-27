@@ -2116,7 +2116,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Add a button to buy a key in the browser
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
     #TODO: Make the seek bar look nicer (rounded handle)
 
