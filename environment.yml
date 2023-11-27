@@ -13,3 +13,4 @@ dependencies:
     - numpy
     - PyQt5
     - pydub
+    - moviepy

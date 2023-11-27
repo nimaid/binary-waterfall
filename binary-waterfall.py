@@ -10,8 +10,10 @@ import shutil
 import math
 import wave
 import pydub
+from moviepy.editor import ImageSequenceClip, AudioFileClip
 import numpy as np
 import time
+import tempfile
 from PIL import Image
 from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
@@ -1118,6 +1120,112 @@ class ExportSequence(QDialog):
         elif value == 2:
             self.format = Renderer.ImageFormatCode.BITMAP
 
+# Export video dialog
+#   User interface to export a video
+class ExportVideo(QDialog):
+    def __init__(self,
+        width,
+        height
+    ):
+        super().__init__()
+        self.setWindowTitle("Export Video")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.width = width
+        self.height = height
+        self.fps = 60.0
+        self.keep_aspect = False
+        
+        self.fps_label = QLabel("FPS:")
+        self.fps_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.fps_entry = QDoubleSpinBox()
+        self.fps_entry.setMinimum(1.0)
+        self.fps_entry.setMaximum(120.0)
+        self.fps_entry.setSingleStep(1.0)
+        self.fps_entry.setSuffix("fps")
+        self.fps_entry.setValue(self.fps)
+        self.fps_entry.valueChanged.connect(self.fps_entry_changed)
+        
+        self.width_label = QLabel("Export Width:")
+        self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.width_entry = QSpinBox()
+        self.width_entry.setMinimum(64)
+        self.width_entry.setMaximum(7680)
+        self.width_entry.setSingleStep(64)
+        self.width_entry.setSuffix("px")
+        self.width_entry.setValue(self.width)
+        self.width_entry.valueChanged.connect(self.width_entry_changed)
+        
+        self.height_label = QLabel("Export Height:")
+        self.height_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.height_entry = QSpinBox()
+        self.height_entry.setMinimum(64)
+        self.height_entry.setMaximum(7680)
+        self.height_entry.setSingleStep(64)
+        self.height_entry.setSuffix("px")
+        self.height_entry.setValue(self.height)
+        self.height_entry.valueChanged.connect(self.height_entry_changed)
+        
+        self.aspect_label = QLabel("Aspect Ratio:")
+        self.aspect_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.aspect_entry = QCheckBox("Force")
+        self.aspect_entry.setChecked(self.keep_aspect)
+        self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.fps_label, 0, 0)
+        self.main_layout.addWidget(self.fps_entry, 0, 1)
+        self.main_layout.addWidget(self.width_label, 1, 0)
+        self.main_layout.addWidget(self.width_entry, 1, 1)
+        self.main_layout.addWidget(self.height_label, 2, 0)
+        self.main_layout.addWidget(self.height_entry, 2, 1)
+        self.main_layout.addWidget(self.aspect_label, 3, 0)
+        self.main_layout.addWidget(self.aspect_entry, 3, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
+    def get_settings(self):
+        result = dict()
+        result["width"] = self.width
+        result["height"] = self.height
+        result["fps"] = self.fps
+        result["keep_aspect"] = self.keep_aspect
+        
+        return result
+    
+    def width_entry_changed(self, value):
+        self.width = value
+    
+    def height_entry_changed(self, value):
+        self.height = value
+    
+    def aspect_entry_changed(self, value):
+        if value == 0:
+            self.keep_aspect = False
+        else:
+            self.keep_aspect = True
+    
+    def fps_entry_changed(self, value):
+        self.fps = value
+
 # Registration info dialog
 #   Displays registration info and a button ro register
 class RegistrationInfo(QDialog):
@@ -1590,6 +1698,10 @@ class MyQMainWindow(QMainWindow):
         self.export_menu_sequence.triggered.connect(self.export_sequence_clicked)
         self.export_menu.addAction(self.export_menu_sequence)
         
+        self.export_menu_video = QAction("&Video...", self)
+        self.export_menu_video.triggered.connect(self.export_video_clicked)
+        self.export_menu.addAction(self.export_menu_video)
+        
         self.help_menu = self.main_menu.addMenu("&Help")
         
         self.help_menu_registration = QAction("&Registration...", self)
@@ -1873,6 +1985,67 @@ class MyQMainWindow(QMainWindow):
                     progress_dialog=progress_popup
                 )
     
+    def export_video_clicked(self):
+        if self.bw.audio_filename == None:
+            choice = QMessageBox.critical(
+                None,
+                "Error",
+                "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
+                QMessageBox.Cancel
+            )
+            return
+        
+        if not IS_REGISTERED:
+            choice = QMessageBox.warning(
+                None,
+                "Warning",
+                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\nPlease see the Help menu for info on how to register.\n\nProceede anyway?",
+                QMessageBox.Cancel | QMessageBox.Ok
+            )
+            if choice == QMessageBox.Cancel:
+                return
+        
+        popup = ExportVideo(
+            width=self.player.width,
+            height=self.player.height
+        )
+        
+        result = popup.exec()
+        
+        if result:
+            settings = popup.get_settings()
+            
+            filename, filetype = QFileDialog.getSaveFileName(
+                self,
+                "Export Video As...",
+                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
+                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;MKV (*{self.renderer.VideoFormatCode.MKV.value});;AVI (*{self.renderer.VideoFormatCode.AVI.value})"
+            )
+        
+            if filename != "":
+                frame_count = self.renderer.get_frame_count(
+                    fps=settings["fps"]
+                )
+                progress_popup = QProgressDialog("Exporting video...", "Abort", 0, frame_count, self)
+                progress_popup.setWindowModality(Qt.WindowModal)
+                progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+                progress_popup.setWindowTitle("Exporting Video...")
+                progress_popup.setFixedSize(300, 100)
+                
+                if IS_REGISTERED:
+                    add_watermark = False
+                else:
+                    add_watermark = True
+                
+                self.renderer.export_video(
+                    filename=filename,
+                    size=(settings["width"], settings["height"]),
+                    fps=settings["fps"],
+                    keep_aspect=settings["keep_aspect"],
+                    watermark=add_watermark,
+                    progress_dialog=progress_popup
+                )
+    
     def registration_clicked(self):
         popup = RegistrationInfo()
         
@@ -1883,7 +2056,8 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Add export video option (require registration for no watermark)
+    #TODO: Give feedback for 2nd and 3rd render steps (make a MultiProgressDialog class to handle making new windows after the 1st) (will have an internal dict with the popup objects)
+    #TODO: Make a custom Proglog class to handle updating a Qt progress dialog (https://github.com/Edinburgh-Genome-Foundry/Proglog)
     #TODO: Make the seek bar look nicer (rounded handle)
     #TODO: Make the volume control look nicer
 
@@ -2143,6 +2317,11 @@ class Renderer:
         MP3 = ".mp3"
         FLAC = ".flac"
     
+    class VideoFormatCode(Enum):
+        MP4 = ".mp4"
+        MKV = ".mkv"
+        AVI = ".avi"
+    
     def make_file_path(self, filename):
         file_path, file_title = os.path.split(filename)
         os.makedirs(file_path, exist_ok=True)
@@ -2152,7 +2331,7 @@ class Renderer:
         filename,
         size=None,
         keep_aspect=False,
-        watermark=True
+        watermark=False
     ):
         self.make_file_path(filename)
         
@@ -2213,6 +2392,7 @@ class Renderer:
         size=None,
         keep_aspect=False,
         format=None,
+        watermark=False,
         progress_dialog=None
     ):
         self.make_file_path(directory)
@@ -2233,17 +2413,75 @@ class Renderer:
                 progress_dialog.setValue(f)
                 
                 if progress_dialog.wasCanceled():
-                    break
+                    return
             
             self.export_frame(
                 ms=frame_ms,
                 filename=frame_filename,
                 size=size,
-                keep_aspect=keep_aspect
+                keep_aspect=keep_aspect,
+                watermark=watermark
             )
         
         if progress_dialog != None:
             progress_dialog.setValue(frame_count)
+    
+    def export_video(self,
+        filename,
+        fps,
+        size=None,
+        keep_aspect=False,
+        watermark=False,
+        progress_dialog=None
+    ):
+        # Get temporary directory
+        temp_dir = tempfile.mkdtemp()
+        
+        # Make file names
+        image_dir = os.path.join(temp_dir, "images")
+        audio_file = os.path.join(temp_dir, "audio.wav")
+        filename_main, filename_ext = os.path.splitext(filename)
+        filename_path, filename_title = os.path.split(filename)
+        frames_file = os.path.join(temp_dir, "frames.txt")
+        video_file = os.path.join(temp_dir, f"video{filename_ext}")
+        
+        # Export image sequence
+        self.export_sequence(
+            directory=image_dir,
+            fps=fps,
+            size=size,
+            keep_aspect=keep_aspect,
+            format=self.ImageFormatCode.PNG,
+            watermark=watermark,
+            progress_dialog=progress_dialog
+        )
+        
+        if progress_dialog.wasCanceled():
+            shutil.rmtree(temp_dir)
+            return
+        
+        # Export audio
+        self.export_audio(audio_file)
+        
+        # Make a list of the image filenames
+        frames_list = list()
+        for frame_filename in os.listdir(image_dir):
+            full_frame_filename = os.path.join(image_dir, frame_filename)
+            frames_list.append(full_frame_filename)
+        
+        # Merge image sequence and audio into final video
+        sequence_clip = ImageSequenceClip(frames_list, fps=fps)
+        audio_clip = AudioFileClip(audio_file)
+        
+        video_clip = sequence_clip.set_audio(audio_clip)
+        video_clip.write_videofile(video_file, logger=None)
+        
+        # Move video to final location
+        os.makedirs(filename_path, exist_ok=True)
+        shutil.move(video_file, filename)
+        
+        # Delete temporary files
+        shutil.rmtree(temp_dir)
 
 # Main window class
 #   Handles variables related to the main window.
