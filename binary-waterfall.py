@@ -150,23 +150,24 @@ elif sys.platform == "darwin":
     APPDATA_DIR = os.path.join(USER_DIR, "Library", "Application Support")
 else:
     APPDATA_DIR = USER_DIR
-KEY_FILE = os.path.join(APPDATA_DIR, TITLE, "key")
-if IS_EXE:
-    if os.path.isfile(KEY_FILE):
-        with open(KEY_FILE, "r") as f:
-            SERIAL_KEY = f.read()
-        SERIAL_KEY = SERIAL_KEY.strip("\n").strip("\r").strip()
-        IS_REGISTERED = KeyValidate(TITLE).is_key_valid(SERIAL_KEY)
-        
-        if not IS_REGISTERED:
-            os.remove(KEY_FILE)
-            SERIAL_KEY = None
-    else:
-        IS_REGISTERED = False
+USER_DATA_DIR = os.path.join(APPDATA_DIR, TITLE)
+KEY_FILE = os.path.join(USER_DATA_DIR, "key")
+if os.path.isfile(KEY_FILE):
+    with open(KEY_FILE, "r") as f:
+        SERIAL_KEY = f.read()
+    SERIAL_KEY = SERIAL_KEY.strip("\n").strip("\r").strip()
+    IS_REGISTERED = KeyValidate(TITLE).is_key_valid(SERIAL_KEY)
+    
+    if not IS_REGISTERED:
+        os.remove(KEY_FILE)
         SERIAL_KEY = None
 else:
-    IS_REGISTERED = True
+    IS_REGISTERED = False
     SERIAL_KEY = None
+if not IS_EXE:
+    IS_REGISTERED = True
+
+DONATE_URL = "https://www.patreon.com/nimaid"
 REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386"
 
 # Binary Waterfall abstraction class
@@ -1124,7 +1125,175 @@ class ExportSequence(QDialog):
             self.format = Renderer.ImageFormatCode.JPEG
         elif value == 2:
             self.format = Renderer.ImageFormatCode.BITMAP
-        #self.format = value
+
+# Registration info dialog
+#   Displays registration info and a button ro register
+class RegistrationInfo(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Registration Info")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.status_label = QLabel("Status:")
+        self.status_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.status_value = QLabel()
+        self.status_value.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.set_registered_value()
+        
+        self.serial_label = QLabel("Serial Number:")
+        self.serial_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.serial_value = QLabel()
+        self.serial_value.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.set_serial_value()
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Close | QDialogButtonBox.Help)
+        self.confirm_buttons.button(QDialogButtonBox.Help).setText("Register...")
+        self.confirm_buttons.helpRequested.connect(self.register_clicked)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.status_label, 0, 0)
+        self.main_layout.addWidget(self.status_value, 0, 1)
+        self.main_layout.addWidget(self.serial_label, 1, 0)
+        self.main_layout.addWidget(self.serial_value, 1, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
+    def set_registered_value(self):
+        global IS_REGISTERED
+        
+        if IS_REGISTERED:
+            reg_status = "Activated!"
+        else:
+            reg_status = "Unregistered"
+        
+        self.status_value.setText(reg_status)
+    
+    def set_serial_value(self):
+        global SERIAL_KEY
+        
+        if SERIAL_KEY == None:
+            self.serial_value.setText("None")
+        else:
+            self.serial_value.setText(SERIAL_KEY)
+    
+    def register_clicked(self):
+        global SERIAL_KEY
+        global IS_REGISTERED
+        
+        if SERIAL_KEY == None:
+            popup = RegistrationEntry()
+            
+            result = popup.exec()
+            
+            if result:
+                settings = popup.get_settings()
+                if settings["key_is_valid"]:
+                    IS_REGISTERED = True
+                    SERIAL_KEY = settings["serial"]
+                    
+                    # Register product
+                    os.makedirs(USER_DATA_DIR, exist_ok=True)
+                    with open(KEY_FILE, "w") as f:
+                        f.write(SERIAL_KEY)
+                    
+                    self.set_registered_value()
+                    self.set_serial_value()
+                    self.resize_window()
+                    
+                    choice = QMessageBox.information(
+                        None,
+                        "Registration Complete",
+                        f"Thank you for registering {TITLE}!",
+                        QMessageBox.Ok
+                    )
+                else:
+                    choice = QMessageBox.critical(
+                        None,
+                        "Serial Not Valid",
+                        "You have entered an invalid serial key.",
+                        QMessageBox.Ok
+                    )
+        else:
+            choice = QMessageBox.warning(
+                None,
+                "Already Registered",
+                "You have already registered this product!",
+                QMessageBox.Ok
+            )
+
+# Registration entry dialog
+#   Prompts the user to enter a serial number
+#   Also gives the user a button to buy a serial key (open link)
+class RegistrationEntry(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Registration Info")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.serial = ""
+        self.key_is_valid = False
+        self.validator = KeyValidate(TITLE)
+        
+        self.info_label = QLabel(f"You can buy a key at the following link:\n{DONATE_URL}")
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.serial_label = QLabel("Serial:")
+        self.serial_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.serial_entry = QLineEdit()
+        self.serial_entry.setMaxLength((5*4)+3)
+        self.serial_entry.setText(self.serial)
+        self.serial_entry.editingFinished.connect(self.serial_entry_changed)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
+        self.confirm_buttons.button(QDialogButtonBox.Ok).setText("Register")
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.info_label, 0, 0, 1, 2)
+        self.main_layout.addWidget(self.serial_label, 1, 0)
+        self.main_layout.addWidget(self.serial_entry, 1, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+    
+    def get_settings(self):
+        result = dict()
+        result["serial"] = self.serial
+        result["key_is_valid"] = self.key_is_valid
+        
+        return result
+    
+    def serial_entry_changed(self):
+        self.serial = self.serial_entry.text().strip()
+        
+        if self.validator.is_key_valid(self.serial):
+            self.key_is_valid = True
+        else:
+            self.key_is_valid = False
 
 # Custom image-based button
 #   Allows very swaggy custom buttons
@@ -1671,9 +1840,10 @@ class MyQMainWindow(QMainWindow):
                 )
     
     def registration_clicked(self):
-        print("Wow")
+        popup = RegistrationInfo()
+        
+        result = popup.exec()
     
-    #TODO: Add registration dialog (help menu)
     #TODO: Add an about dialog
     #TODO: Add export video option (require registration for no watermark)
     #TODO: Make the seek bar look nicer (rounded handle)
