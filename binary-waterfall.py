@@ -2051,7 +2051,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Change temp wav file path to a tempfile one
     #TODO: Make a custom Proglog class to handle updating a Qt progress dialog (https://github.com/Edinburgh-Genome-Foundry/Proglog)
     #TODO: Make the seek bar look nicer (rounded handle)
     #TODO: Make the volume control look nicer
