@@ -14,7 +14,7 @@ from moviepy.editor import ImageSequenceClip, AudioFileClip
 import numpy as np
 import time
 import tempfile
-from PIL import Image
+from PIL import Image, ImageOps
 from PyQt5.QtCore import Qt, QUrl, QTimer
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
@@ -471,21 +471,13 @@ class BinaryWaterfall:
 
         return picture_bytes
     
-    # A 3D Numpy array (RGB)
-    def get_frame_array(self, ms, flip=True):
-        frame_bytesring = self.get_frame_bytestring(ms)
-        frame_np = np.frombuffer(frame_bytesring, dtype=np.uint8)
-        frame_array = frame_np.reshape((self.width, self.height, 3))
-        if flip:
-            # Flip vertically
-            frame_array = np.flip(frame_array, axis=0)
-        
-        return frame_array
-    
     # A PIL Image (RGB)
     def get_frame_image(self, ms, flip=True):
-        frame_array = self.get_frame_array(ms, flip=flip)
-        img = Image.fromarray(frame_array)
+        frame_bytesring = self.get_frame_bytestring(ms)
+        img = Image.frombytes("RGB", (self.width, self.height), frame_bytesring)
+        
+        if flip:
+            img = ImageOps.flip(img)
         
         return img
     
@@ -2343,6 +2335,7 @@ class Renderer:
             color="#000"
         )
         else:
+            #TODO: Not exporting correct bw size? Outdated...
             source = self.bw.get_frame_image(ms).convert("RGBA")
         
         # Resize with aspect ratio, paste onto black
