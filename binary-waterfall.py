@@ -53,6 +53,7 @@ with open(VERSION_FILE, "r") as f:
     VERSION = version_file_dict["Version"]
     DESCRIPTION = version_file_dict["FileDescription"]
     TITLE = version_file_dict["InternalName"]
+    LONG_TITLE = version_file_dict["ProductName"]
     COPYRIGHT = version_file_dict["LegalCopyright"]
     
     del(version_file_dict)
@@ -167,9 +168,10 @@ else:
 if not IS_EXE:
     IS_REGISTERED = True
 
+
 DONATE_URL = "https://www.patreon.com/nimaid"
 REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386"
-
+PROJECT_URL = "https://github.com/nimaid/binary-waterfall"
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
 #   into audio files and image frames. This object does not
@@ -1295,6 +1297,44 @@ class RegistrationEntry(QDialog):
         else:
             self.key_is_valid = False
 
+# About dialog
+#   Gives info about the program
+class About(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle(f"About {TITLE}")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.icon_size = 200
+        
+        self.icon_label = QLabel()
+        self.icon_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.icon_label.setPixmap(QPixmap(ICON_PATH["program"]))
+        self.icon_label.setScaledContents(True)
+        self.icon_label.setFixedSize(self.icon_size, self.icon_size)
+        
+        self.about_text = QLabel(f"{TITLE} v{VERSION}\nby {COPYRIGHT}\nCopyright 2023\n\n{DESCRIPTION}\n\nProject Home Page:\n{PROJECT_URL}\n\nPatreon:\n{DONATE_URL}")
+        self.about_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok)
+        self.confirm_buttons.accepted.connect(self.accept)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.icon_label, 0, 0, 2, 1)
+        self.main_layout.addWidget(self.about_text, 0, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 1, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+        
 # Custom image-based button
 #   Allows very swaggy custom buttons
 class ImageButton(QAbstractButton):
@@ -1565,6 +1605,10 @@ class MyQMainWindow(QMainWindow):
         self.help_menu_registration = QAction("&Registration...", self)
         self.help_menu_registration.triggered.connect(self.registration_clicked)
         self.help_menu.addAction(self.help_menu_registration)
+        
+        self.help_menu_about = QAction(f"&About...", self)
+        self.help_menu_about.triggered.connect(self.about_clicked)
+        self.help_menu.addAction(self.help_menu_about)
         
         # Set window to content size
         self.resize_window()
@@ -1844,7 +1888,11 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Add an about dialog
+    def about_clicked(self):
+        popup = About()
+        
+        result = popup.exec()
+    
     #TODO: Add export video option (require registration for no watermark)
     #TODO: Make the seek bar look nicer (rounded handle)
     #TODO: Make the volume control look nicer
