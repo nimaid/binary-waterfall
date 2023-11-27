@@ -16,7 +16,7 @@ import time
 import tempfile
 from proglog import ProgressBarLogger
 from PIL import Image, ImageOps
-from PyQt5.QtCore import Qt, QUrl, QTimer
+from PyQt5.QtCore import Qt, QUrl, QTimer, QSize
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
@@ -171,10 +171,88 @@ else:
 if not IS_EXE:
     IS_REGISTERED = True
 
-
 DONATE_URL = "https://www.patreon.com/nimaid"
 REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386"
 PROJECT_URL = "https://github.com/nimaid/binary-waterfall"
+
+
+
+# Define some stateless helper functions used throught the program
+def get_size_for_fit_frame(content_size, frame_size):
+    content_width, content_height = content_size
+    frame_width, frame_height = frame_size
+    
+    
+    # First, figure out which dim is limiting
+    aspect_ratio = content_width / content_height
+    height_if_limit_width = round(frame_width / aspect_ratio)
+    width_if_limit_height = round(frame_height * aspect_ratio)
+    if height_if_limit_width > frame_height:
+        limit_width = False
+    else:
+        limit_width = True
+    
+    # Now, compute the new content size
+    if limit_width:
+        fit_width = frame_width
+        fit_height = height_if_limit_width
+    else:
+        fit_width = width_if_limit_height
+        fit_height = frame_height
+    
+    fit_size = (fit_width, fit_height)
+    
+    result = {
+        "size": fit_size,
+        "limit_width": limit_width
+    }
+    
+    return result
+
+def fit_to_frame(
+    image,
+    frame_size,
+    scaling=Image.NEAREST,
+    transparent=False
+):
+    # Get new content size
+    fit_settings = get_size_for_fit_frame(
+        content_size=image.size,
+        frame_size=frame_size
+    )
+    content_size = fit_settings["size"]
+    
+    content_width, content_height = content_size
+    frame_width, frame_height = frame_size
+    
+    # Actually scale the content
+    resized_content = image.resize(content_size, scaling)
+
+    # Make a black image
+    if transparent:
+        resized = Image.new(
+            mode="RGBA",
+            size=frame_size,
+            color=(0, 0, 0, 0)
+        )
+    else:
+        resized = Image.new(
+            mode="RGBA",
+            size=frame_size,
+            color=(0, 0, 0, 255)
+        )
+    
+    # Paste the content onto the background
+    if fit_settings["limit_width"]:
+        paste_x = 0
+        paste_y = round((frame_height - content_height) / 2)
+    else:
+        paste_x = round((frame_width - content_width) / 2)
+        paste_y = 0
+    resized.paste(resized_content, (paste_x, paste_y), resized_content)
+    
+    return resized
+
 # Binary Waterfall abstraction class
 #   Provides an abstract object for converting binary files
 #   into audio files and image frames. This object does not
@@ -503,82 +581,6 @@ class BinaryWaterfall:
     def cleanup(self):
         self.delete_audio()
         shutil.rmtree(self.temp_dir)
-
-# Define some stateless helper functions used throught the program
-def get_size_for_fit_frame(content_size, frame_size):
-    content_width, content_height = content_size
-    frame_width, frame_height = frame_size
-    
-    
-    # First, figure out which dim is limiting
-    aspect_ratio = content_width / content_height
-    height_if_limit_width = round(frame_width / aspect_ratio)
-    width_if_limit_height = round(frame_height * aspect_ratio)
-    if height_if_limit_width > frame_height:
-        limit_width = False
-    else:
-        limit_width = True
-    
-    # Now, compute the new content size
-    if limit_width:
-        fit_width = frame_width
-        fit_height = height_if_limit_width
-    else:
-        fit_width = width_if_limit_height
-        fit_height = frame_height
-    
-    fit_size = (fit_width, fit_height)
-    
-    result = {
-        "size": fit_size,
-        "limit_width": limit_width
-    }
-    
-    return result
-
-def fit_to_frame(
-    image,
-    frame_size,
-    scaling=Image.NEAREST,
-    transparent=False
-):
-    # Get new content size
-    fit_settings = get_size_for_fit_frame(
-        content_size=image.size,
-        frame_size=frame_size
-    )
-    content_size = fit_settings["size"]
-    
-    content_width, content_height = content_size
-    frame_width, frame_height = frame_size
-    
-    # Actually scale the content
-    resized_content = image.resize(content_size, scaling)
-
-    # Make a black image
-    if transparent:
-        resized = Image.new(
-            mode="RGBA",
-            size=frame_size,
-            color=(0, 0, 0, 0)
-        )
-    else:
-        resized = Image.new(
-            mode="RGBA",
-            size=frame_size,
-            color=(0, 0, 0, 255)
-        )
-    
-    # Paste the content onto the background
-    if fit_settings["limit_width"]:
-        paste_x = 0
-        paste_y = round((frame_height - content_height) / 2)
-    else:
-        paste_x = round((frame_width - content_width) / 2)
-        paste_y = 0
-    resized.paste(resized_content, (paste_x, paste_y), resized_content)
-    
-    return resized
 
 # Watermarker class
 #   Handles watermarking images
@@ -1448,7 +1450,7 @@ class About(QDialog):
         self.setFixedSize(self.sizeHint())
         
 # Custom image-based button
-#   Allows very swaggy custom buttons
+#   Allows for very fancy custom buttons
 class ImageButton(QAbstractButton):
     def __init__(self,
         pixmap,
@@ -1502,7 +1504,7 @@ class ImageButton(QAbstractButton):
         self.update()
 
     def sizeHint(self):
-        return self.pixmap.size()
+        return QSize(self.width, self.height)
 
 class SeekBar(QSlider):
     def __init__(self,
@@ -1628,11 +1630,13 @@ class MyQMainWindow(QMainWindow):
             "mute": QPixmap(ICON_PATH["volume"]["mute"]),
         }
         
-        self.mute_label = QLabel()
-        self.mute_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-        self.mute_label.setScaledContents(True)
-        self.mute_label.setFixedSize(20, 20)
-        self.set_volume_icon(mute=False)
+        self.volume_icon = QLabel()
+        self.volume_icon.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.volume_icon.setScaledContents(True)
+        self.volume_icon.setFixedSize(20, 20)
+        self.set_volume_icon(mute=self.is_player_muted())
+        self.unmute_volume = self.player.volume
+        self.volume_icon.mousePressEvent = self.volume_icon_clicked
         
         self.volume_label = QLabel()
         self.volume_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
@@ -1656,11 +1660,10 @@ class MyQMainWindow(QMainWindow):
         self.transport_right_layout.addWidget(self.transport_forward)
         
         self.voume_layout = QGridLayout()
-        self.voume_layout.setSpacing(self.padding_px)
         self.voume_layout.setContentsMargins(0,0,self.padding_px,0)
         
-        self.voume_layout.addWidget(self.mute_label, 0, 0, alignment=Qt.AlignmentFlag.AlignCenter)
-        self.voume_layout.addWidget(self.volume_label, 1, 0, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.voume_layout.addWidget(self.volume_icon, 0, 0, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        self.voume_layout.addWidget(self.volume_label, 1, 0, alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
         self.voume_layout.addWidget(self.volume_slider, 0, 1, 2, 1, alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         
         self.main_layout = QGridLayout()
@@ -1762,11 +1765,17 @@ class MyQMainWindow(QMainWindow):
                 pixmap_pressed=self.play_icons["pause"]["clicked"]
             )
     
+    def is_player_muted(self):
+        if self.player.volume == 0:
+            return True
+        else:
+            return False
+    
     def set_volume_icon(self, mute):
         if mute:
-            self.mute_label.setPixmap(self.volume_icons["mute"])
+            self.volume_icon.setPixmap(self.volume_icons["mute"])
         else:
-            self.mute_label.setPixmap(self.volume_icons["base"])
+            self.volume_icon.setPixmap(self.volume_icons["base"])
     
     def set_volume_label_value(self, value):
         self.volume_label.setText(f"{value}%")
@@ -1805,9 +1814,19 @@ class MyQMainWindow(QMainWindow):
     def restart_clicked(self):
         self.player.restart()
     
+    def volume_icon_clicked(self, event):
+        if self.is_player_muted():
+            self.muted = False
+            self.volume_slider.setValue(self.unmute_volume)
+        else:
+            self.muted = True
+            self.volume_slider.setValue(0)
+    
     def volume_slider_changed(self, value):
         self.player.set_volume(value)
         self.set_volume_label_value(value)
+        if value > 0:
+            self.unmute_volume = value
         
         if value == 0:
             self.set_volume_icon(mute=True)
@@ -2081,6 +2100,8 @@ class MyQMainWindow(QMainWindow):
         result = popup.exec()
     
     #TODO: Make speaker icon a button to toggle mute
+    #TODO: Bind keypress events (volume, skip, play/pause)
+    #TODO: Fix center buttons being offset (maybe add an empty padding label with the volume layout sizeHint?)
     #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
