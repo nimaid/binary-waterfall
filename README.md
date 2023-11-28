@@ -29,7 +29,7 @@ All features of this program are free, with one exception:
 
 When using the pre-built `.exe` file from [the releases page](https://github.com/nimaid/binary-waterfall/releases), a watermark will be added to exported videos. This watermark is ONLY added when exporting video directly, and it will not be present on exported image stills or image sequences.
 
-To use the `.exe` version of the program to export videos without a watermark, you need to buy a serial key for $5. This serial key can be used to activate infinite copies of the program, on infinite computers, with no expiration date. You can activate the program by going to `Help > Registration... > Register...` and entering your serial key.
+To use the `.exe` version of the program to export videos without a watermark, you need to buy a serial key for $5 USD. This serial key can be used to activate infinite copies of the program, on infinite computers, with no expiration date. You can activate the program by going to `Help > Registration... > Register...` and entering your serial key.
 
 [Buy a serial key here!](https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386)
 
