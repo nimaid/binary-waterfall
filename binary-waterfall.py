@@ -127,7 +127,8 @@ class KeyValidate:
         if hex_string == None:
             hex_string = self.get_program_hex()
         int_list = [int(x, 16) for x in hex_string]
-        magic_list = [x-min(int_list) for x in int_list]
+        offset = int_list[0]
+        magic_list = [(x-offset)%16 for x in int_list]
         magic = "".join([hex(x)[2:] for x in magic_list]).upper()
         
         return magic
@@ -137,12 +138,12 @@ class KeyValidate:
             return False
         
         groups = key.split("-")
-        key = ""
+        magic_hex = ""
         for idx, group in enumerate(groups):
             key_idx = (self.program_int-idx)%5
-            key += group[key_idx]
+            magic_hex += group[key_idx]
         
-        if self.get_magic(key) == self.get_magic(key):
+        if self.get_magic(magic_hex) == self.get_magic():
             return True
         else:
             return False
@@ -2117,6 +2118,7 @@ class MyQMainWindow(QMainWindow):
         result = popup.exec()
     
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
+    #TODO: When popup is up, make clicking any other window below it focus them all
     #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
