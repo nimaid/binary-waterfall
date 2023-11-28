@@ -1,5 +1,5 @@
 # <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
-An audio-visual viewer for binary files.
+A Raw Data Media Player
 
 <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
 
