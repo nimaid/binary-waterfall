@@ -1572,6 +1572,7 @@ class MyQMainWindow(QMainWindow):
         self.padding_px = 10
         
         self.seek_bar = SeekBar()
+        self.seek_bar.setFocusPolicy(Qt.NoFocus)
         self.seek_bar.setOrientation(Qt.Horizontal)
         self.seek_bar.setMinimum(0)
         self.update_seekbar()
@@ -1586,6 +1587,8 @@ class MyQMainWindow(QMainWindow):
             set_playbutton_function=self.set_play_button,
             set_seekbar_function=self.seek_bar.setValue
         )
+        
+        self.current_volume = self.player.volume
         
         # Setup seek bar to correctly change player location
         self.seek_bar.set_position_changed_function(self.seekbar_moved)
@@ -1613,6 +1616,7 @@ class MyQMainWindow(QMainWindow):
             scale=1.0,
             parent=self
         )
+        self.transport_play.setFocusPolicy(Qt.NoFocus)
         self.transport_play.setFixedSize(self.transport_play.width, self.transport_play.height)
         self.transport_play.clicked.connect(self.play_clicked)
         
@@ -1623,6 +1627,7 @@ class MyQMainWindow(QMainWindow):
             scale=0.75,
             parent=self
         )
+        self.transport_forward.setFocusPolicy(Qt.NoFocus)
         self.transport_forward.setFixedSize(self.transport_forward.width, self.transport_forward.height)
         self.transport_forward.clicked.connect(self.forward_clicked)
         
@@ -1633,6 +1638,7 @@ class MyQMainWindow(QMainWindow):
             scale=0.75,
             parent=self
         )
+        self.transport_back.setFocusPolicy(Qt.NoFocus)
         self.transport_back.setFixedSize(self.transport_back.width, self.transport_back.height)
         self.transport_back.clicked.connect(self.back_clicked)
         
@@ -1643,6 +1649,7 @@ class MyQMainWindow(QMainWindow):
             scale=0.5,
             parent=self
         )
+        self.transport_restart.setFocusPolicy(Qt.NoFocus)
         self.transport_restart.setFixedSize(self.transport_restart.width, self.transport_restart.height)
         self.transport_restart.clicked.connect(self.restart_clicked)
         
@@ -1656,19 +1663,19 @@ class MyQMainWindow(QMainWindow):
         self.volume_icon.setScaledContents(True)
         self.volume_icon.setFixedSize(20, 20)
         self.set_volume_icon(mute=self.is_player_muted())
-        self.unmute_volume = self.player.volume
+        self.unmute_volume = self.current_volume
         self.volume_icon.mousePressEvent = self.volume_icon_clicked
         
         self.volume_label = QLabel()
         self.volume_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
         self.volume_label.setFixedWidth(30)
-        self.set_volume_label_value(self.player.volume)
+        self.set_volume_label_value(self.current_volume)
         
         self.volume_slider = QSlider(Qt.Vertical)
+        self.volume_slider.setFocusPolicy(Qt.NoFocus)
         self.volume_slider.setFixedSize(20, 50)
         self.volume_slider.setMinimum(0)
         self.volume_slider.setMaximum(100)
-        self.volume_slider.setValue(self.player.volume)
         self.volume_slider.valueChanged.connect(self.volume_slider_changed)
         
         self.transport_left_layout = QHBoxLayout()
@@ -1759,8 +1766,30 @@ class MyQMainWindow(QMainWindow):
         self.help_menu_about.triggered.connect(self.about_clicked)
         self.help_menu.addAction(self.help_menu_about)
         
+        self.set_volume(self.current_volume)
+        
         # Set window to content size
         self.resize_window()
+    
+    def keyPressEvent(self, event):
+        key = event.key()
+        
+        if key == Qt.Key_Space:
+            self.play_clicked()
+        elif key == Qt.Key_Left:
+            self.back_clicked()
+        elif key == Qt.Key_Right:
+            self.forward_clicked()
+        elif key == Qt.Key_Up:
+            new_volume = min(self.current_volume + 5, 100)
+            self.set_volume(new_volume)
+        elif key == Qt.Key_Down:
+            new_volume = max(self.current_volume - 5, 0)
+            self.set_volume(new_volume)
+        elif key == Qt.Key_M:
+            self.toggle_mute()
+        elif key == Qt.Key_R:
+            self.restart_clicked()
     
     def resize_window(self):
         # First, make largest elements smaller
@@ -1810,6 +1839,21 @@ class MyQMainWindow(QMainWindow):
     def set_volume_label_value(self, value):
         self.volume_label.setText(f"{value}%")
     
+    def set_volume(self, value):
+        self.current_volume = value
+        
+        self.player.set_volume(self.current_volume)
+        self.set_volume_label_value(self.current_volume)
+        self.volume_slider.setValue(self.player.volume)
+        
+        if self.current_volume > 0:
+            self.unmute_volume = self.current_volume
+        
+        if self.current_volume == 0:
+            self.set_volume_icon(mute=True)
+        else:
+            self.set_volume_icon(mute=False)
+    
     def update_seekbar(self):
         if self.bw.filename == None:
             self.seek_bar.setEnabled(False)
@@ -1844,7 +1888,7 @@ class MyQMainWindow(QMainWindow):
     def restart_clicked(self):
         self.player.restart()
     
-    def volume_icon_clicked(self, event):
+    def toggle_mute(self):
         if self.is_player_muted():
             self.muted = False
             self.volume_slider.setValue(self.unmute_volume)
@@ -1852,16 +1896,11 @@ class MyQMainWindow(QMainWindow):
             self.muted = True
             self.volume_slider.setValue(0)
     
+    def volume_icon_clicked(self, event):
+        self.toggle_mute()
+    
     def volume_slider_changed(self, value):
-        self.player.set_volume(value)
-        self.set_volume_label_value(value)
-        if value > 0:
-            self.unmute_volume = value
-        
-        if value == 0:
-            self.set_volume_icon(mute=True)
-        else:
-            self.set_volume_icon(mute=False)
+        self.set_volume(value)
     
     def set_file_savename(self, name=None):
         if name == None:
@@ -2187,7 +2226,8 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
+    #TODO: Fix play button image not updating with spacebar
+    #TODO: Add "frame-by-frame" seek buttons (and bind keys < and >)
     #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
@@ -2208,7 +2248,6 @@ class Player:
         self.set_dims(max_dim=max_dim)
         
         self.set_play_button = set_playbutton_function
-        
         self.set_seekbar_function = set_seekbar_function
         
         # Initialize player as black
@@ -2232,7 +2271,7 @@ class Player:
         
         # Setup change state handler
         self.audio.stateChanged.connect(self.state_changed_handler)
-        
+    
     def __del__(self):
         self.running = False
     
