@@ -1501,6 +1501,8 @@ class ImageButton(QAbstractButton):
         
         self.width = round(self.pixmap.width() * self.scale)
         self.height = round(self.pixmap.height() * self.scale)
+        
+        self.update()
     
     def set_scale(self, scale_factor):
         self.scale = scale_factor
@@ -1512,7 +1514,7 @@ class ImageButton(QAbstractButton):
             pix = self.pixmap_hover
         else:
             pix = self.pixmap
-
+        
         painter = QPainter(self)
         painter.drawPixmap(event.rect(), pix)
 
@@ -2226,7 +2228,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Fix play button image not updating with spacebar
     #TODO: Add "frame-by-frame" seek buttons (and bind keys < and >)
     #TODO: Make the seek bar look nicer (rounded handle)
 
