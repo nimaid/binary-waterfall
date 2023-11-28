@@ -5,8 +5,10 @@ An audio-visual viewer for binary files.
 
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
 
+## Download
 [Click here to download the program for Windows!](https://github.com/nimaid/binary-waterfall/releases/latest)
 
+## Attribution
 If you use this for a video, please credit me as "nimaid", and provide a link to this GitHub.
 
 ## Keyboard Shortcuts
