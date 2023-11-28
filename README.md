@@ -9,4 +9,11 @@ An audio-visual viewer for binary files.
 
 If you use this for a video, please credit me as "nimaid", and provide a link to this GitHub.
 
-As of version 2.0.0.1, this is a GUI program! Just download the `.exe` file and run it!
+## Keyboard Shortcuts
+- Play / Pause: Spacebar
+- Back: Left Arrow
+- Forward: Right Arrow
+- Restart: R
+- Volume Up: Up Arrow
+- Volume Down: Down Arrow
+- Mute / Unmute: M
