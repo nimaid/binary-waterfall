@@ -1563,6 +1563,8 @@ class MyQMainWindow(QMainWindow):
         
         self.bw = BinaryWaterfall()
         
+        self.last_save_location = PROG_PATH
+        
         self.renderer = Renderer(
             binary_waterfall=self.bw
         )
@@ -1980,11 +1982,13 @@ class MyQMainWindow(QMainWindow):
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Image As...",
-                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
+                os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
                 f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
             )
         
             if filename != "":
+                file_path, file_title = os.path.split(filename)
+                self.last_save_location = file_path
                 self.renderer.export_frame(
                     ms=self.player.get_position(),
                     filename=filename,
@@ -2012,11 +2016,13 @@ class MyQMainWindow(QMainWindow):
         filename, filetype = QFileDialog.getSaveFileName(
             self,
             "Export Audio As...",
-            os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.AudioFormatCode.MP3.value}"),
+            os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.AudioFormatCode.MP3.value}"),
             f"MP3 (*{self.renderer.AudioFormatCode.MP3.value});;WAV (*{self.renderer.AudioFormatCode.WAVE.value});;FLAC (*{self.renderer.AudioFormatCode.FLAC.value})"
         )
     
         if filename != "":
+            file_path, file_title = os.path.split(filename)
+            self.last_save_location = file_path
             self.renderer.export_audio(
                 filename=filename
             )
@@ -2052,10 +2058,12 @@ class MyQMainWindow(QMainWindow):
             file_dir = QFileDialog.getExistingDirectory(
                 self,
                 "Export Image Sequence To...",
-                PROG_PATH
+                self.last_save_location
             )
             
             if file_dir != "":
+                file_dir_parent, file_dir_title = os.path.split(file_dir)
+                self.last_save_location = file_dir_parent
                 frame_count = self.renderer.get_frame_count(
                     fps=settings["fps"]
                 )
@@ -2074,12 +2082,21 @@ class MyQMainWindow(QMainWindow):
                     progress_dialog=progress_popup
                 )
                 
-                choice = QMessageBox.information(
-                    self,
-                    "Export Complete",
-                    f"Export image sequence successful!",
-                    QMessageBox.Ok
-                )
+                if progress_popup.wasCanceled():
+                    #shutil.rmtree(file_dir) # Dangerous! May delete user data
+                    choice = QMessageBox.warning(
+                        self,
+                        "Export Aborted",
+                        f"Export image sequence aborted!",
+                        QMessageBox.Ok
+                    )
+                else:
+                    choice = QMessageBox.information(
+                        self,
+                        "Export Complete",
+                        f"Export image sequence successful!",
+                        QMessageBox.Ok
+                    )
     
     def export_video_clicked(self):
         if self.bw.audio_filename == None:
@@ -2115,11 +2132,13 @@ class MyQMainWindow(QMainWindow):
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Video As...",
-                os.path.join(PROG_PATH, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
+                os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
                 f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;MKV (*{self.renderer.VideoFormatCode.MKV.value});;AVI (*{self.renderer.VideoFormatCode.AVI.value})"
             )
         
             if filename != "":
+                file_path, file_title = os.path.split(filename)
+                self.last_save_location = file_path
                 frame_count = self.renderer.get_frame_count(
                     fps=settings["fps"]
                 )
@@ -2143,12 +2162,20 @@ class MyQMainWindow(QMainWindow):
                     progress_dialog=progress_popup
                 )
                 
-                choice = QMessageBox.information(
-                    self,
-                    "Export Complete",
-                    f"Export video successful!",
-                    QMessageBox.Ok
-                )
+                if progress_popup.wasCanceled():
+                    choice = QMessageBox.warning(
+                        self,
+                        "Export Aborted",
+                        f"Export video aborted!",
+                        QMessageBox.Ok
+                    )
+                else:
+                    choice = QMessageBox.information(
+                        self,
+                        "Export Complete",
+                        f"Export video successful!",
+                        QMessageBox.Ok
+                    )
     
     def registration_clicked(self):
         popup = RegistrationInfo(parent=self)
@@ -2160,7 +2187,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Remember save location if a file was previously exported
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
     #TODO: Make the seek bar look nicer (rounded handle)
 
