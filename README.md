@@ -17,3 +17,14 @@ If you use this for a video, please credit me as "nimaid", and provide a link to
 - Volume Up: Up Arrow
 - Volume Down: Down Arrow
 - Mute / Unmute: M
+
+## Licensing Info
+All features of this program are free, with one exception:
+
+When using the pre-built `.exe` file from [the releases page](https://github.com/nimaid/binary-waterfall/releases), a watermark will be added to exported videos. This watermark is ONLY added when exporting video directly, and it will not be present on exported image still or image sequences.
+
+To use the `.exe` version of the program to export videos without a watermark, you need to buy a serial key for $5. This serial key can be used to activate infinite copies of the program, on infinite computers, with no expiration date. You can activate the program by going to `Help > Registration... > Register...` and entering your serial key.
+
+[Buy a serial key here!](https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386)
+
+If you run the `.py` file directly, you will be able to export videos without a watermark, even if the program is unregistered. You can still register the software with a valid serial key when running the `.py` version, but it will have no effect as all features will already be unlocked.
