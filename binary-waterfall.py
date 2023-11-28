@@ -1345,8 +1345,7 @@ class RegistrationInfo(QDialog):
                         self,
                         "Registration Complete",
                         f"Thank you for registering {TITLE}!",
-                        QMessageBox.Ok,
-                        
+                        QMessageBox.Ok
                     )
                 else:
                     choice = QMessageBox.critical(
@@ -1992,6 +1991,13 @@ class MyQMainWindow(QMainWindow):
                     size=(settings["width"], settings["height"]),
                     keep_aspect=settings["keep_aspect"]
                 )
+                
+                choice = QMessageBox.information(
+                    self,
+                    "Export Complete",
+                    f"Export image successful!",
+                    QMessageBox.Ok
+                )
     
     def export_audio_clicked(self):
         if self.bw.audio_filename == None:
@@ -2013,6 +2019,13 @@ class MyQMainWindow(QMainWindow):
         if filename != "":
             self.renderer.export_audio(
                 filename=filename
+            )
+            
+            choice = QMessageBox.information(
+                self,
+                "Export Complete",
+                f"Export audio successful!",
+                QMessageBox.Ok
             )
     
     def export_sequence_clicked(self):
@@ -2052,7 +2065,6 @@ class MyQMainWindow(QMainWindow):
                 progress_popup.setWindowTitle("Exporting Images...")
                 progress_popup.setFixedSize(300, 100)
                 
-                
                 self.renderer.export_sequence(
                     directory=file_dir,
                     size=(settings["width"], settings["height"]),
@@ -2060,6 +2072,13 @@ class MyQMainWindow(QMainWindow):
                     keep_aspect=settings["keep_aspect"],
                     format=settings["format"],
                     progress_dialog=progress_popup
+                )
+                
+                choice = QMessageBox.information(
+                    self,
+                    "Export Complete",
+                    f"Export image sequence successful!",
+                    QMessageBox.Ok
                 )
     
     def export_video_clicked(self):
@@ -2123,6 +2142,13 @@ class MyQMainWindow(QMainWindow):
                     watermark=add_watermark,
                     progress_dialog=progress_popup
                 )
+                
+                choice = QMessageBox.information(
+                    self,
+                    "Export Complete",
+                    f"Export video successful!",
+                    QMessageBox.Ok
+                )
     
     def registration_clicked(self):
         popup = RegistrationInfo(parent=self)
@@ -2134,6 +2160,7 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
+    #TODO: Remember save location if a file was previously exported
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
     #TODO: Make the seek bar look nicer (rounded handle)
 
