@@ -1254,6 +1254,104 @@ class ExportVideo(QDialog):
     def fps_entry_changed(self, value):
         self.fps = value
 
+# Hotkey info dialog
+#   Lists the program hotkeys
+class HotkeysInfo(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
+        self.setWindowTitle("Hotkey Info")
+        self.setWindowIcon(QIcon(ICON_PATH["program"]))
+        
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+        
+        self.play_label = QLabel("Play / Pause:")
+        self.play_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.play_key_label = QLabel("Spacebar")
+        self.play_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.forward_label = QLabel("Forward:")
+        self.forward_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.forward_key_label = QLabel("Right")
+        self.forward_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.back_label = QLabel("Back:")
+        self.back_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.back_key_label = QLabel("Left")
+        self.back_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.frame_forward_label = QLabel("Frame Forward:")
+        self.frame_forward_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.frame_forward_key_label = QLabel(">")
+        self.frame_forward_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.frame_back_label = QLabel("Frame Back:")
+        self.frame_back_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.frame_back_key_label = QLabel("<")
+        self.frame_back_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.restart_label = QLabel("Restart:")
+        self.restart_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.restart_key_label = QLabel("R")
+        self.restart_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.volume_up_label = QLabel("Volume Up:")
+        self.volume_up_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.volume_up_key_label = QLabel("Up")
+        self.volume_up_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.volume_down_label = QLabel("Volume Down:")
+        self.volume_down_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.volume_down_key_label = QLabel("Down")
+        self.volume_down_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.mute_label = QLabel("Mute:")
+        self.mute_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+        
+        self.mute_key_label = QLabel("M")
+        self.mute_key_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok)
+        self.confirm_buttons.accepted.connect(self.accept)
+        
+        self.main_layout = QGridLayout()
+        
+        self.main_layout.addWidget(self.play_label, 0, 0)
+        self.main_layout.addWidget(self.play_key_label, 0, 1)
+        self.main_layout.addWidget(self.forward_label, 1, 0)
+        self.main_layout.addWidget(self.forward_key_label, 1, 1)
+        self.main_layout.addWidget(self.back_label, 2, 0)
+        self.main_layout.addWidget(self.back_key_label, 2, 1)
+        self.main_layout.addWidget(self.frame_forward_label, 3, 0)
+        self.main_layout.addWidget(self.frame_forward_key_label, 3, 1)
+        self.main_layout.addWidget(self.frame_back_label, 4, 0)
+        self.main_layout.addWidget(self.frame_back_key_label, 4, 1)
+        self.main_layout.addWidget(self.restart_label, 5, 0)
+        self.main_layout.addWidget(self.restart_key_label, 5, 1)
+        self.main_layout.addWidget(self.volume_up_label, 6, 0)
+        self.main_layout.addWidget(self.volume_up_key_label, 6, 1)
+        self.main_layout.addWidget(self.volume_down_label, 7, 0)
+        self.main_layout.addWidget(self.volume_down_key_label, 7, 1)
+        self.main_layout.addWidget(self.mute_label, 8, 0)
+        self.main_layout.addWidget(self.mute_key_label, 8, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 9, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+        
+        self.resize_window()
+    
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+
+
 # Registration info dialog
 #   Displays registration info and a button ro register
 class RegistrationInfo(QDialog):
@@ -1527,6 +1625,8 @@ class ImageButton(QAbstractButton):
     def sizeHint(self):
         return QSize(self.width, self.height)
 
+# Custom seekbar class
+#   A customized slider
 class SeekBar(QSlider):
     def __init__(self,
         position_changed_function=None,
@@ -1764,6 +1864,10 @@ class MyQMainWindow(QMainWindow):
         self.export_menu.addAction(self.export_menu_video)
         
         self.help_menu = self.main_menu.addMenu("Help")
+        
+        self.help_menu_hotkeys = QAction("Hotkeys...", self)
+        self.help_menu_hotkeys.triggered.connect(self.hotkeys_clicked)
+        self.help_menu.addAction(self.help_menu_hotkeys)
         
         self.help_menu_registration = QAction("Registration...", self)
         self.help_menu_registration.triggered.connect(self.registration_clicked)
@@ -2227,6 +2331,11 @@ class MyQMainWindow(QMainWindow):
                         QMessageBox.Ok
                     )
     
+    def hotkeys_clicked(self):
+        popup = HotkeysInfo(parent=self)
+        
+        result = popup.exec()
+    
     def registration_clicked(self):
         popup = RegistrationInfo(parent=self)
         
@@ -2237,7 +2346,6 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Add hotkey info dialog
     #TODO: Add unit testing (https://realpython.com/python-testing/)
     #TODO: Add documentation (https://realpython.com/python-doctest/)
 
