@@ -1351,7 +1351,6 @@ class HotkeysInfo(QDialog):
     def resize_window(self):
         self.setFixedSize(self.sizeHint())
 
-
 # Registration info dialog
 #   Displays registration info and a button ro register
 class RegistrationInfo(QDialog):
@@ -1634,9 +1633,13 @@ class SeekBar(QSlider):
     ):
         super(SeekBar, self).__init__(parent)
         
-        self.setFixedHeight(10)
+        self.handle_size = 10
+        #TODO: Fix handle width not changing
+        #TODO: Fix handle not hanging over the side
         
-        self.setStyleSheet("QSlider::handle { background: #666; height: 10px; width: 10px; border-radius: 5px; } QSlider::handle:hover { background: #000; height: 10px; width: 10px; border-radius: 5px; }")
+        self.setFixedHeight(self.handle_size)
+        
+        self.setStyleSheet("QSlider::handle {{ background: #666; height: {0}px; width: {0}px; border-radius: {1}px; }} QSlider::handle:hover {{ background: #000; height: {0}px; width: {0}px; border-radius: {1}px; }}".format(self.handle_size, math.floor(self.handle_size/2)))
         
         self.position_changed_function = position_changed_function
     
