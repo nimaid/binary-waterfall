@@ -1797,6 +1797,10 @@ class MyQMainWindow(QMainWindow):
             self.toggle_mute()
         elif key == Qt.Key_R:
             self.restart_clicked()
+        elif key == Qt.Key_Comma:
+            self.player.frame_back()
+        elif key == Qt.Key_Period:
+            self.player.frame_forward()
     
     def resize_window(self):
         # First, make largest elements smaller
@@ -2233,7 +2237,7 @@ class MyQMainWindow(QMainWindow):
         
         result = popup.exec()
     
-    #TODO: Add "frame-by-frame" seek buttons (and bind keys < and >)
+    #TODO: Add hotkey info dialog
     #TODO: Add unit testing (https://realpython.com/python-testing/)
     #TODO: Add documentation (https://realpython.com/python-doctest/)
 
@@ -2295,8 +2299,8 @@ class Player:
     
     def set_fps(self, fps):
         self.fps = min(max(fps, self.fps_min), self.fps_max)
-        self.fps_delay_ms = math.floor(1000 / self.fps)
-        self.audio.setNotifyInterval(self.fps_delay_ms)
+        self.frame_ms = math.floor(1000 / self.fps)
+        self.audio.setNotifyInterval(self.frame_ms)
     
     def clear_image(self):
         background_image = Image.new(
@@ -2400,6 +2404,12 @@ class Player:
     def back(self, ms=5000):
         new_pos = self.get_position() - ms
         self.set_position(new_pos)
+    
+    def frame_forward(self):
+        self.forward(ms=self.frame_ms)
+    
+    def frame_back(self):
+        self.back(ms=self.frame_ms)
     
     def restart(self):
         self.set_position(0)

@@ -16,13 +16,15 @@ https://github.com/nimaid/binary-waterfall
 ```
 
 ## Keyboard Shortcuts
-- **Play / Pause:** Spacebar
-- **Back:** Left Arrow
-- **Forward:** Right Arrow
-- **Restart:** R
-- **Volume Up:** Up Arrow
-- **Volume Down:** Down Arrow
-- **Mute / Unmute:** M
+- **Play / Pause:** `Spacebar`
+- **Back:** `Left Arrow`
+- **Forward:** `Right Arrow`
+- **Frame Back:** `<` (`,`)
+- **Frame Forward:** `>` (`.`)
+- **Restart:** `R`
+- **Volume Up:** `Up Arrow`
+- **Volume Down:** `Down Arrow`
+- **Mute / Unmute:** `M`
 
 ## Licensing Info
 All features of this program are free, with one exception:
