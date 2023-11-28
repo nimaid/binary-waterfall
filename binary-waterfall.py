@@ -622,7 +622,7 @@ class QtBarLoggerMoviepy(ProgressBarLogger):
             if "building" in message:
                 self.set_progress(5)
             elif "writing" in message:
-                self.set_progress(25)
+                self.set_progress(50)
             elif "ready" in message:
                 self.set_progress(100)
 
