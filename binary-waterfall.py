@@ -608,19 +608,23 @@ class Watermarker:
 #   Handles updating the progress in a QProgressDialog
 #   Designed to work with moviepy's export option
 class QtBarLoggerMoviepy(ProgressBarLogger):
-    def set_progress_dialog(self, progress_dialog):
+    def set_progress_dialog(self, progress_dialog, start_progress=0):
         self.progress_dialog = progress_dialog
         progress_dialog.setMaximum(100)
+        self.set_progress(start_progress)
+    
+    def set_progress(self, value):
+        self.progress_dialog.setValue(value)
     
     def callback(self, **changes):
         if "message" in changes:
             message = changes["message"].lower()
             if "building" in message:
-                self.progress_dialog.setValue(5)
+                self.set_progress(5)
             elif "writing" in message:
-                self.progress_dialog.setValue(10)
+                self.set_progress(25)
             elif "ready" in message:
-                self.progress_dialog.setValue(100)
+                self.set_progress(100)
 
 # Audio settings input window
 #   User interface to set the audio settings (for computation)
@@ -629,9 +633,10 @@ class AudioSettings(QDialog):
         num_channels,
         sample_bytes,
         sample_rate,
-        volume
+        volume,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Audio Settings")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -752,9 +757,10 @@ class VideoSettings(QDialog):
         bw,
         width,
         height,
-        color_format
+        color_format,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Video Settings")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -838,7 +844,7 @@ class VideoSettings(QDialog):
             self.color_format_entry.setText(self.color_format)
             self.color_format_entry.setFocus()
             
-            error_popup = QMessageBox()
+            error_popup = QMessageBox(parent=self)
             error_popup.setIcon(QMessageBox.Critical)
             error_popup.setText("Invalid Color Format")
             error_popup.setInformativeText(parsed["message"])
@@ -854,8 +860,9 @@ class PlayerSettings(QDialog):
     def __init__(self,
         max_view_dim,
         fps,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Player Settings")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -924,9 +931,10 @@ class PlayerSettings(QDialog):
 class ExportFrame(QDialog):
     def __init__(self,
         width,
-        height
+        height,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Export Image")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1012,9 +1020,10 @@ class ExportFrame(QDialog):
 class ExportSequence(QDialog):
     def __init__(self,
         width,
-        height
+        height,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Export Sequence")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1143,9 +1152,10 @@ class ExportSequence(QDialog):
 class ExportVideo(QDialog):
     def __init__(self,
         width,
-        height
+        height,
+        parent=None
     ):
-        super().__init__()
+        super().__init__(parent=parent)
         self.setWindowTitle("Export Video")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1247,8 +1257,8 @@ class ExportVideo(QDialog):
 # Registration info dialog
 #   Displays registration info and a button ro register
 class RegistrationInfo(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setWindowTitle("Registration Info")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1312,7 +1322,7 @@ class RegistrationInfo(QDialog):
         global IS_REGISTERED
         
         if SERIAL_KEY == None:
-            popup = RegistrationEntry()
+            popup = RegistrationEntry(parent=self)
             
             result = popup.exec()
             
@@ -1332,21 +1342,22 @@ class RegistrationInfo(QDialog):
                     self.resize_window()
                     
                     choice = QMessageBox.information(
-                        None,
+                        self,
                         "Registration Complete",
                         f"Thank you for registering {TITLE}!",
-                        QMessageBox.Ok
+                        QMessageBox.Ok,
+                        
                     )
                 else:
                     choice = QMessageBox.critical(
-                        None,
+                        self,
                         "Serial Not Valid",
                         "You have entered an invalid serial key.",
                         QMessageBox.Ok
                     )
         else:
             choice = QMessageBox.warning(
-                None,
+                self,
                 "Already Registered",
                 "You have already registered this product!",
                 QMessageBox.Ok
@@ -1356,8 +1367,8 @@ class RegistrationInfo(QDialog):
 #   Prompts the user to enter a serial number
 #   Also gives the user a button to buy a serial key (open link)
 class RegistrationEntry(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setWindowTitle("Registration Info")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1423,8 +1434,8 @@ class RegistrationEntry(QDialog):
 # About dialog
 #   Gives info about the program
 class About(QDialog):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, parent=None):
+        super().__init__(parent=parent)
         self.setWindowTitle(f"About {TITLE}")
         self.setWindowIcon(QIcon(ICON_PATH["program"]))
         
@@ -1892,7 +1903,8 @@ class MyQMainWindow(QMainWindow):
             num_channels=self.bw.num_channels,
             sample_bytes=self.bw.sample_bytes,
             sample_rate=self.bw.sample_rate,
-            volume=self.bw.volume
+            volume=self.bw.volume,
+            parent=self
         )
         
         result = popup.exec()
@@ -1911,7 +1923,8 @@ class MyQMainWindow(QMainWindow):
             bw=self.bw,
             width=self.bw.width,
             height=self.bw.height,
-            color_format=self.bw.get_color_format_string()
+            color_format=self.bw.get_color_format_string(),
+            parent=self
         )
         
         result = popup.exec()
@@ -1931,7 +1944,8 @@ class MyQMainWindow(QMainWindow):
     def player_settings_clicked(self):
         popup = PlayerSettings(
             max_view_dim=self.player.max_dim,
-            fps=self.player.fps
+            fps=self.player.fps,
+            parent=self
         )
         
         result = popup.exec()
@@ -1946,7 +1960,7 @@ class MyQMainWindow(QMainWindow):
     def export_image_clicked(self):
         if self.bw.audio_filename == None:
             choice = QMessageBox.critical(
-                None,
+                self,
                 "Error",
                 "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
                 QMessageBox.Cancel
@@ -1955,7 +1969,8 @@ class MyQMainWindow(QMainWindow):
         
         popup = ExportFrame(
             width=self.player.width,
-            height=self.player.height
+            height=self.player.height,
+            parent=self
         )
         
         result = popup.exec()
@@ -1981,7 +1996,7 @@ class MyQMainWindow(QMainWindow):
     def export_audio_clicked(self):
         if self.bw.audio_filename == None:
             choice = QMessageBox.critical(
-                None,
+                self,
                 "Error",
                 "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
                 QMessageBox.Cancel
@@ -2003,7 +2018,7 @@ class MyQMainWindow(QMainWindow):
     def export_sequence_clicked(self):
         if self.bw.audio_filename == None:
             choice = QMessageBox.critical(
-                None,
+                self,
                 "Error",
                 "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
                 QMessageBox.Cancel
@@ -2012,7 +2027,8 @@ class MyQMainWindow(QMainWindow):
         
         popup = ExportSequence(
             width=self.player.width,
-            height=self.player.height
+            height=self.player.height,
+            parent=self
         )
         
         result = popup.exec()
@@ -2049,7 +2065,7 @@ class MyQMainWindow(QMainWindow):
     def export_video_clicked(self):
         if self.bw.audio_filename == None:
             choice = QMessageBox.critical(
-                None,
+                self,
                 "Error",
                 "There is no file open in the viewer to export.\n\nPlease open a file and try again.",
                 QMessageBox.Cancel
@@ -2058,7 +2074,7 @@ class MyQMainWindow(QMainWindow):
         
         if not IS_REGISTERED:
             choice = QMessageBox.warning(
-                None,
+                self,
                 "Warning",
                 f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\nPlease see the Help menu for info on how to register.\n\nProceede anyway?",
                 QMessageBox.Cancel | QMessageBox.Ok
@@ -2068,7 +2084,8 @@ class MyQMainWindow(QMainWindow):
         
         popup = ExportVideo(
             width=self.player.width,
-            height=self.player.height
+            height=self.player.height,
+            parent=self
         )
         
         result = popup.exec()
@@ -2108,17 +2125,16 @@ class MyQMainWindow(QMainWindow):
                 )
     
     def registration_clicked(self):
-        popup = RegistrationInfo()
+        popup = RegistrationInfo(parent=self)
         
         result = popup.exec()
     
     def about_clicked(self):
-        popup = About()
+        popup = About(parent=self)
         
         result = popup.exec()
     
     #TODO: Bind keypress events (volume, skip, play/pause, mute, restart)
-    #TODO: When popup is up, make clicking any other window below it focus them all
     #TODO: Make the seek bar look nicer (rounded handle)
 
 # Image playback class
@@ -2524,18 +2540,15 @@ class Renderer:
             if progress_dialog.wasCanceled():
                 shutil.rmtree(temp_dir)
                 return
-            
-            # Reset progress dialog
-            progress_dialog.setLabelText("Splicing final video file...")
-            progress_dialog.setValue(0)
-            
         
         # Export audio
         self.export_audio(audio_file)
         
         # Prepare the custom logger to update the progress box
         custom_logger = QtBarLoggerMoviepy()
-        custom_logger.set_progress_dialog(progress_dialog)
+        if progress_dialog != None:
+            progress_dialog.setLabelText("Splicing final video file...")
+            custom_logger.set_progress_dialog(progress_dialog, start_progress=0)
         
         # Make a list of the image filenames
         frames_list = list()
