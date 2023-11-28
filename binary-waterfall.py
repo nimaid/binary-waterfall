@@ -1534,6 +1534,10 @@ class SeekBar(QSlider):
     ):
         super(SeekBar, self).__init__(parent)
         
+        self.setFixedHeight(10)
+        
+        self.setStyleSheet("QSlider::handle { background: #666; height: 10px; width: 10px; border-radius: 5px; } QSlider::handle:hover { background: #000; height: 10px; width: 10px; border-radius: 5px; }")
+        
         self.position_changed_function = position_changed_function
     
     def set_position_changed_function(self, position_changed_function):
@@ -1674,6 +1678,7 @@ class MyQMainWindow(QMainWindow):
         self.set_volume_label_value(self.current_volume)
         
         self.volume_slider = QSlider(Qt.Vertical)
+        self.volume_slider.setStyleSheet("QSlider::handle { background: #666; } QSlider::handle:hover { background: #000; }")
         self.volume_slider.setFocusPolicy(Qt.NoFocus)
         self.volume_slider.setFixedSize(20, 50)
         self.volume_slider.setMinimum(0)
@@ -1795,7 +1800,7 @@ class MyQMainWindow(QMainWindow):
     
     def resize_window(self):
         # First, make largest elements smaller
-        self.seek_bar.setFixedSize(20, 20)
+        self.seek_bar.setFixedWidth(20)
         
         # Next, we update counterpadding
         self.update_counterpad_size()
@@ -1807,7 +1812,7 @@ class MyQMainWindow(QMainWindow):
         size_hint = self.sizeHint()
         self.setFixedSize(size_hint)
         
-        self.seek_bar.setFixedSize(size_hint.width()-(self.padding_px*2), 20)
+        self.seek_bar.setFixedWidth(size_hint.width()-(self.padding_px*2))
     
     def update_counterpad_size(self):
         self.restart_counterpad.setFixedSize(self.transport_restart.sizeHint())
@@ -2229,7 +2234,8 @@ class MyQMainWindow(QMainWindow):
         result = popup.exec()
     
     #TODO: Add "frame-by-frame" seek buttons (and bind keys < and >)
-    #TODO: Make the seek bar look nicer (rounded handle)
+    #TODO: Add unit testing (https://realpython.com/python-testing/)
+    #TODO: Add documentation (https://realpython.com/python-doctest/)
 
 # Image playback class
 #   Provides an abstraction for displaying images and audio in the GUI
