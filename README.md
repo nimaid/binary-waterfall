@@ -11,7 +11,7 @@ A Raw Data Media Player
 ## Attribution
 If you use this program to make a video or other project, you must provide attribution. Attribution is required regardless of whether your project is for-profit or not. Please reproduce the following attribution statement in full in your video description or otherwise include it in the references for your project:
 ```
-Made with the help of the open-source program Binary Waterfall (© 2023 Ella Jameson):
+Made with the help of Binary Waterfall:
 https://github.com/nimaid/binary-waterfall
 ```
 
