@@ -2,7 +2,6 @@
 
 import os
 import sys
-import argparse
 from enum import Enum
 import yaml
 import re
@@ -2819,32 +2818,12 @@ class MainWindow:
 
 
 
-# A helper function for the argument parser
-def file_path(string):
-    if os.path.isfile(string):
-        return string
-    else:
-        raise FileNotFoundError(string)
-
-# Parse arguments
-def parse_args(args):
-    parser = argparse.ArgumentParser(
-        description=f"{DESCRIPTION}",
-        formatter_class=argparse.RawDescriptionHelpFormatter
-    )
-    
-    parsed_args, unparsed_args = parser.parse_known_args()
-    return parsed_args, unparsed_args
-
 def main(args):
-    parsed_args, unparsed_args = parse_args(args)
-    qt_args = [sys.argv[0]] + unparsed_args
-    
-    main_window = MainWindow(qt_args)
+    main_window = MainWindow(args)
     main_window.run()
 
 def run():
-    main(sys.argv[1:])
+    main(sys.argv)
 
 if __name__ == "__main__":
     run()
