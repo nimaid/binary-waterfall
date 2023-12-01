@@ -3,10 +3,6 @@ A Raw Data Media Player
 
 <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
 
-[Watch the trailer:](https://www.youtube.com/watch?v=gZRWbv_aob0)
-
-[<img src="https://i.ytimg.com/vi/gZRWbv_aob0/maxresdefault.jpg" width="300px">](https://www.youtube.com/watch?v=gZRWbv_aob0 "Microsoft Paint Remix")
-
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
 
 ## Download
@@ -40,3 +36,6 @@ To use the `.exe` version of the program to export videos without a watermark, y
 [Buy a serial key here!](https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386)
 
 If you run the `.py` file directly, you will be able to export videos without a watermark, even if the program is unregistered. You can still register the software with a valid serial key when running the `.py` version, but it will have no effect as all features will already be unlocked.
+
+## Showcase Video
+[<img src="https://i.ytimg.com/vi/gZRWbv_aob0/maxresdefault.jpg" width="300px">](https://www.youtube.com/watch?v=gZRWbv_aob0 "Microsoft Paint Remix")
