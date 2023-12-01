@@ -3,6 +3,8 @@ A Raw Data Media Player
 
 <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
 
+[Watch the trailer:](https://www.youtube.com/watch?v=gZRWbv_aob0)
+
 [<img src="https://i.ytimg.com/vi/gZRWbv_aob0/maxresdefault.jpg" width="300px">](https://www.youtube.com/watch?v=gZRWbv_aob0 "Microsoft Paint Remix")
 
 [Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
