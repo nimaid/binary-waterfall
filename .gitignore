@@ -152,4 +152,6 @@ cython_debug/
 #.idea/
 
 *.exe
+
+.idea/*
 file_version_info.txt
