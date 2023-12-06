@@ -642,13 +642,26 @@ class QtBarLoggerMoviepy(ProgressBarLogger):
 
     def callback(self, **changes):
         if "message" in changes:
-            message = changes["message"].lower()
-            if "building" in message:
-                self.set_progress(5)
-            elif "writing" in message:
-                self.set_progress(50)
-            elif "ready" in message:
-                self.set_progress(100)
+            message = changes["message"].strip("Moviepy - ")
+            
+            if "Building video" in message:
+                self.progress_dialog.setLabelText("(1/3) Building video...")
+            elif "Writing audio" in message:
+                self.progress_dialog.setLabelText("(2/3) Writing audio...")
+            elif "Done." in message:
+                self.progress_dialog.setLabelText("Done writing audio!")
+            elif "Writing video" in message:
+                self.progress_dialog.setLabelText("(3/3) Writing video...")
+            elif "Done !" in message:
+                self.progress_dialog.setLabelText("Done writing video!")
+            elif "video ready" in message:
+                self.progress_dialog.setLabelText("Video is ready!")
+            else:
+                self.progress_dialog.setLabelText(message)
+    
+    def bars_callback(self, bar, attr, value, old_value=None):
+        percent = (value / self.bars[bar]["total"]) * 100
+        self.set_progress(round(percent))
 
 
 # Audio settings input window
