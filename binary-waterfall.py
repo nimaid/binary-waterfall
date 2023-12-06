@@ -2407,7 +2407,8 @@ class MyQMainWindow(QMainWindow):
         popup = About(parent=self)
 
         result = popup.exec()
-
+    
+    # TODO: Add video export settings (encoder, bitrate, quality, stuff like that)
     # TODO: Add unit testing (https://realpython.com/python-testing/)
     # TODO: Add documentation (https://realpython.com/python-doctest/)
 
