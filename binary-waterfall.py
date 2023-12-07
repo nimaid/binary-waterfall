@@ -10,7 +10,6 @@ import math
 import wave
 import pydub
 from moviepy.editor import ImageSequenceClip, AudioFileClip
-import numpy as np
 import time
 import tempfile
 import webbrowser
@@ -20,14 +19,14 @@ from PyQt5.QtCore import Qt, QUrl, QTimer, QSize
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QWidget,
-    QGridLayout, QHBoxLayout, QVBoxLayout,
+    QGridLayout, QHBoxLayout,
     QLabel, QPushButton,
     QFileDialog, QAction,
     QDialog, QDialogButtonBox, QComboBox, QLineEdit, QCheckBox,
     QSpinBox, QDoubleSpinBox,
     QMessageBox,
     QAbstractButton,
-    QSlider, QDial,
+    QSlider,
     QStyle,
     QProgressDialog
 )
@@ -180,7 +179,7 @@ REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-
 PROJECT_URL = "https://github.com/nimaid/binary-waterfall"
 
 
-# Define some stateless helper functions used throught the program
+# Define some stateless helper functions used through the program
 def get_size_for_fit_frame(content_size, frame_size):
     content_width, content_height = content_size
     frame_width, frame_height = frame_size
@@ -490,7 +489,7 @@ class BinaryWaterfall:
         self.compute_audio()
 
     def delete_audio(self):
-        if self.audio_filename == None:
+        if self.audio_filename is None:
             # Do nothing
             return
         try:
@@ -505,7 +504,7 @@ class BinaryWaterfall:
         return audio_length_ms
 
     def compute_audio(self):
-        if self.filename == None:
+        if self.filename is None:
             # If there is no file set, reset the vars
             self.audio_length_ms = None
             return
@@ -1594,7 +1593,8 @@ class About(QDialog):
         self.icon_label.setFixedSize(self.icon_size, self.icon_size)
 
         self.about_text = QLabel(
-            f"{TITLE} v{VERSION}\nby {COPYRIGHT}\nCopyright 2023\n\n{DESCRIPTION}\n\nProject Home Page:\n{PROJECT_URL}\n\nPatreon:\n{DONATE_URL}")
+            f"{TITLE} v{VERSION}\nby {COPYRIGHT}\nCopyright 2023\n\n{DESCRIPTION}\n\n"
+            f"Project Home Page:\n{PROJECT_URL}\n\nPatreon:\n{DONATE_URL}")
         self.about_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok)
@@ -1690,7 +1690,8 @@ class SeekBar(QSlider):
         self.setFixedHeight(self.handle_size)
 
         self.setStyleSheet(
-            "QSlider::handle {{ background: #666; height: {0}px; width: {0}px; border-radius: {1}px; }} QSlider::handle:hover {{ background: #000; height: {0}px; width: {0}px; border-radius: {1}px; }}".format(
+            "QSlider::handle {{ background: #666; height: {0}px; width: {0}px; border-radius: {1}px; }} "
+            "QSlider::handle:hover {{ background: #000; height: {0}px; width: {0}px; border-radius: {1}px; }}".format(
                 self.handle_size, math.floor(self.handle_size / 2)))
 
         self.position_changed_function = position_changed_function
@@ -1699,7 +1700,7 @@ class SeekBar(QSlider):
         self.position_changed_function = position_changed_function
 
     def set_position_if_set(self, value):
-        if self.position_changed_function == None:
+        if self.position_changed_function is None:
             self.setValue(value)
         else:
             self.position_changed_function(value)
@@ -2032,7 +2033,7 @@ class MyQMainWindow(QMainWindow):
             self.set_volume_icon(mute=False)
 
     def update_seekbar(self):
-        if self.bw.filename == None:
+        if self.bw.filename is None:
             self.seek_bar.setEnabled(False)
             self.seek_bar.setValue(0)
         else:
@@ -2080,7 +2081,7 @@ class MyQMainWindow(QMainWindow):
         self.set_volume(value)
 
     def set_file_savename(self, name=None):
-        if name == None:
+        if name is None:
             self.file_savename = "Untitled"
         else:
             self.file_savename = name
@@ -2175,7 +2176,7 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
 
     def export_image_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -2199,7 +2200,9 @@ class MyQMainWindow(QMainWindow):
                 self,
                 "Export Image As...",
                 os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
-                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;"
+                f"JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;"
+                f"BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
             )
 
             if filename != "":
@@ -2220,7 +2223,7 @@ class MyQMainWindow(QMainWindow):
                 )
 
     def export_audio_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -2233,7 +2236,9 @@ class MyQMainWindow(QMainWindow):
             self,
             "Export Audio As...",
             os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.AudioFormatCode.MP3.value}"),
-            f"MP3 (*{self.renderer.AudioFormatCode.MP3.value});;WAV (*{self.renderer.AudioFormatCode.WAVE.value});;FLAC (*{self.renderer.AudioFormatCode.FLAC.value})"
+            f"MP3 (*{self.renderer.AudioFormatCode.MP3.value});;"
+            f"WAV (*{self.renderer.AudioFormatCode.WAVE.value});;"
+            f"FLAC (*{self.renderer.AudioFormatCode.FLAC.value})"
         )
 
         if filename != "":
@@ -2251,7 +2256,7 @@ class MyQMainWindow(QMainWindow):
             )
 
     def export_sequence_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -2294,7 +2299,7 @@ class MyQMainWindow(QMainWindow):
                     size=(settings["width"], settings["height"]),
                     fps=settings["fps"],
                     keep_aspect=settings["keep_aspect"],
-                    format=settings["format"],
+                    export_format=settings["format"],
                     progress_dialog=progress_popup
                 )
 
@@ -2315,7 +2320,7 @@ class MyQMainWindow(QMainWindow):
                     )
 
     def export_video_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -2328,7 +2333,8 @@ class MyQMainWindow(QMainWindow):
             choice = QMessageBox.warning(
                 self,
                 "Warning",
-                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\nPlease see the Help menu for info on how to register.\n\nProceede anyway?",
+                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
+                f"Please see the Help menu for info on how to register.\n\nProceede anyway?",
                 QMessageBox.Cancel | QMessageBox.Ok
             )
             if choice == QMessageBox.Cancel:
@@ -2349,7 +2355,9 @@ class MyQMainWindow(QMainWindow):
                 self,
                 "Export Video As...",
                 os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
-                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;MKV (*{self.renderer.VideoFormatCode.MKV.value});;AVI (*{self.renderer.VideoFormatCode.AVI.value})"
+                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;"
+                f"MKV (*{self.renderer.VideoFormatCode.MKV.value});;"
+                f"AVI (*{self.renderer.VideoFormatCode.AVI.value})"
             )
 
             if filename != "":
@@ -2500,7 +2508,7 @@ class Player:
         self.set_dims(max_dim=max_dim)
 
         # Update image
-        if self.bw.filename == None:
+        if self.bw.filename is None:
             self.clear_image()
         else:
             self.set_image(self.image)
@@ -2540,7 +2548,7 @@ class Player:
         if ms > duration:
             ms = duration
 
-        if self.bw.filename != None:
+        if self.bw.filename is not None:
             self.audio.setPosition(ms)
 
         # If the file is at the end, pause
@@ -2548,11 +2556,11 @@ class Player:
             self.pause()
 
     def set_playbutton_if_given(self, play):
-        if self.set_play_button != None:
+        if self.set_play_button is not None:
             self.set_play_button(play=play)
 
     def set_seekbar_if_given(self, ms):
-        if self.set_seekbar_function != None:
+        if self.set_seekbar_function is not None:
             self.set_seekbar_function(ms)
 
     def state_changed_handler(self, media_state):
@@ -2587,7 +2595,7 @@ class Player:
         self.set_position(0)
 
     def set_audio_file(self, filename):
-        if filename == None:
+        if filename is None:
             url = QUrl(None)
         else:
             url = QUrl.fromLocalFile(self.bw.audio_filename)
@@ -2618,7 +2626,7 @@ class Player:
         self.clear_image()
 
     def file_is_open(self):
-        if self.bw.filename == None:
+        if self.bw.filename is None:
             return False
         else:
             return True
@@ -2630,7 +2638,7 @@ class Player:
             return False
 
     def set_image_timestamp(self, ms):
-        if self.bw.filename == None:
+        if self.bw.filename is None:
             self.clear_image()
         else:
             self.set_image(self.bw.get_frame_qimage(ms))
@@ -2693,7 +2701,7 @@ class Renderer:
                      ):
         self.make_file_path(filename)
 
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             # If no file is loaded, make a black image
             source = Image.new(
                 mode="RGBA",
@@ -2704,9 +2712,12 @@ class Renderer:
             source = self.bw.get_frame_image(ms).convert("RGBA")
 
         # Resize with aspect ratio, paste onto black
-        if size == None:
+        if size is None:
             resized = source
         else:
+            if keep_aspect:
+                size = get_size_for_fit_frame(content_size=source.size, frame_size=size)["size"]
+                print(size)
             resized = fit_to_frame(
                 image=source,
                 frame_size=size,
@@ -2749,7 +2760,7 @@ class Renderer:
                         fps,
                         size=None,
                         keep_aspect=False,
-                        format=None,
+                        export_format=None,
                         watermark=False,
                         progress_dialog=None
                         ):
@@ -2759,12 +2770,12 @@ class Renderer:
 
         frame_number_digits = len(str(frame_count))
 
-        if format is None:
-            format = self.ImageFormatCode.PNG
+        if export_format is None:
+            export_format = self.ImageFormatCode.PNG
 
         for frame in range(frame_count):
             frame_number = str(frame).rjust(frame_number_digits, "0")
-            frame_filename = os.path.join(directory, f"{frame_number}{format.value}")
+            frame_filename = os.path.join(directory, f"{frame_number}{export_format.value}")
             frame_ms = round((frame / fps) * 1000)
 
             if progress_dialog is not None:
@@ -2813,7 +2824,7 @@ class Renderer:
             fps=fps,
             size=size,
             keep_aspect=keep_aspect,
-            format=self.ImageFormatCode.PNG,
+            export_format=self.ImageFormatCode.PNG,
             watermark=watermark,
             progress_dialog=progress_dialog
         )
