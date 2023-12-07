@@ -10,7 +10,6 @@ dependencies:
   - pip:
     - pyinstaller
     - pyinstaller-versionfile
-    - numpy
     - PyQt5
     - pydub
     - moviepy
