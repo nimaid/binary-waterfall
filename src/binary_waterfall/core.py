@@ -7,7 +7,7 @@ from PyQt5.QtGui import QPalette, QColor
 from . import window, constants
 
 
-# TODO: Add MoviePy video export settings (encoder, bitrate, quality, stuff like that)
+# TODO: Allow specifying custom audio and video bitrates
 # TODO: Add unit testing (https://realpython.com/python-testing/)
 # TODO: Add documentation (https://realpython.com/python-doctest/)
 
