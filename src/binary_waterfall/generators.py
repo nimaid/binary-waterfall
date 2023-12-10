@@ -1,7 +1,13 @@
 import os
+import shutil
 import tempfile
+import math
+import wave
+from PIL import Image, ImageOps
+import pydub
+from PyQt5.QtGui import QImage
 
-from . import constants
+from . import constants, helpers
 
 
 # Binary Waterfall abstraction class
@@ -21,6 +27,7 @@ class BinaryWaterfall:
                  volume=100
                  ):
         # Initialize class variables
+        self.audio_length_ms = None
         self.volume = None
         self.sample_rate = None
         self.sample_bytes = None
@@ -245,7 +252,7 @@ class BinaryWaterfall:
         self.compute_audio()
 
     def delete_audio(self):
-        if self.audio_filename == None:
+        if self.audio_filename is None:
             # Do nothing
             return
         try:
@@ -260,7 +267,7 @@ class BinaryWaterfall:
         return audio_length_ms
 
     def compute_audio(self):
-        if self.filename == None:
+        if self.filename is None:
             # If there is no file set, reset the vars
             self.audio_length_ms = None
             return
@@ -307,13 +314,13 @@ class BinaryWaterfall:
                 # Fill one BGR byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
-                    if c == self.ColorFmtCode.RED:
+                    if c == constants.ColorFmtCode.RED:
                         this_byte[0] = self.bytes[current_address:current_address + 1]  # Red
-                    elif c == self.ColorFmtCode.GREEN:
+                    elif c == constants.ColorFmtCode.GREEN:
                         this_byte[1] = self.bytes[current_address:current_address + 1]  # Green
-                    elif c == self.ColorFmtCode.BLUE:
+                    elif c == constants.ColorFmtCode.BLUE:
                         this_byte[2] = self.bytes[current_address:current_address + 1]  # Blue
-                    elif c == self.ColorFmtCode.WHITE:
+                    elif c == constants.ColorFmtCode.WHITE:
                         this_byte[0] = self.bytes[current_address:current_address + 1]  # Red
                         this_byte[1] = self.bytes[current_address:current_address + 1]  # Green
                         this_byte[2] = self.bytes[current_address:current_address + 1]  # Blue
@@ -366,11 +373,11 @@ class BinaryWaterfall:
 #   Handles watermarking images
 class Watermarker:
     def __init__(self):
-        self.img = Image.open(ICON_PATH["watermark"]).convert("RGBA")
+        self.img = Image.open(constants.ICON_PATHS["watermark"]).convert("RGBA")
 
     def mark(self, image):
         this_mark = self.img.copy()
-        this_mark = fit_to_frame(
+        this_mark = helpers.fit_to_frame(
             image=this_mark,
             frame_size=image.size,
             scaling=Image.BICUBIC,
