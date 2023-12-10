@@ -1,7 +1,7 @@
-# <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/src/binary_waterfall/resources/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
+# <img src="https://github.com/nimaid/binary-waterfall/blob/main/src/binary_waterfall/resources/icon.png?raw=true" height="20px" alt="Binary Waterfall"/> Binary Waterfall
 ### A Raw Data Media Player
 
-<p align="center"><img src="docs/example.png" width="800px" alt="Running the program on mspaint.exe"/></p>
+<p align="center"><img src="https://github.com/nimaid/binary-waterfall/blob/main/docs/example.png?raw=true" width="400px" alt="Running the program on mspaint.exe"/></p>
 
 <p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
 
