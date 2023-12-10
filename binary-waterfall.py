@@ -2205,19 +2205,27 @@ class MyQMainWindow(QMainWindow):
             if filename != "":
                 file_path, file_title = os.path.split(filename)
                 self.last_save_location = file_path
-                self.renderer.export_frame(
-                    ms=self.player.get_position(),
-                    filename=filename,
-                    size=(settings["width"], settings["height"]),
-                    keep_aspect=settings["keep_aspect"]
-                )
-
-                choice = QMessageBox.information(
-                    self,
-                    "Export Complete",
-                    f"Export image successful!",
-                    QMessageBox.Ok
-                )
+                try:
+                    self.renderer.export_frame(
+                        ms=self.player.get_position(),
+                        filename=filename,
+                        size=(settings["width"], settings["height"]),
+                        keep_aspect=settings["keep_aspect"]
+                    )
+                except Exception as e:
+                    choice = QMessageBox.critical(
+                        self,
+                        "Export Error",
+                        f"An error occurred while exporting frame: {str(e)}",
+                        QMessageBox.Ok
+                    )
+                else:
+                    choice = QMessageBox.information(
+                        self,
+                        "Export Complete",
+                        f"Export image successful!",
+                        QMessageBox.Ok
+                    )
 
     def export_audio_clicked(self):
         if self.bw.audio_filename == None:
@@ -2239,16 +2247,24 @@ class MyQMainWindow(QMainWindow):
         if filename != "":
             file_path, file_title = os.path.split(filename)
             self.last_save_location = file_path
-            self.renderer.export_audio(
-                filename=filename
-            )
-
-            choice = QMessageBox.information(
-                self,
-                "Export Complete",
-                f"Export audio successful!",
-                QMessageBox.Ok
-            )
+            try:
+                self.renderer.export_audio(
+                    filename=filename
+                )
+            except Exception as e:
+                choice = QMessageBox.critical(
+                    self,
+                    "Export Error",
+                    f"An error occurred while exporting audio: {str(e)}",
+                    QMessageBox.Ok
+                )
+            else:
+                choice = QMessageBox.information(
+                    self,
+                    "Export Complete",
+                    f"Export audio successful!",
+                    QMessageBox.Ok
+                )
 
     def export_sequence_clicked(self):
         if self.bw.audio_filename == None:
@@ -2289,30 +2305,39 @@ class MyQMainWindow(QMainWindow):
                 progress_popup.setWindowTitle("Exporting Images...")
                 progress_popup.setFixedSize(300, 100)
 
-                self.renderer.export_sequence(
-                    directory=file_dir,
-                    size=(settings["width"], settings["height"]),
-                    fps=settings["fps"],
-                    keep_aspect=settings["keep_aspect"],
-                    format=settings["format"],
-                    progress_dialog=progress_popup
-                )
-
-                if progress_popup.wasCanceled():
-                    # shutil.rmtree(file_dir) # Dangerous! May delete user data
-                    choice = QMessageBox.warning(
+                try:
+                    self.renderer.export_sequence(
+                        directory=file_dir,
+                        size=(settings["width"], settings["height"]),
+                        fps=settings["fps"],
+                        keep_aspect=settings["keep_aspect"],
+                        format=settings["format"],
+                        progress_dialog=progress_popup
+                    )
+                except Exception as e:
+                    progress_popup.cancel()
+                    choice = QMessageBox.critical(
                         self,
-                        "Export Aborted",
-                        f"Export image sequence aborted!",
+                        "Export Error",
+                        f"An error occurred while exporting image sequence: {str(e)}",
                         QMessageBox.Ok
                     )
                 else:
-                    choice = QMessageBox.information(
-                        self,
-                        "Export Complete",
-                        f"Export image sequence successful!",
-                        QMessageBox.Ok
-                    )
+                    if progress_popup.wasCanceled():
+                        # shutil.rmtree(file_dir) # Dangerous! May delete user data
+                        choice = QMessageBox.warning(
+                            self,
+                            "Export Aborted",
+                            f"Export image sequence aborted!",
+                            QMessageBox.Ok
+                        )
+                    else:
+                        choice = QMessageBox.information(
+                            self,
+                            "Export Complete",
+                            f"Export image sequence successful!",
+                            QMessageBox.Ok
+                        )
 
     def export_video_clicked(self):
         if self.bw.audio_filename == None:
@@ -2382,8 +2407,8 @@ class MyQMainWindow(QMainWindow):
                     progress_popup.cancel()
                     choice = QMessageBox.critical(
                         self,
-                        "Unable to Export Video",
-                        str(e),
+                        "Export Error",
+                        f"An error occurred while exporting video: {str(e)}",
                         QMessageBox.Ok
                     )
                 else:
