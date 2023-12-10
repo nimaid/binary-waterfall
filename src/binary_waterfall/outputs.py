@@ -87,7 +87,7 @@ class Player:
         background_image = Image.new(
             mode="RGBA",
             size=(self.width, self.height),
-            color="#000"
+            color=constants.COLORS["viewer"]
         )
 
         background_image = generators.Watermarker().mark(background_image)

@@ -134,8 +134,6 @@ class MyQMainWindow(QMainWindow):
         self.set_volume_label_value(self.current_volume)
 
         self.volume_slider = QSlider(Qt.Vertical)
-        self.volume_slider.setStyleSheet(
-            "QSlider::handle { background: #666; } QSlider::handle:hover { background: #000; }")
         self.volume_slider.setFocusPolicy(Qt.NoFocus)
         self.volume_slider.setFixedSize(20, 50)
         self.volume_slider.setMinimum(0)

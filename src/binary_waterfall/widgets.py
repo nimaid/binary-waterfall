@@ -3,6 +3,7 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QAbstractButton, QSlider, QStyle
 from PyQt5.QtGui import QPainter
 
+from . import constants
 
 # Custom image-based button
 #   Allows for very fancy custom buttons
@@ -74,17 +75,6 @@ class SeekBar(QSlider):
                  parent=None
                  ):
         super(SeekBar, self).__init__(parent)
-
-        self.handle_size = 10
-        # TODO: Fix handle width not changing
-        # TODO: Fix handle not hanging over the side
-
-        self.setFixedHeight(self.handle_size)
-
-        self.setStyleSheet(
-            "QSlider::handle {{ background: #666; height: {0}px; width: {0}px; border-radius: {1}px; }} "
-            "QSlider::handle:hover {{ background: #000; height: {0}px; width: {0}px; border-radius: {1}px; }}".format(
-                self.handle_size, math.floor(self.handle_size / 2)))
 
         self.position_changed_function = position_changed_function
 
