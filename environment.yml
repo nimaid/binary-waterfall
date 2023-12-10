@@ -5,12 +5,11 @@ channels:
 dependencies:
   - python=3.10*
   - pip
-  - Pillow
-  - ffmpeg
   - pip:
     - pyinstaller
     - pyinstaller-versionfile
     - PyQt5
     - pydub
+    - Pillow
     - moviepy
     - proglog

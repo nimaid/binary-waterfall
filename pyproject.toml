@@ -38,7 +38,7 @@ repository = "https://github.com/nimaid/binary-waterfall"
 Issues = "https://github.com/nimaid/binary-waterfall/issues"
 
 [project.scripts]
-pixelgreat-gui = "binary_waterfall:run"
+binary-waterfall = "binary_waterfall:run"
 
 [tool.setuptools]
 include-package-data = true

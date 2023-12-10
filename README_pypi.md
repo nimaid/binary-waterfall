@@ -5,6 +5,9 @@
 
 <p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
 
+## Command Line Usage
+After installing the module, run `binary-waterfall`.
+
 ## Attribution
 If you use this program to make a video or other project, you must provide attribution. Attribution is required regardless of whether your project is for-profit or not. Please reproduce the following attribution statement in full in your video description or otherwise include it in the references for your project:
 ```
