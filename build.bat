@@ -2,6 +2,7 @@
 
 set MAINFAILENAME=binary-waterfall
 set ENVNAME=%MAINFAILENAME%
+set BUILDENVNAME=build
 set MODULENAME=binary_waterfall
 
 set ORIGDIR=%CD%
@@ -20,6 +21,14 @@ set VERSION_INFO=%ORIGDIR%\file_version_info.txt
 set RESOURCEDIR=%SOURCEDIR%\resources
 set ICON_ICO=%RESOURCEDIR%\icon.ico
 
+echo Cleaning up before making release...
+del /f /q "%TARGETEXE%" 1>nul 2>&1
+del /f /s /q "%DISTDIR%" 1>nul 2>&1
+rmdir /s /q "%DISTDIR%" 1>nul 2>&1
+del /f /s /q "%BUILDDIR%" 1>nul 2>&1
+rmdir /s /q "%BUILDDIR%" 1>nul 2>&1
+del /f /q "%SPEC%" 1>nul 2>&1
+del /f /q "%VERSION_INFO%" 1>nul 2>&1
 
 echo Building portable EXE...
 del /f /s /q "%TARGETEXE%" 1>nul 2>&1
@@ -40,7 +49,7 @@ call conda run -n %ENVNAME% pyinstaller ^
     "%PY%"
 if errorlevel 1 goto ERROR
 
-echo Cleaning up before making release...
+echo Cleaning up after making .exe release...
 move "%EXE%" "%TARGETEXE%"
 del /f /s /q "%DISTDIR%" 1>nul 2>&1
 rmdir /s /q "%DISTDIR%" 1>nul 2>&1
@@ -49,15 +58,19 @@ rmdir /s /q "%BUILDDIR%" 1>nul 2>&1
 del /f /q "%SPEC%" 1>nul 2>&1
 del /f /q "%VERSION_INFO%" 1>nul 2>&1
 
+echo Making PyPI release...
+call conda run -n %BUILDENVNAME% python -m build
+if errorlevel 1 goto ERROR
+
 goto DONE
 
 
 :ERROR
 cd %ORIGDIR%
-echo Portable EXE build failed!
+echo Build failed!
 exit /B 1
 
 :DONE
 cd %ORIGDIR%
-echo Portable EXE build done!
+echo Build done!
 exit /B 0
