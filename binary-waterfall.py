@@ -2216,7 +2216,7 @@ class MyQMainWindow(QMainWindow):
                     choice = QMessageBox.critical(
                         self,
                         "Export Error",
-                        f"An error occurred while exporting frame: {str(e)}",
+                        f"An error occurred while exporting the frame: {str(e)}",
                         QMessageBox.Ok
                     )
                 else:
@@ -2255,7 +2255,7 @@ class MyQMainWindow(QMainWindow):
                 choice = QMessageBox.critical(
                     self,
                     "Export Error",
-                    f"An error occurred while exporting audio: {str(e)}",
+                    f"An error occurred while exporting the audio: {str(e)}",
                     QMessageBox.Ok
                 )
             else:
@@ -2319,7 +2319,7 @@ class MyQMainWindow(QMainWindow):
                     choice = QMessageBox.critical(
                         self,
                         "Export Error",
-                        f"An error occurred while exporting image sequence: {str(e)}",
+                        f"An error occurred while exporting the image sequence: {str(e)}",
                         QMessageBox.Ok
                     )
                 else:
@@ -2353,7 +2353,8 @@ class MyQMainWindow(QMainWindow):
             choice = QMessageBox.warning(
                 self,
                 "Warning",
-                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\nPlease see the Help menu for info on how to register.\n\nProceede anyway?",
+                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
+                f"Please see the Help menu for info on how to register.\n\nProceede anyway?",
                 QMessageBox.Cancel | QMessageBox.Ok
             )
             if choice == QMessageBox.Cancel:
@@ -2374,7 +2375,9 @@ class MyQMainWindow(QMainWindow):
                 self,
                 "Export Video As...",
                 os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
-                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;MKV (*{self.renderer.VideoFormatCode.MKV.value});;AVI (*{self.renderer.VideoFormatCode.AVI.value})"
+                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;"
+                f"MKV (*{self.renderer.VideoFormatCode.MKV.value});;"
+                f"AVI (*{self.renderer.VideoFormatCode.AVI.value})"
             )
 
             if filename != "":
@@ -2408,7 +2411,7 @@ class MyQMainWindow(QMainWindow):
                     choice = QMessageBox.critical(
                         self,
                         "Export Error",
-                        f"An error occurred while exporting video: {str(e)}",
+                        f"An error occurred while exporting the video: {str(e)}",
                         QMessageBox.Ok
                     )
                 else:
