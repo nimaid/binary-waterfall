@@ -678,7 +678,7 @@ class VideoEncoderSettings(QDialog):
             elif self.codec == constants.VideoCodecCode.MPEG4:
                 self.codec_entry.setCurrentIndex(1)
         elif self.video_format == constants.VideoFormatCode.AVI:
-            self.codec_entry.addItems(["PNG", "Uncompressed"])
+            self.codec_entry.addItems(["PNG", "Raw"])
             if self.codec == constants.VideoCodecCode.PNG:
                 self.codec_entry.setCurrentIndex(0)
             elif self.codec == constants.VideoCodecCode.RAW:
