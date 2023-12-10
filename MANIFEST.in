@@ -1,0 +1,2 @@
+include src/binary_waterfall/*.yml src/binary_waterfall/*.py
+graft src/binary_waterfall/resources

@@ -1,9 +1,11 @@
 # <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/src/binary_waterfall/resources/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
-A Raw Data Media Player
+### A Raw Data Media Player
 
-<img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
+<p align="center"><img src="docs/example.png" width="800px" alt="Running the program on mspaint.exe"/></p>
 
-[Inspired by this video.](https://www.youtube.com/watch?v=NFe0aGO9-TE)
+<p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
+
+<p align="center"><a href="https://pypi.org/project/binary-waterfall/"><img src="https://pypi.org/static/images/logo-large.9f732b5f.svg" width="200px" alt="binary-waterfall on Pypi"></a></p>
 
 ## Download
 [Click here to download the program for Windows!](https://github.com/nimaid/binary-waterfall/releases/latest)
