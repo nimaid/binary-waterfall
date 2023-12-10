@@ -1,51 +1,8 @@
-import os
+
 import sys
-from enum import Enum
-import re
-import shutil
-import math
-import wave
-import pydub
-from moviepy.editor import ImageSequenceClip, AudioFileClip
-import time
-import tempfile
-import webbrowser
-from proglog import ProgressBarLogger
-from PIL import Image, ImageOps
-from PyQt5.QtCore import Qt, QUrl, QTimer, QSize
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
-from PyQt5.QtWidgets import (
-    QApplication, QMainWindow, QWidget,
-    QGridLayout, QHBoxLayout, QVBoxLayout,
-    QLabel, QPushButton,
-    QFileDialog, QAction,
-    QDialog, QDialogButtonBox, QComboBox, QLineEdit, QCheckBox,
-    QSpinBox, QDoubleSpinBox,
-    QMessageBox,
-    QAbstractButton,
-    QSlider, QDial,
-    QStyle,
-    QProgressDialog
-)
-from PyQt5.QtGui import (
-    QImage, QPixmap, QIcon,
-    QPainter
-)
+from PyQt5.QtWidgets import QApplication
 
-from . import constants, helpers
-
-
-
-
-
-
-
-
-
-
-
-
-
+from . import window
 
 # Main window class
 #   Handles variables related to the main window.
@@ -54,7 +11,7 @@ from . import constants, helpers
 class MainWindow:
     def __init__(self, qt_args):
         self.app = QApplication(qt_args)
-        self.window = MyQMainWindow()
+        self.window = window.MyQMainWindow()
 
     def run(self):
         self.window.show()

@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QIcon
 
-from . import constants, generators, outputs, widgets
+from . import constants, generators, outputs, widgets, dialogs, licensing
 
 
 # My QMainWindow class
@@ -16,12 +16,16 @@ from . import constants, generators, outputs, widgets
 class MyQMainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
+        self.file_savename = None
+        self.muted = None
+
         self.setWindowTitle(f"{constants.TITLE}")
         self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
 
         self.bw = generators.BinaryWaterfall()
 
         self.last_save_location = constants.USER_DIR
+        self.last_load_location = constants.USER_DIR
 
         self.renderer = outputs.Renderer(
             binary_waterfall=self.bw
@@ -56,18 +60,18 @@ class MyQMainWindow(QMainWindow):
         # Save the pixmaps for later
         self.play_icons = {
             "play": {
-                "base": QPixmap(ICON_PATH["button"]["play"]["base"]),
-                "hover": QPixmap(ICON_PATH["button"]["play"]["hover"]),
-                "clicked": QPixmap(ICON_PATH["button"]["play"]["clicked"])
+                "base": QPixmap(constants.ICON_PATHS["button"]["play"]["base"]),
+                "hover": QPixmap(constants.ICON_PATHS["button"]["play"]["hover"]),
+                "clicked": QPixmap(constants.ICON_PATHS["button"]["play"]["clicked"])
             },
             "pause": {
-                "base": QPixmap(ICON_PATH["button"]["pause"]["base"]),
-                "hover": QPixmap(ICON_PATH["button"]["pause"]["hover"]),
-                "clicked": QPixmap(ICON_PATH["button"]["pause"]["clicked"])
+                "base": QPixmap(constants.ICON_PATHS["button"]["pause"]["base"]),
+                "hover": QPixmap(constants.ICON_PATHS["button"]["pause"]["hover"]),
+                "clicked": QPixmap(constants.ICON_PATHS["button"]["pause"]["clicked"])
             }
         }
 
-        self.transport_play = ImageButton(
+        self.transport_play = widgets.ImageButton(
             pixmap=self.play_icons["play"]["base"],
             pixmap_hover=self.play_icons["play"]["hover"],
             pixmap_pressed=self.play_icons["play"]["clicked"],
@@ -78,10 +82,10 @@ class MyQMainWindow(QMainWindow):
         self.transport_play.setFixedSize(self.transport_play.width, self.transport_play.height)
         self.transport_play.clicked.connect(self.play_clicked)
 
-        self.transport_forward = ImageButton(
-            pixmap=QPixmap(ICON_PATH["button"]["forward"]["base"]),
-            pixmap_hover=QPixmap(ICON_PATH["button"]["forward"]["hover"]),
-            pixmap_pressed=QPixmap(ICON_PATH["button"]["forward"]["clicked"]),
+        self.transport_forward = widgets.ImageButton(
+            pixmap=QPixmap(constants.ICON_PATHS["button"]["forward"]["base"]),
+            pixmap_hover=QPixmap(constants.ICON_PATHS["button"]["forward"]["hover"]),
+            pixmap_pressed=QPixmap(constants.ICON_PATHS["button"]["forward"]["clicked"]),
             scale=0.75,
             parent=self
         )
@@ -89,10 +93,10 @@ class MyQMainWindow(QMainWindow):
         self.transport_forward.setFixedSize(self.transport_forward.width, self.transport_forward.height)
         self.transport_forward.clicked.connect(self.forward_clicked)
 
-        self.transport_back = ImageButton(
-            pixmap=QPixmap(ICON_PATH["button"]["back"]["base"]),
-            pixmap_hover=QPixmap(ICON_PATH["button"]["back"]["hover"]),
-            pixmap_pressed=QPixmap(ICON_PATH["button"]["back"]["clicked"]),
+        self.transport_back = widgets.ImageButton(
+            pixmap=QPixmap(constants.ICON_PATHS["button"]["back"]["base"]),
+            pixmap_hover=QPixmap(constants.ICON_PATHS["button"]["back"]["hover"]),
+            pixmap_pressed=QPixmap(constants.ICON_PATHS["button"]["back"]["clicked"]),
             scale=0.75,
             parent=self
         )
@@ -100,10 +104,10 @@ class MyQMainWindow(QMainWindow):
         self.transport_back.setFixedSize(self.transport_back.width, self.transport_back.height)
         self.transport_back.clicked.connect(self.back_clicked)
 
-        self.transport_restart = ImageButton(
-            pixmap=QPixmap(ICON_PATH["button"]["restart"]["base"]),
-            pixmap_hover=QPixmap(ICON_PATH["button"]["restart"]["hover"]),
-            pixmap_pressed=QPixmap(ICON_PATH["button"]["restart"]["clicked"]),
+        self.transport_restart = widgets.ImageButton(
+            pixmap=QPixmap(constants.ICON_PATHS["button"]["restart"]["base"]),
+            pixmap_hover=QPixmap(constants.ICON_PATHS["button"]["restart"]["hover"]),
+            pixmap_pressed=QPixmap(constants.ICON_PATHS["button"]["restart"]["clicked"]),
             scale=0.5,
             parent=self
         )
@@ -112,8 +116,8 @@ class MyQMainWindow(QMainWindow):
         self.transport_restart.clicked.connect(self.restart_clicked)
 
         self.volume_icons = {
-            "base": QPixmap(ICON_PATH["volume"]["base"]),
-            "mute": QPixmap(ICON_PATH["volume"]["mute"]),
+            "base": QPixmap(constants.ICON_PATHS["volume"]["base"]),
+            "mute": QPixmap(constants.ICON_PATHS["volume"]["mute"]),
         }
 
         self.volume_icon = QLabel()
@@ -328,7 +332,7 @@ class MyQMainWindow(QMainWindow):
             self.set_volume_icon(mute=False)
 
     def update_seekbar(self):
-        if self.bw.filename == None:
+        if self.bw.filename is None:
             self.seek_bar.setEnabled(False)
             self.seek_bar.setValue(0)
         else:
@@ -376,7 +380,7 @@ class MyQMainWindow(QMainWindow):
         self.set_volume(value)
 
     def set_file_savename(self, name=None):
-        if name == None:
+        if name is None:
             self.file_savename = "Untitled"
         else:
             self.file_savename = name
@@ -387,7 +391,7 @@ class MyQMainWindow(QMainWindow):
         filename, filetype = QFileDialog.getOpenFileName(
             self,
             "Open File",
-            PROG_PATH,
+            self.last_load_location,
             "All Binary Files (*)"
         )
 
@@ -397,7 +401,9 @@ class MyQMainWindow(QMainWindow):
             file_path, file_title = os.path.split(filename)
             file_savename, file_ext = os.path.splitext(file_title)
             self.set_file_savename(file_savename)
-            self.setWindowTitle(f"{TITLE} | {file_title}")
+            self.setWindowTitle(f"{constants.TITLE} | {file_title}")
+
+            self.last_load_location = filename
 
             self.update_seekbar()
 
@@ -407,12 +413,12 @@ class MyQMainWindow(QMainWindow):
         self.player.close_file()
 
         self.set_file_savename()
-        self.setWindowTitle(f"{TITLE}")
+        self.setWindowTitle(f"{constants.TITLE}")
 
         self.update_seekbar()
 
     def audio_settings_clicked(self):
-        popup = AudioSettings(
+        popup = dialogs.AudioSettings(
             num_channels=self.bw.num_channels,
             sample_bytes=self.bw.sample_bytes,
             sample_rate=self.bw.sample_rate,
@@ -432,7 +438,7 @@ class MyQMainWindow(QMainWindow):
             )
 
     def video_settings_clicked(self):
-        popup = VideoSettings(
+        popup = dialogs.VideoSettings(
             bw=self.bw,
             width=self.bw.width,
             height=self.bw.height,
@@ -455,7 +461,7 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
 
     def player_settings_clicked(self):
-        popup = PlayerSettings(
+        popup = dialogs.PlayerSettings(
             max_view_dim=self.player.max_dim,
             fps=self.player.fps,
             parent=self
@@ -471,7 +477,7 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
 
     def export_image_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -480,7 +486,7 @@ class MyQMainWindow(QMainWindow):
             )
             return
 
-        popup = ExportFrame(
+        popup = dialogs.ExportFrame(
             width=self.player.width,
             height=self.player.height,
             parent=self
@@ -494,8 +500,10 @@ class MyQMainWindow(QMainWindow):
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Image As...",
-                os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.ImageFormatCode.PNG.value}"),
-                f"PNG (*{self.renderer.ImageFormatCode.PNG.value});;JPEG (*{self.renderer.ImageFormatCode.JPEG.value});;BMP (*{self.renderer.ImageFormatCode.BITMAP.value})"
+                os.path.join(self.last_save_location, f"{self.file_savename}{constants.ImageFormatCode.PNG.value}"),
+                f"PNG (*{constants.ImageFormatCode.PNG.value});;"
+                f"JPEG (*{constants.ImageFormatCode.JPEG.value});;"
+                f"BMP (*{constants.ImageFormatCode.BITMAP.value})"
             )
 
             if filename != "":
@@ -524,7 +532,7 @@ class MyQMainWindow(QMainWindow):
                     )
 
     def export_audio_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -536,8 +544,10 @@ class MyQMainWindow(QMainWindow):
         filename, filetype = QFileDialog.getSaveFileName(
             self,
             "Export Audio As...",
-            os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.AudioFormatCode.MP3.value}"),
-            f"MP3 (*{self.renderer.AudioFormatCode.MP3.value});;WAV (*{self.renderer.AudioFormatCode.WAVE.value});;FLAC (*{self.renderer.AudioFormatCode.FLAC.value})"
+            os.path.join(self.last_save_location, f"{self.file_savename}{constants.AudioFormatCode.MP3.value}"),
+            f"MP3 (*{constants.AudioFormatCode.MP3.value});;"
+            f"WAV (*{constants.AudioFormatCode.WAVE.value});;"
+            f"FLAC (*{constants.AudioFormatCode.FLAC.value})"
         )
 
         if filename != "":
@@ -563,7 +573,7 @@ class MyQMainWindow(QMainWindow):
                 )
 
     def export_sequence_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -572,7 +582,7 @@ class MyQMainWindow(QMainWindow):
             )
             return
 
-        popup = ExportSequence(
+        popup = dialogs.ExportSequence(
             width=self.player.width,
             height=self.player.height,
             parent=self
@@ -636,7 +646,7 @@ class MyQMainWindow(QMainWindow):
                         )
 
     def export_video_clicked(self):
-        if self.bw.audio_filename == None:
+        if self.bw.audio_filename is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -645,18 +655,18 @@ class MyQMainWindow(QMainWindow):
             )
             return
 
-        if not IS_REGISTERED:
+        if not licensing.IS_REGISTERED:
             choice = QMessageBox.warning(
                 self,
                 "Warning",
-                f"{TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
+                f"{constants.TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
                 f"Please see the Help menu for info on how to register.\n\nProceede anyway?",
                 QMessageBox.Cancel | QMessageBox.Ok
             )
             if choice == QMessageBox.Cancel:
                 return
 
-        popup = ExportVideo(
+        popup = dialogs.ExportVideo(
             width=self.player.width,
             height=self.player.height,
             parent=self
@@ -670,10 +680,10 @@ class MyQMainWindow(QMainWindow):
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Video As...",
-                os.path.join(self.last_save_location, f"{self.file_savename}{self.renderer.VideoFormatCode.MP4.value}"),
-                f"MP4 (*{self.renderer.VideoFormatCode.MP4.value});;"
-                f"MKV (*{self.renderer.VideoFormatCode.MKV.value});;"
-                f"AVI (*{self.renderer.VideoFormatCode.AVI.value})"
+                os.path.join(self.last_save_location, f"{self.file_savename}{constants.VideoFormatCode.MP4.value}"),
+                f"MP4 (*{constants.VideoFormatCode.MP4.value});;"
+                f"MKV (*{constants.VideoFormatCode.MKV.value});;"
+                f"AVI (*{constants.VideoFormatCode.AVI.value})"
             )
 
             if filename != "":
@@ -688,7 +698,7 @@ class MyQMainWindow(QMainWindow):
                 progress_popup.setWindowTitle("Exporting Video...")
                 progress_popup.setFixedSize(300, 100)
 
-                if IS_REGISTERED:
+                if licensing.IS_REGISTERED:
                     add_watermark = False
                 else:
                     add_watermark = True
@@ -727,21 +737,20 @@ class MyQMainWindow(QMainWindow):
                         )
 
     def hotkeys_clicked(self):
-        popup = HotkeysInfo(parent=self)
+        popup = dialogs.HotkeysInfo(parent=self)
 
         result = popup.exec()
 
     def registration_clicked(self):
-        popup = RegistrationInfo(parent=self)
+        popup = dialogs.RegistrationInfo(parent=self)
 
         result = popup.exec()
 
     def about_clicked(self):
-        popup = About(parent=self)
+        popup = dialogs.About(parent=self)
 
         result = popup.exec()
 
     # TODO: Add video export settings (encoder, bitrate, quality, stuff like that)
     # TODO: Add unit testing (https://realpython.com/python-testing/)
     # TODO: Add documentation (https://realpython.com/python-doctest/)
-
