@@ -24,7 +24,9 @@ class BinaryWaterfall:
                  num_channels=1,
                  sample_bytes=1,
                  sample_rate=32000,
-                 volume=100
+                 volume=100,
+                 flip_v=True,
+                 flip_h=False
                  ):
         # Initialize class variables
         self.audio_length_ms = None
@@ -43,6 +45,8 @@ class BinaryWaterfall:
         self.total_bytes = None
         self.bytes = None
         self.audio_filename = None
+        self.flip_v = None
+        self.flip_h = None
 
         # Make the temp dir for the class instance
         self.temp_dir = tempfile.mkdtemp()
@@ -57,6 +61,11 @@ class BinaryWaterfall:
         )
 
         self.set_color_format(color_format_string=color_format_string)
+
+        self.set_flip(
+            flip_v=flip_v,
+            flip_h=flip_h
+        )
 
         self.set_audio_settings(
             num_channels=num_channels,
@@ -250,6 +259,10 @@ class BinaryWaterfall:
     def is_color_format_valid(self, color_format_string):
         return self.parse_color_format(color_format_string)["is_valid"]
 
+    def set_flip(self, flip_v, flip_h):
+        self.flip_v = flip_v
+        self.flip_h = flip_h
+
     def set_audio_settings(self,
                            num_channels,
                            sample_bytes,
@@ -374,17 +387,19 @@ class BinaryWaterfall:
         return picture_bytes
 
     # A PIL Image (RGB)
-    def get_frame_image(self, ms, flip=True):
+    def get_frame_image(self, ms):
         frame_bytesring = self.get_frame_bytestring(ms)
         img = Image.frombytes("RGB", (self.width, self.height), frame_bytesring)
 
-        if flip:
+        if self.flip_v:
             img = ImageOps.flip(img)
+        if self.flip_h:
+            img = ImageOps.mirror(img)
 
         return img
 
     # A QImage (RGB)
-    def get_frame_qimage(self, ms, flip=True):
+    def get_frame_qimage(self, ms):
         frame_bytesring = self.get_frame_bytestring(ms)
         qimg = QImage(
             frame_bytesring,
@@ -393,9 +408,9 @@ class BinaryWaterfall:
             3 * self.width,
             QImage.Format.Format_RGB888
         )
-        if flip:
+        if self.flip_v or self.flip_h:
             # Flip vertically
-            qimg = qimg.mirrored(horizontal=False, vertical=True)
+            qimg = qimg.mirrored(horizontal=self.flip_h, vertical=self.flip_v)
 
         return qimg
 

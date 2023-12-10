@@ -143,6 +143,8 @@ class VideoSettings(QDialog):
                  width,
                  height,
                  color_format,
+                 flip_v,
+                 flip_h,
                  parent=None
                  ):
         super().__init__(parent=parent)
@@ -157,6 +159,8 @@ class VideoSettings(QDialog):
         self.width = width
         self.height = height
         self.color_format = color_format
+        self.flip_v = flip_v
+        self.flip_h = flip_h
 
         self.width_label = QLabel("Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -188,6 +192,20 @@ class VideoSettings(QDialog):
         self.color_format_entry.setText(self.color_format)
         self.color_format_entry.editingFinished.connect(self.color_format_entry_changed)
 
+        self.flip_v_entry_label = QLabel("Vertical:")
+        self.flip_v_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.flip_v_entry = QCheckBox("Flip")
+        self.flip_v_entry.setChecked(self.flip_v)
+        self.flip_v_entry.stateChanged.connect(self.flip_v_entry_changed)
+
+        self.flip_h_entry_label = QLabel("Horizontal:")
+        self.flip_h_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.flip_h_entry = QCheckBox("Flip")
+        self.flip_h_entry.setChecked(self.flip_h)
+        self.flip_h_entry.stateChanged.connect(self.flip_h_entry_changed)
+
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
@@ -200,7 +218,11 @@ class VideoSettings(QDialog):
         self.main_layout.addWidget(self.height_entry, 1, 1)
         self.main_layout.addWidget(self.color_format_label, 2, 0)
         self.main_layout.addWidget(self.color_format_entry, 2, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 3, 0, 1, 2)
+        self.main_layout.addWidget(self.flip_v_entry_label, 3, 0)
+        self.main_layout.addWidget(self.flip_v_entry, 3, 1)
+        self.main_layout.addWidget(self.flip_h_entry_label, 4, 0)
+        self.main_layout.addWidget(self.flip_h_entry, 4, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 5, 0, 1, 2)
 
         self.setLayout(self.main_layout)
 
@@ -211,6 +233,8 @@ class VideoSettings(QDialog):
         result["width"] = self.width
         result["height"] = self.height
         result["color_format"] = self.color_format
+        result["flip_v"] = self.flip_v
+        result["flip_h"] = self.flip_h
 
         return result
 
@@ -235,6 +259,18 @@ class VideoSettings(QDialog):
             error_popup.setInformativeText(parsed["message"])
             error_popup.setWindowTitle("Error")
             error_popup.exec()
+
+    def flip_v_entry_changed(self, value):
+        if value == 0:
+            self.flip_v = False
+        else:
+            self.flip_v = True
+
+    def flip_h_entry_changed(self, value):
+        if value == 0:
+            self.flip_h = False
+        else:
+            self.flip_h = True
 
     def resize_window(self):
         self.setFixedSize(self.sizeHint())

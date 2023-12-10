@@ -6,7 +6,6 @@ from PyQt5.QtGui import QPalette, QColor
 
 from . import window, constants
 
-# TODO: Allow specifying inverted color channels with a cap letter
 # TODO: Allow specifying custom audio and video bitrates (see OBS settings for ideas)
 # TODO: Add unit testing (https://realpython.com/python-testing/)
 # TODO: Add documentation (https://realpython.com/python-doctest/)

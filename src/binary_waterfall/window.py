@@ -446,6 +446,8 @@ class MyQMainWindow(QMainWindow):
             width=self.bw.width,
             height=self.bw.height,
             color_format=self.bw.get_color_format_string(),
+            flip_v=self.bw.flip_v,
+            flip_h=self.bw.flip_h,
             parent=self
         )
 
@@ -458,6 +460,10 @@ class MyQMainWindow(QMainWindow):
                 height=video_settings["height"]
             )
             self.bw.set_color_format(video_settings["color_format"])
+            self.bw.set_flip(
+                flip_v=video_settings["flip_v"],
+                flip_h=video_settings["flip_h"]
+            )
             self.player.refresh_dims()
             self.player.update_image()
             # We need to wait a moment for the size hint to be computed
