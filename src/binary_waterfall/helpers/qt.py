@@ -5,8 +5,8 @@ from proglog import ProgressBarLogger
 #   Handles updating the progress in a QProgressDialog
 #   Designed to work with moviepy's export option
 class QtBarLoggerMoviepy(ProgressBarLogger):
-    def __init__(self, init_state=None, bars=None, ignored_bars=None,
-                 logged_bars='all', min_time_interval=0, ignore_bars_under=0, progress_dialog=None):
+    def __init__(self, progress_dialog, init_state=None, bars=None, ignored_bars=None,
+                 logged_bars='all', min_time_interval=0, ignore_bars_under=0):
         super().__init__(init_state, bars, ignored_bars, logged_bars, min_time_interval, ignore_bars_under)
         self.progress_dialog = progress_dialog
         self.progress_dialog.setMaximum(100)

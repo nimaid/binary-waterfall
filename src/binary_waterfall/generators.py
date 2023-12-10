@@ -114,13 +114,36 @@ class BinaryWaterfall:
             "is_valid": True
         }
 
-        color_format_string = color_format_string.strip().lower()
+        color_format_string = color_format_string.strip()
+        lower_string = color_format_string.lower()
 
-        red_count = color_format_string.count(constants.ColorFmtCode.RED.value)
-        green_count = color_format_string.count(constants.ColorFmtCode.GREEN.value)
-        blue_count = color_format_string.count(constants.ColorFmtCode.BLUE.value)
-        white_count = color_format_string.count(constants.ColorFmtCode.WHITE.value)
-        unused_count = color_format_string.count(constants.ColorFmtCode.UNUSED.value)
+        format_code_groups = {
+            "red": f"{{{constants.ColorFmtCode.RED.value},{constants.ColorFmtCode.RED_INV.value}}}",
+            "green": f"{{{constants.ColorFmtCode.GREEN.value},{constants.ColorFmtCode.GREEN_INV.value}}}",
+            "blue": f"{{{constants.ColorFmtCode.BLUE.value},{constants.ColorFmtCode.BLUE_INV.value}}}",
+            "white": f"{{{constants.ColorFmtCode.WHITE.value},{constants.ColorFmtCode.WHITE_INV.value}}}",
+            "unused": f"{{{constants.ColorFmtCode.UNUSED.value}}}"
+        }
+
+        for c in color_format_string:
+            if c not in [x.value for x in constants.ColorFmtCode]:
+                result["is_valid"] = False
+                result["message"] = ("Color channel formatting codes only accept \"{r}\" = red, \"{g}\" = green, "
+                                     "\"{b}\" = blue, \"{w}\" = white, \"{u}\" = unused. To invert a color channel, "
+                                     "CAPITALIZE the letter.").format(
+                    r=constants.ColorFmtCode.RED.value,
+                    g=constants.ColorFmtCode.GREEN.value,
+                    b=constants.ColorFmtCode.BLUE.value,
+                    w=constants.ColorFmtCode.WHITE.value,
+                    u=constants.ColorFmtCode.UNUSED.value
+                )
+                return result
+
+        red_count = lower_string.count(constants.ColorFmtCode.RED.value)
+        green_count = lower_string.count(constants.ColorFmtCode.GREEN.value)
+        blue_count = lower_string.count(constants.ColorFmtCode.BLUE.value)
+        white_count = lower_string.count(constants.ColorFmtCode.WHITE.value)
+        unused_count = lower_string.count(constants.ColorFmtCode.UNUSED.value)
 
         rgb_count = red_count + green_count + blue_count
 
@@ -129,72 +152,74 @@ class BinaryWaterfall:
 
             if rgb_count > 0:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"When using the grayscale mode formatter \"{constants.ColorFmtCode.WHITE.value}\", "
-                                  f"you cannot use any of the RGB mode formatters \"{constants.ColorFmtCode.RED.value}\", "
-                                  f"\"{constants.ColorFmtCode.GREEN.value}\", or \"{constants.ColorFmtCode.BLUE.value}\"")
+                result["message"] = ("When using the grayscale mode formatter {w}, "
+                                     "you cannot use any of the RGB mode formatters {r}, "
+                                     "{g}, or {b}").format(
+                    r=format_code_groups["red"],
+                    g=format_code_groups["green"],
+                    b=format_code_groups["blue"],
+                    w=format_code_groups["white"]
+                                  )
                 return result
 
             if white_count > 1:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"Exactly 1 white channel format specifier \"{constants.ColorFmtCode.WHITE.value}\" "
-                                  f"needed, but {white_count} were given in format string \"{color_format_string}\"")
+                result["message"] = ("Exactly 1 white channel format specifier {w} needed, "
+                                     "but {white_count} were given in format string \"{color_format_string}\"").format(
+                    w=format_code_groups["white"],
+                    white_count=white_count,
+                    color_format_string=color_format_string
+                )
                 return result
         else:
             color_mode = constants.ColorModeCode.RGB
 
             if rgb_count < 1:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"A minimum of 1 color format specifer (\"{constants.ColorFmtCode.RED.value}\", "
-                                  f"\"{constants.ColorFmtCode.GREEN.value}\", \"{constants.ColorFmtCode.BLUE.value}\", "
-                                  f"or \"{constants.ColorFmtCode.WHITE.value}\") "
-                                  f"is required, but none were given in format string \"{color_format_string}\"")
+                result["message"] = ("A minimum of 1 color format specifier ({r}, {g}, {b}, "
+                                     "or {w}) is required, but none were given in format string "
+                                     "\"{color_format_string}\"").format(
+                    r=format_code_groups["red"],
+                    g=format_code_groups["green"],
+                    b=format_code_groups["blue"],
+                    w=format_code_groups["white"],
+                    color_format_string=color_format_string
+                )
                 return result
 
             if red_count > 1:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"Exactly 1 red channel format specifier \"{constants.ColorFmtCode.RED.value}\" "
-                                  f"allowed, but {red_count} were given in format string \"{color_format_string}\"")
+                result["message"] = ("Exactly 1 red channel format specifier {r} allowed, but {red_count} "
+                                     "were given in format string \"{color_format_string}\"").format(
+                    r=format_code_groups["red"],
+                    red_count=red_count,
+                    color_format_string=color_format_string
+                )
                 return result
 
             if green_count > 1:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"Exactly 1 green channel format specifier \"{constants.ColorFmtCode.GREEN.value}\" "
-                                  f"allowed, but {green_count} were given in format string \"{color_format_string}\"")
+                result["message"] = ("Exactly 1 green channel format specifier {g} allowed, but {green_count} "
+                                     "were given in format string \"{color_format_string}\"").format(
+                    g=format_code_groups["green"],
+                    green_count=green_count,
+                    color_format_string=color_format_string
+                )
                 return result
 
             if blue_count > 1:
                 result["is_valid"] = False
-                result[
-                    "message"] = (f"Exactly 1 blue channel format specifier \"{constants.ColorFmtCode.BLUE.value}\" "
-                                  f"allowed, but {blue_count} were given in format string \"{color_format_string}\"")
+                result["message"] = ("Exactly 1 blue channel format specifier {b} allowed, but {blue_count} "
+                                     "were given in format string \"{color_format_string}\"").format(
+                    b=format_code_groups["blue"],
+                    blue_count=blue_count,
+                    color_format_string=color_format_string
+                )
                 return result
 
         color_format_list = list()
         for c in color_format_string:
-            if c not in [x.value for x in constants.ColorFmtCode]:
-                result["is_valid"] = False
-                result[
-                    "message"] = (f"Color formatting codes only accept \"{constants.ColorFmtCode.RED.value}\" = red, "
-                                  f"\"{constants.ColorFmtCode.GREEN.value}\" = green, "
-                                  f"\"{constants.ColorFmtCode.BLUE.value}\" = blue, "
-                                  f"\"{constants.ColorFmtCode.WHITE.value}\" = white, "
-                                  f"\"{constants.ColorFmtCode.UNUSED.value}\" = unused")
-                return result
-            if c == constants.ColorFmtCode.RED.value:
-                color_format_list.append(constants.ColorFmtCode.RED)
-            elif c == constants.ColorFmtCode.GREEN.value:
-                color_format_list.append(constants.ColorFmtCode.GREEN)
-            elif c == constants.ColorFmtCode.BLUE.value:
-                color_format_list.append(constants.ColorFmtCode.BLUE)
-            elif c == constants.ColorFmtCode.WHITE.value:
-                color_format_list.append(constants.ColorFmtCode.WHITE)
-            elif c == constants.ColorFmtCode.UNUSED.value:
-                color_format_list.append(constants.ColorFmtCode.UNUSED)
+            color_format_list.append(constants.ColorFmtCode(c))
 
         result["used_color_bytes"] = rgb_count + white_count
         result["unused_color_bytes"] = unused_count
@@ -308,24 +333,34 @@ class BinaryWaterfall:
     # A 1D Python byte string
     def get_frame_bytestring(self, ms):
         picture_bytes = bytes()
-        current_address = self.get_address(ms)
+        address = self.get_address(ms)
         for row in range(self.height):
             for col in range(self.width):
                 # Fill one BGR byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
                     if c == constants.ColorFmtCode.RED:
-                        this_byte[0] = self.bytes[current_address:current_address + 1]  # Red
+                        this_byte[0] = self.bytes[address:address + 1]  # Red
+                    elif c == constants.ColorFmtCode.RED_INV:
+                        this_byte[0] = helpers.invert_bytes(self.bytes[address:address + 1])  # Red inverted
                     elif c == constants.ColorFmtCode.GREEN:
-                        this_byte[1] = self.bytes[current_address:current_address + 1]  # Green
+                        this_byte[1] = self.bytes[address:address + 1]  # Green
+                    elif c == constants.ColorFmtCode.GREEN_INV:
+                        this_byte[1] = helpers.invert_bytes(self.bytes[address:address + 1])  # Green inverted
                     elif c == constants.ColorFmtCode.BLUE:
-                        this_byte[2] = self.bytes[current_address:current_address + 1]  # Blue
+                        this_byte[2] = self.bytes[address:address + 1]  # Blue
+                    elif c == constants.ColorFmtCode.BLUE_INV:
+                        this_byte[2] = helpers.invert_bytes(self.bytes[address:address + 1])  # Blue inverted
                     elif c == constants.ColorFmtCode.WHITE:
-                        this_byte[0] = self.bytes[current_address:current_address + 1]  # Red
-                        this_byte[1] = self.bytes[current_address:current_address + 1]  # Green
-                        this_byte[2] = self.bytes[current_address:current_address + 1]  # Blue
+                        this_byte[0] = self.bytes[address:address + 1]  # Red
+                        this_byte[1] = self.bytes[address:address + 1]  # Green
+                        this_byte[2] = self.bytes[address:address + 1]  # Blue
+                    elif c == constants.ColorFmtCode.WHITE_INV:
+                        this_byte[0] = helpers.invert_bytes(self.bytes[address:address + 1])  # Red inverted
+                        this_byte[1] = helpers.invert_bytes(self.bytes[address:address + 1])  # Green inverted
+                        this_byte[2] = helpers.invert_bytes(self.bytes[address:address + 1])  # Blue inverted
 
-                    current_address += 1
+                    address += 1
 
                 picture_bytes += b"".join(this_byte)
 

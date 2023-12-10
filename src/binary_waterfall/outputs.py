@@ -416,6 +416,7 @@ class Renderer:
             if progress_dialog.wasCanceled():
                 shutil.rmtree(temp_dir)
                 return
+            progress_dialog.setLabelText("Splicing final video file...")
 
         # Export audio
         self.export_audio(audio_file)
@@ -423,7 +424,6 @@ class Renderer:
         # Prepare the custom logger to update the progress box
         if progress_dialog is not None:
             custom_logger = helpers.QtBarLoggerMoviepy(progress_dialog=progress_dialog)
-            progress_dialog.setLabelText("Splicing final video file...")
         else:
             custom_logger = "bar"
 

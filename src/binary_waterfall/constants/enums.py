@@ -10,9 +10,13 @@ class PlatformCode(Enum):
 
 class ColorFmtCode(Enum):
     RED = "r"
+    RED_INV = "R"
     GREEN = "g"
+    GREEN_INV = "G"
     BLUE = "b"
+    BLUE_INV = "B"
     WHITE = "w"
+    WHITE_INV = "W"
     UNUSED = "x"
 
 
