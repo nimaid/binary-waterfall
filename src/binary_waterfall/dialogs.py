@@ -665,13 +665,12 @@ class VideoEncoderSettings(QDialog):
         elif self.video_format == constants.VideoFormatCode.AVI:
             self.codec = constants.VideoCodecCode.PNG
         self.audio_codec = constants.AudioCodecCode.MP3
-        self.preset = constants.EncoderPresetCode.VERYFAST
+        self.preset = constants.EncoderPresetCode.ULTRAFAST
 
         self.codec_entry_label = QLabel("Video Codec:")
         self.codec_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
         self.codec_entry = QComboBox()
-        self.codec_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         if self.video_format == constants.VideoFormatCode.MP4:
             self.codec_entry.addItems(["LIBX264", "MPEG4"])
             if self.codec == constants.VideoCodecCode.LIBX264:
@@ -690,7 +689,6 @@ class VideoEncoderSettings(QDialog):
         self.audio_codec_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
         self.audio_codec_entry = QComboBox()
-        self.audio_codec_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         self.audio_codec_entry.addItems(["MP3", "M4A", "WAV 16-bit", "WAV 32-bit"])
         if self.audio_codec == constants.AudioCodecCode.MP3:
             self.audio_codec_entry.setCurrentIndex(0)
@@ -706,7 +704,6 @@ class VideoEncoderSettings(QDialog):
         self.preset_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
         self.preset_entry = QComboBox()
-        self.preset_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
         self.preset_entry.addItems([
             "Ultra Fast",
             "Super Fast",

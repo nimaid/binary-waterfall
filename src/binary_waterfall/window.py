@@ -663,7 +663,7 @@ class MyQMainWindow(QMainWindow):
                 self,
                 "Warning",
                 f"{constants.TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
-                f"Please see the Help menu for info on how to register.\n\nProceede anyway?",
+                f"Please see the Help menu for info on how to register.\n\nProceed anyway?",
                 QMessageBox.Cancel | QMessageBox.Ok
             )
             if choice == QMessageBox.Cancel:
@@ -691,52 +691,71 @@ class MyQMainWindow(QMainWindow):
             if filename != "":
                 file_path, file_title = os.path.split(filename)
                 self.last_save_location = file_path
-                frame_count = self.renderer.get_frame_count(
-                    fps=settings["fps"]
+
+                file_main_name, file_ext = os.path.splitext(file_title)
+                file_ext = file_ext.lower()
+
+                encoder_popup = dialogs.VideoEncoderSettings(
+                    video_format=constants.VideoFormatCode(file_ext),
+                    parent=self
                 )
-                progress_popup = QProgressDialog("Rendering frames...", "Abort", 0, frame_count, self)
-                progress_popup.setWindowModality(Qt.WindowModal)
-                progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
-                progress_popup.setWindowTitle("Exporting Video...")
-                progress_popup.setFixedSize(300, 100)
 
-                if licensing.IS_REGISTERED:
-                    add_watermark = False
-                else:
-                    add_watermark = True
+                encoder_result = encoder_popup.exec()
 
-                try:
-                    self.renderer.export_video(
-                        filename=filename,
-                        size=(settings["width"], settings["height"]),
-                        fps=settings["fps"],
-                        keep_aspect=settings["keep_aspect"],
-                        watermark=add_watermark,
-                        progress_dialog=progress_popup
+                if encoder_result:
+                    encoder_settings = encoder_popup.get_settings()
+
+                    frame_count = self.renderer.get_frame_count(
+                        fps=settings["fps"]
                     )
-                except Exception as e:
-                    progress_popup.cancel()
-                    choice = QMessageBox.critical(
-                        self,
-                        "Export Error",
-                        f"An error occurred while exporting the video: {str(e)}",
-                        QMessageBox.Ok
-                    )
-                else:
-                    if progress_popup.wasCanceled():
-                        choice = QMessageBox.warning(
+                    progress_popup = QProgressDialog("Rendering frames...", "Abort", 0, frame_count, self)
+                    progress_popup.setWindowModality(Qt.WindowModal)
+                    progress_popup.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+                    progress_popup.setWindowTitle("Exporting Video...")
+                    progress_popup.setFixedSize(300, 100)
+
+                    if licensing.IS_REGISTERED:
+                        add_watermark = False
+                    else:
+                        add_watermark = True
+
+                    try:
+                        self.renderer.export_video(
+                            filename=filename,
+                            size=(settings["width"], settings["height"]),
+                            fps=settings["fps"],
+                            keep_aspect=settings["keep_aspect"],
+                            watermark=add_watermark,
+                            progress_dialog=progress_popup,
+                            codec=encoder_settings["codec"].value,
+                            audio_codec=encoder_settings["audio_codec"].value,
+                            bitrate=None,
+                            audio_bitrate=None,
+                            preset=encoder_settings["preset"].value
+                        )
+                    except Exception as e:
+                        progress_popup.cancel()
+                        choice = QMessageBox.critical(
                             self,
-                            "Export Aborted",
-                            f"Export video aborted!",
+                            "Export Error",
+                            f"An error occurred while exporting the video: {str(e)}",
                             QMessageBox.Ok
                         )
                     else:
-                        choice = QMessageBox.information(
-                            self,
-                            "Export Complete",
-                            f"Export video successful!",
-                            QMessageBox.Ok
-                        )
+                        if progress_popup.wasCanceled():
+                            choice = QMessageBox.warning(
+                                self,
+                                "Export Aborted",
+                                f"Export video aborted!",
+                                QMessageBox.Ok
+                            )
+                        else:
+                            choice = QMessageBox.information(
+                                self,
+                                "Export Complete",
+                                f"Export video successful!",
+                                QMessageBox.Ok
+                            )
 
     def hotkeys_clicked(self):
         popup = dialogs.HotkeysInfo(parent=self)
