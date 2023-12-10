@@ -643,7 +643,7 @@ class QtBarLoggerMoviepy(ProgressBarLogger):
     def callback(self, **changes):
         if "message" in changes:
             message = changes["message"].strip("Moviepy - ")
-            
+
             if "Building video" in message:
                 self.progress_dialog.setLabelText("(1/3) Building video...")
             elif "Writing audio" in message:
@@ -658,7 +658,7 @@ class QtBarLoggerMoviepy(ProgressBarLogger):
                 self.progress_dialog.setLabelText("Video is ready!")
             else:
                 self.progress_dialog.setLabelText(message)
-    
+
     def bars_callback(self, bar, attr, value, old_value=None):
         percent = (value / self.bars[bar]["total"]) * 100
         self.set_progress(round(percent))
@@ -2369,29 +2369,38 @@ class MyQMainWindow(QMainWindow):
                 else:
                     add_watermark = True
 
-                self.renderer.export_video(
-                    filename=filename,
-                    size=(settings["width"], settings["height"]),
-                    fps=settings["fps"],
-                    keep_aspect=settings["keep_aspect"],
-                    watermark=add_watermark,
-                    progress_dialog=progress_popup
-                )
-
-                if progress_popup.wasCanceled():
-                    choice = QMessageBox.warning(
+                try:
+                    self.renderer.export_video(
+                        filename=filename,
+                        size=(settings["width"], settings["height"]),
+                        fps=settings["fps"],
+                        keep_aspect=settings["keep_aspect"],
+                        watermark=add_watermark,
+                        progress_dialog=progress_popup
+                    )
+                except Exception as e:
+                    progress_popup.cancel()
+                    choice = QMessageBox.critical(
                         self,
-                        "Export Aborted",
-                        f"Export video aborted!",
+                        "Unable to Export Video",
+                        str(e),
                         QMessageBox.Ok
                     )
                 else:
-                    choice = QMessageBox.information(
-                        self,
-                        "Export Complete",
-                        f"Export video successful!",
-                        QMessageBox.Ok
-                    )
+                    if progress_popup.wasCanceled():
+                        choice = QMessageBox.warning(
+                            self,
+                            "Export Aborted",
+                            f"Export video aborted!",
+                            QMessageBox.Ok
+                        )
+                    else:
+                        choice = QMessageBox.information(
+                            self,
+                            "Export Complete",
+                            f"Export video successful!",
+                            QMessageBox.Ok
+                        )
 
     def hotkeys_clicked(self):
         popup = HotkeysInfo(parent=self)
@@ -2407,7 +2416,7 @@ class MyQMainWindow(QMainWindow):
         popup = About(parent=self)
 
         result = popup.exec()
-    
+
     # TODO: Add video export settings (encoder, bitrate, quality, stuff like that)
     # TODO: Add unit testing (https://realpython.com/python-testing/)
     # TODO: Add documentation (https://realpython.com/python-doctest/)
