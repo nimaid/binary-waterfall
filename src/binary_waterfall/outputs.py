@@ -380,7 +380,12 @@ class Renderer:
                      size=None,
                      keep_aspect=False,
                      watermark=False,
-                     progress_dialog=None
+                     progress_dialog=None,
+                     codec=None,
+                     audio_codec=None,
+                     bitrate=None,
+                     audio_bitrate=None,
+                     preset=None
                      ):
         # Get temporary directory
         temp_dir = tempfile.mkdtemp()
@@ -390,7 +395,6 @@ class Renderer:
         audio_file = os.path.join(temp_dir, "audio.wav")
         filename_main, filename_ext = os.path.splitext(filename)
         filename_path, filename_title = os.path.split(filename)
-        frames_file = os.path.join(temp_dir, "frames.txt")
         video_file = os.path.join(temp_dir, f"video{filename_ext}")
 
         # Set progress dialog to not close when at max
@@ -434,7 +438,17 @@ class Renderer:
         audio_clip = AudioFileClip(audio_file)
 
         video_clip = sequence_clip.set_audio(audio_clip)
-        video_clip.write_videofile(video_file, logger=custom_logger)
+        # TODO: Control quality settings
+        video_clip.write_videofile(
+            filename=video_file,
+            codec=codec,
+            bitrate=bitrate,
+            audio_codec=audio_codec,
+            audio_bitrate=audio_bitrate,
+            preset=preset,
+            threads=None,
+            logger=custom_logger
+        )
 
         if progress_dialog is not None:
             if progress_dialog.wasCanceled():

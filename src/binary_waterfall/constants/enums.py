@@ -35,5 +35,31 @@ class AudioFormatCode(Enum):
 
 class VideoFormatCode(Enum):
     MP4 = ".mp4"
-    MKV = ".mkv"
     AVI = ".avi"
+
+
+class VideoCodecCode(Enum):
+    LIBX264 = "libx264"
+    MPEG4 = "mpeg4"
+    RAW = "rawvideo"
+    PNG = "png"
+
+
+class AudioCodecCode(Enum):
+    MP3 = "libmp3lame"
+    M4A = "libfdk_aac"
+    WAVE16 = "pcm_s16le"
+    WAVE32 = "pcm_s32le"
+
+
+class EncoderPresetCode(Enum):
+    ULTRAFAST = "ultrafast"
+    SUPERFAST = "superfast"
+    VERYFAST = "veryfast"
+    FASTER = "faster"
+    FAST = "fast"
+    MEDIUM = "medium"
+    SLOW = "slow"
+    SLOWER = "slower"
+    VERYSLOW = "veryslow"
+    PLACEBO = "placebo"

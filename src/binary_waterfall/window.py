@@ -206,6 +206,7 @@ class MyQMainWindow(QMainWindow):
         self.settings_menu.addAction(self.settings_menu_player)
 
         self.export_menu = self.main_menu.addMenu("Export")
+        self.export_menu.setEnabled(False)
 
         self.export_menu_audio = QAction("Audio...", self)
         self.export_menu_audio.triggered.connect(self.export_audio_clicked)
@@ -405,6 +406,8 @@ class MyQMainWindow(QMainWindow):
 
             self.update_seekbar()
 
+            self.export_menu.setEnabled(True)
+
     def close_file_clicked(self):
         self.pause_player()
 
@@ -414,6 +417,8 @@ class MyQMainWindow(QMainWindow):
         self.setWindowTitle(f"{constants.TITLE}")
 
         self.update_seekbar()
+
+        self.export_menu.setEnabled(False)
 
     def audio_settings_clicked(self):
         popup = dialogs.AudioSettings(
@@ -680,7 +685,6 @@ class MyQMainWindow(QMainWindow):
                 "Export Video As...",
                 os.path.join(self.last_save_location, f"{self.file_savename}{constants.VideoFormatCode.MP4.value}"),
                 f"MP4 (*{constants.VideoFormatCode.MP4.value});;"
-                f"MKV (*{constants.VideoFormatCode.MKV.value});;"
                 f"AVI (*{constants.VideoFormatCode.AVI.value})"
             )
 
@@ -748,7 +752,3 @@ class MyQMainWindow(QMainWindow):
         popup = dialogs.About(parent=self)
 
         result = popup.exec()
-
-    # TODO: Add video export settings (encoder, bitrate, quality, stuff like that)
-    # TODO: Add unit testing (https://realpython.com/python-testing/)
-    # TODO: Add documentation (https://realpython.com/python-doctest/)
