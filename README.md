@@ -1,4 +1,4 @@
-# <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
+# <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/src/binary_waterfall/resources/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
 A Raw Data Media Player
 
 <img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/docs/example.png" width="300px" alt="Running the program on mspaint.exe"/>
