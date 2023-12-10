@@ -322,7 +322,7 @@ class ExportFrame(QDialog):
                  parent=None
                  ):
         super().__init__(parent=parent)
-        self.setWindowTitle("Export Image")
+        self.setWindowTitle("Export Image Settings")
         self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
 
         # Hide "?" button
@@ -412,7 +412,7 @@ class ExportSequence(QDialog):
                  parent=None
                  ):
         super().__init__(parent=parent)
-        self.setWindowTitle("Export Sequence")
+        self.setWindowTitle("Export Sequence Settings")
         self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
 
         # Hide "?" button
@@ -545,7 +545,7 @@ class ExportVideo(QDialog):
                  parent=None
                  ):
         super().__init__(parent=parent)
-        self.setWindowTitle("Export Video")
+        self.setWindowTitle("Export Video Settings")
         self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
 
         # Hide "?" button
@@ -642,6 +642,177 @@ class ExportVideo(QDialog):
 
     def fps_entry_changed(self, value):
         self.fps = value
+
+
+# Export video encoder settings dialog
+#   User interface to set encoder settings when exporting a video
+class VideoEncoderSettings(QDialog):
+    def __init__(self,
+                 video_format,
+                 parent=None):
+        super().__init__(parent=parent)
+        self.setWindowTitle("Video Encoder Settings")
+        self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
+
+        # Hide "?" button
+        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
+
+        self.video_format = video_format
+
+        # Set defaults
+        if self.video_format == constants.VideoFormatCode.MP4:
+            self.codec = constants.VideoCodecCode.LIBX264
+        elif self.video_format == constants.VideoFormatCode.AVI:
+            self.codec = constants.VideoCodecCode.PNG
+        self.audio_codec = constants.AudioCodecCode.MP3
+        self.preset = constants.EncoderPresetCode.VERYFAST
+
+        self.codec_entry_label = QLabel("Video Codec:")
+        self.codec_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.codec_entry = QComboBox()
+        self.codec_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        if self.video_format == constants.VideoFormatCode.MP4:
+            self.codec_entry.addItems(["LIBX264", "MPEG4"])
+            if self.codec == constants.VideoCodecCode.LIBX264:
+                self.codec_entry.setCurrentIndex(0)
+            elif self.codec == constants.VideoCodecCode.MPEG4:
+                self.codec_entry.setCurrentIndex(1)
+        elif self.video_format == constants.VideoFormatCode.AVI:
+            self.codec_entry.addItems(["PNG", "Uncompressed"])
+            if self.codec == constants.VideoCodecCode.PNG:
+                self.codec_entry.setCurrentIndex(0)
+            elif self.codec == constants.VideoCodecCode.RAW:
+                self.codec_entry.setCurrentIndex(1)
+        self.codec_entry.currentIndexChanged.connect(self.codec_entry_changed)
+
+        self.audio_codec_entry_label = QLabel("Audio Codec:")
+        self.audio_codec_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.audio_codec_entry = QComboBox()
+        self.audio_codec_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.audio_codec_entry.addItems(["MP3", "M4A", "WAV 16-bit", "WAV 32-bit"])
+        if self.audio_codec == constants.AudioCodecCode.MP3:
+            self.audio_codec_entry.setCurrentIndex(0)
+        elif self.audio_codec == constants.AudioCodecCode.M4A:
+            self.audio_codec_entry.setCurrentIndex(1)
+        elif self.audio_codec == constants.AudioCodecCode.WAV16:
+            self.audio_codec_entry.setCurrentIndex(2)
+        elif self.audio_codec == constants.AudioCodecCode.WAV32:
+            self.audio_codec_entry.setCurrentIndex(3)
+        self.audio_codec_entry.currentIndexChanged.connect(self.audio_codec_entry_changed)
+
+        self.preset_entry_label = QLabel("Encoder Preset:")
+        self.preset_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.preset_entry = QComboBox()
+        self.preset_entry.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.preset_entry.addItems([
+            "Ultra Fast",
+            "Super Fast",
+            "Very Fast",
+            "Faster",
+            "Fast",
+            "Medium",
+            "Slow",
+            "Slower",
+            "Very Slow",
+            "Placebo"
+        ])
+        if self.preset == constants.EncoderPresetCode.ULTRAFAST:
+            self.preset_entry.setCurrentIndex(0)
+        elif self.preset == constants.EncoderPresetCode.SUPERFAST:
+            self.preset_entry.setCurrentIndex(1)
+        elif self.preset == constants.EncoderPresetCode.VERYFAST:
+            self.preset_entry.setCurrentIndex(2)
+        elif self.preset == constants.EncoderPresetCode.FASTER:
+            self.preset_entry.setCurrentIndex(3)
+        elif self.preset == constants.EncoderPresetCode.FAST:
+            self.preset_entry.setCurrentIndex(4)
+        elif self.preset == constants.EncoderPresetCode.MEDIUM:
+            self.preset_entry.setCurrentIndex(5)
+        elif self.preset == constants.EncoderPresetCode.SLOW:
+            self.preset_entry.setCurrentIndex(6)
+        elif self.preset == constants.EncoderPresetCode.SLOWER:
+            self.preset_entry.setCurrentIndex(7)
+        elif self.preset == constants.EncoderPresetCode.VERYSLOW:
+            self.preset_entry.setCurrentIndex(8)
+        elif self.preset == constants.EncoderPresetCode.PLACEBO:
+            self.preset_entry.setCurrentIndex(9)
+        self.preset_entry.currentIndexChanged.connect(self.preset_entry_changed)
+
+        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+        self.confirm_buttons.accepted.connect(self.accept)
+        self.confirm_buttons.rejected.connect(self.reject)
+
+        self.main_layout = QGridLayout()
+
+        self.main_layout.addWidget(self.codec_entry_label, 0, 0)
+        self.main_layout.addWidget(self.codec_entry, 0, 1)
+        self.main_layout.addWidget(self.audio_codec_entry_label, 1, 0)
+        self.main_layout.addWidget(self.audio_codec_entry, 1, 1)
+        self.main_layout.addWidget(self.preset_entry_label, 2, 0)
+        self.main_layout.addWidget(self.preset_entry, 2, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 3, 0, 1, 2)
+
+        self.setLayout(self.main_layout)
+
+        self.resize_window()
+
+    def resize_window(self):
+        self.setFixedSize(self.sizeHint())
+
+    def get_settings(self):
+        result = dict()
+        result["codec"] = self.codec
+        result["audio_codec"] = self.audio_codec
+        result["preset"] = self.preset
+
+        return result
+
+    def codec_entry_changed(self, value):
+        if self.video_format == constants.VideoFormatCode.MP4:
+            if value == 0:
+                self.codec = constants.VideoCodecCode.LIBX264
+            elif value == 1:
+                self.codec = constants.VideoCodecCode.MPEG4
+        elif self.video_format == constants.VideoFormatCode.AVI:
+            if value == 0:
+                self.codec = constants.VideoCodecCode.PNG
+            elif value == 1:
+                self.codec = constants.VideoCodecCode.RAW
+
+    def audio_codec_entry_changed(self, value):
+        if value == 0:
+            self.audio_codec = constants.AudioCodecCode.MP3
+        elif value == 1:
+            self.audio_codec = constants.AudioCodecCode.M4A
+        elif value == 2:
+            self.audio_codec = constants.AudioCodecCode.WAV16
+        elif value == 3:
+            self.audio_codec = constants.AudioCodecCode.WAV32
+
+    def preset_entry_changed(self, value):
+        if value == 0:
+            self.preset = constants.EncoderPresetCode.ULTRAFAST
+        elif value == 1:
+            self.preset = constants.EncoderPresetCode.SUPERFAST
+        elif value == 2:
+            self.preset = constants.EncoderPresetCode.VERYFAST
+        elif value == 3:
+            self.preset = constants.EncoderPresetCode.FASTER
+        elif value == 4:
+            self.preset = constants.EncoderPresetCode.FAST
+        elif value == 5:
+            self.preset = constants.EncoderPresetCode.MEDIUM
+        elif value == 6:
+            self.preset = constants.EncoderPresetCode.SLOW
+        elif value == 7:
+            self.preset = constants.EncoderPresetCode.SLOWER
+        elif value == 8:
+            self.preset = constants.EncoderPresetCode.VERYSLOW
+        elif value == 9:
+            self.preset = constants.EncoderPresetCode.PLACEBO
 
 
 # Hotkey info dialog
