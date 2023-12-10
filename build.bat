@@ -2,36 +2,46 @@
 
 set MAINFAILENAME=binary-waterfall
 set ENVNAME=%MAINFAILENAME%
+set MODULENAME=binary_waterfall
 
 set ORIGDIR=%CD%
+set SOURCEDIR=%ORIGDIR%\src\%MODULENAME%
 set DISTDIR=%ORIGDIR%\dist
 set BUILDDIR=%ORIGDIR%\build
 
 set PY=%ORIGDIR%\%MAINFAILENAME%.py
 set SPEC=%ORIGDIR%\%MAINFAILENAME%.spec
 set EXE=%DISTDIR%\%MAINFAILENAME%.exe
+set TARGETEXE=%ORIGDIR%\%MAINFAILENAME%.exe
 
+set VERSION_YAML=%SOURCEDIR%\version.yml
 set VERSION_INFO=%ORIGDIR%\file_version_info.txt
+
+set RESOURCEDIR=%SOURCEDIR%\resources
+set ICON_ICO=%RESOURCEDIR%\icon.ico
 
 
 echo Building portable EXE...
-call conda run -n %ENVNAME% create-version-file version.yml --outfile %VERSION_INFO%
+del /f /s /q "%TARGETEXE%" 1>nul 2>&1
+call conda run -n %ENVNAME% create-version-file %VERSION_YAML% --outfile %VERSION_INFO%
 if errorlevel 1 goto ERROR
 call conda run -n %ENVNAME% pyinstaller ^
     --clean ^
     --noconfirm ^
     --noconsole ^
-	--add-data resources\;resources\ ^
-    --add-data version.yml;. ^
-    --add-data icon.png;. ^
+	--add-data %SOURCEDIR%\*.py;.\src\%MODULENAME% ^
+	--add-data %SOURCEDIR%\version.yml;.\src\%MODULENAME% ^
+	--add-data %SOURCEDIR%\constants\*.py;.\src\%MODULENAME%\constants ^
+	--add-data %SOURCEDIR%\helpers\*.py;.\src\%MODULENAME%\helpers ^
+	--add-data %SOURCEDIR%\resources\*;.\src\%MODULENAME%\resources ^
     --onefile ^
-    --icon=icon.ico ^
+    --icon=%ICON_ICO% ^
     --version-file=%VERSION_INFO% ^
     "%PY%"
 if errorlevel 1 goto ERROR
 
 echo Cleaning up before making release...
-move "%EXE%" "%ORIGDIR%"
+move "%EXE%" "%TARGETEXE%"
 del /f /s /q "%DISTDIR%" 1>nul 2>&1
 rmdir /s /q "%DISTDIR%" 1>nul 2>&1
 del /f /s /q "%BUILDDIR%" 1>nul 2>&1
