@@ -7,6 +7,7 @@ from PyQt5.QtGui import QPalette, QColor
 from . import window, constants
 
 # TODO: Allow specifying custom audio and video bitrates (see OBS settings for ideas)
+# TODO: Add vertical audio offset setting to allow: end-of-frame (default), start-of-frame, or middle-of-frame
 # TODO: Add unit testing (https://realpython.com/python-testing/)
 # TODO: Add documentation (https://realpython.com/python-doctest/)
 

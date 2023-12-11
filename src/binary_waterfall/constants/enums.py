@@ -67,3 +67,9 @@ class EncoderPresetCode(Enum):
     SLOWER = "slower"
     VERYSLOW = "veryslow"
     PLACEBO = "placebo"
+
+
+class AlignmentCode(Enum):
+    START = 0
+    END = 1
+    MIDDLE = 2

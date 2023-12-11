@@ -145,6 +145,7 @@ class VideoSettings(QDialog):
                  color_format,
                  flip_v,
                  flip_h,
+                 alignment,
                  parent=None
                  ):
         super().__init__(parent=parent)
@@ -161,6 +162,7 @@ class VideoSettings(QDialog):
         self.color_format = color_format
         self.flip_v = flip_v
         self.flip_h = flip_h
+        self.alignment = alignment
 
         self.width_label = QLabel("Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -192,6 +194,19 @@ class VideoSettings(QDialog):
         self.color_format_entry.setText(self.color_format)
         self.color_format_entry.editingFinished.connect(self.color_format_entry_changed)
 
+        self.alignment_label = QLabel("Audio Alignment::")
+        self.alignment_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.alignment_entry = QComboBox()
+        self.alignment_entry.addItems(["Frame Start", "Frame Center", "Frame End"])
+        if self.alignment == constants.AlignmentCode.START:
+            self.alignment_entry.setCurrentIndex(0)
+        elif self.alignment == constants.AlignmentCode.MIDDLE:
+            self.alignment_entry.setCurrentIndex(1)
+        elif self.alignment == constants.AlignmentCode.END:
+            self.alignment_entry.setCurrentIndex(2)
+        self.alignment_entry.currentIndexChanged.connect(self.alignment_entry_changed)
+
         self.flip_v_entry_label = QLabel("Vertical:")
         self.flip_v_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
@@ -218,11 +233,13 @@ class VideoSettings(QDialog):
         self.main_layout.addWidget(self.height_entry, 1, 1)
         self.main_layout.addWidget(self.color_format_label, 2, 0)
         self.main_layout.addWidget(self.color_format_entry, 2, 1)
-        self.main_layout.addWidget(self.flip_v_entry_label, 3, 0)
-        self.main_layout.addWidget(self.flip_v_entry, 3, 1)
-        self.main_layout.addWidget(self.flip_h_entry_label, 4, 0)
-        self.main_layout.addWidget(self.flip_h_entry, 4, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 5, 0, 1, 2)
+        self.main_layout.addWidget(self.alignment_label, 3, 0)
+        self.main_layout.addWidget(self.alignment_entry, 3, 1)
+        self.main_layout.addWidget(self.flip_v_entry_label, 4, 0)
+        self.main_layout.addWidget(self.flip_v_entry, 4, 1)
+        self.main_layout.addWidget(self.flip_h_entry_label, 5, 0)
+        self.main_layout.addWidget(self.flip_h_entry, 5, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 6, 0, 1, 2)
 
         self.setLayout(self.main_layout)
 
@@ -235,6 +252,7 @@ class VideoSettings(QDialog):
         result["color_format"] = self.color_format
         result["flip_v"] = self.flip_v
         result["flip_h"] = self.flip_h
+        result["alignment"] = self.alignment
 
         return result
 
@@ -271,6 +289,14 @@ class VideoSettings(QDialog):
             self.flip_h = False
         else:
             self.flip_h = True
+
+    def alignment_entry_changed(self, idx):
+        if idx == 0:
+            self.alignment = constants.AlignmentCode.START
+        elif idx == 1:
+            self.alignment = constants.AlignmentCode.MIDDLE
+        elif idx == 1:
+            self.alignment = constants.AlignmentCode.END
 
     def resize_window(self):
         self.setFixedSize(self.sizeHint())

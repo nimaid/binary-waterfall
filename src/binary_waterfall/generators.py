@@ -26,7 +26,8 @@ class BinaryWaterfall:
                  sample_rate=32000,
                  volume=100,
                  flip_v=True,
-                 flip_h=False
+                 flip_h=False,
+                 alignment=constants.AlignmentCode.MIDDLE
                  ):
         # Initialize class variables
         self.audio_length_ms = None
@@ -47,6 +48,7 @@ class BinaryWaterfall:
         self.audio_filename = None
         self.flip_v = None
         self.flip_h = None
+        self.alignment = alignment
 
         # Make the temp dir for the class instance
         self.temp_dir = tempfile.mkdtemp()
@@ -66,6 +68,8 @@ class BinaryWaterfall:
             flip_v=flip_v,
             flip_h=flip_h
         )
+
+        self.set_alignment(alignment=alignment)
 
         self.set_audio_settings(
             num_channels=num_channels,
@@ -263,6 +267,9 @@ class BinaryWaterfall:
         self.flip_v = flip_v
         self.flip_h = flip_h
 
+    def set_alignment(self, alignment):
+        self.alignment = alignment
+
     def set_audio_settings(self,
                            num_channels,
                            sample_bytes,
@@ -338,17 +345,44 @@ class BinaryWaterfall:
         self.compute_audio()
 
     def get_address(self, ms):
+        # Get the size of a single "block" (a row, we only move in increments of 1 row)
         address_block_size = self.width * self.color_bytes
+
+        # Get the total number of blocks (rows) in the file (round up because we don't want to clip a row off)
         total_blocks = math.ceil(self.total_bytes / address_block_size)
-        address_block_offset = round(ms * total_blocks / self.audio_length_ms)
-        return address_block_offset * address_block_size
+
+        # Get the block index of the current audio location
+        address_block_index = round(total_blocks * (ms / self.audio_length_ms))
+
+        # Get the base address (end of frame by default)
+        address = address_block_index * address_block_size
+
+        # Adjust address for other alignments
+        if self.alignment == constants.AlignmentCode.START:
+            address -= (address_block_size * self.height)
+        elif self.alignment == constants.AlignmentCode.MIDDLE:
+            address -= (address_block_size * round(self.height / 2))
+
+        return address
 
     # A 1D Python byte string
     def get_frame_bytestring(self, ms):
         picture_bytes = bytes()
+
         address = self.get_address(ms)
+        # Compensate for negative addresses
+        if address < 0:
+            picture_bytes += b"\x00" * -address
+            address = 0
+
+        full_length = (self.width * self.height * 3)
+
         for row in range(self.height):
             for col in range(self.width):
+                # If we already have a full frame, stop the loops
+                if len(picture_bytes) >= full_length:
+                    break
+
                 # Fill one BGR byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
@@ -376,10 +410,12 @@ class BinaryWaterfall:
                     address += 1
 
                 picture_bytes += b"".join(this_byte)
+            else:
+                continue
+            break
 
-        full_length = (self.width * self.height * 3)
+        # Pad picture data if we don't have a full frame (near the end of the file)
         picture_bytes_length = len(picture_bytes)
-        # Pad picture data if we're near the end of the file
         if picture_bytes_length < full_length:
             pad_length = full_length - picture_bytes_length
             picture_bytes += b"\x00" * pad_length

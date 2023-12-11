@@ -448,6 +448,7 @@ class MyQMainWindow(QMainWindow):
             color_format=self.bw.get_color_format_string(),
             flip_v=self.bw.flip_v,
             flip_h=self.bw.flip_h,
+            alignment=self.bw.alignment,
             parent=self
         )
 
@@ -463,6 +464,9 @@ class MyQMainWindow(QMainWindow):
             self.bw.set_flip(
                 flip_v=video_settings["flip_v"],
                 flip_h=video_settings["flip_h"]
+            )
+            self.bw.set_alignment(
+                alignment=video_settings["alignment"]
             )
             self.player.refresh_dims()
             self.player.update_image()
