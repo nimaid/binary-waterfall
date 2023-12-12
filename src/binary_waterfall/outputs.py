@@ -207,7 +207,6 @@ class Player:
         self.close_file()
 
         self.bw.change_filename(filename)
-        self.bw.compute_audio()
 
         self.set_audio_file(self.bw.audio_filename)
 
@@ -221,7 +220,6 @@ class Player:
         self.set_audio_file(None)
 
         self.bw.change_filename(None)
-        self.bw.compute_audio()
 
         self.restart()
         self.clear_image()

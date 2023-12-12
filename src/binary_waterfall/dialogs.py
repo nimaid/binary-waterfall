@@ -295,7 +295,7 @@ class VideoSettings(QDialog):
             self.alignment = constants.AlignmentCode.START
         elif idx == 1:
             self.alignment = constants.AlignmentCode.MIDDLE
-        elif idx == 1:
+        elif idx == 2:
             self.alignment = constants.AlignmentCode.END
 
     def resize_window(self):
