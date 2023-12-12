@@ -6,7 +6,7 @@
 <p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
 
 ## Downloads
-<table align="center" border="0" cellspacing="0" cellpadding="0">
+<table align="center" border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse;">
     <tr style="border: none !important;">
         <td align="center" style="border: none !important;">
             <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
