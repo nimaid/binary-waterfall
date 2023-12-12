@@ -445,8 +445,10 @@ class MyQMainWindow(QMainWindow):
                 num_channels=audio_settings["num_channels"],
                 sample_bytes=audio_settings["sample_bytes"],
                 sample_rate=audio_settings["sample_rate"],
-                volume=audio_settings["volume"],
+                volume=audio_settings["volume"]
             )
+
+            self.update_seekbar()
 
     def video_settings_clicked(self):
         popup = dialogs.VideoSettings(
