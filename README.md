@@ -7,15 +7,15 @@
 
 ## Downloads
 <table align="center">
-    <tr>
-        <td align="center">
+    <tr style="border: none !important;">
+        <td align="center" style="border: none !important;">
             <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
                 <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
                 <br />
                 <b>Windows</b>
             </a>
         </td>
-        <td align="center">
+        <td align="center" style="border: none !important;">
             <a href="https://pypi.org/project/binary-waterfall/">
                 <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
                 <br />
