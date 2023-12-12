@@ -6,23 +6,24 @@
 <p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
 
 ## Downloads
-[](https://github.com/nimaid/binary-waterfall/releases/latest)
-<div align="center">
-    <div align="center" style="display: inline-block;">
-        <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
-            <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
-            <br />
-            <b>Windows</b>
-        </a>
-    </div>
-    <div align="center" style="display: inline-block;">
-        <a href="https://pypi.org/project/binary-waterfall/">
-            <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
-            <br />
-            <b>All Platforms</b>
-        </a>
-    </div>
-</div>
+<table align="center">
+    <tr>
+        <td align="center">
+            <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
+                <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
+                <br />
+                <b>Windows</b>
+            </a>
+        </td>
+        <td align="center">
+            <a href="https://pypi.org/project/binary-waterfall/">
+                <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
+                <br />
+                <b>All Platforms</b>
+            </a>
+        </td>
+    </tr>
+</table>
 
 ## Attribution
 If you use this program to make a video or other project, you must provide attribution. Attribution is required regardless of whether your project is for-profit or not. Please reproduce the following attribution statement in full in your video description or otherwise include it in the references for your project:
