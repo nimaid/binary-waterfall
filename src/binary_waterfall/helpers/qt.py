@@ -35,5 +35,5 @@ class QtBarLoggerMoviepy(ProgressBarLogger):
                 self.progress_dialog.setLabelText(message)
 
     def bars_callback(self, bar, attr, value, old_value=None):
-        percent = (value / self.bars[bar]["total"]) * 100
-        self.set_progress(round(percent))
+        self.progress_dialog.setMaximum(self.bars[bar]["total"])
+        self.set_progress(value)
