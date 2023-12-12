@@ -437,6 +437,7 @@ class Renderer:
 
         video_clip = sequence_clip.set_audio(audio_clip)
         # TODO: Control quality settings
+        # TODO: Set temp audio file location if possible
         video_clip.write_videofile(
             filename=video_file,
             codec=codec,
@@ -445,7 +446,8 @@ class Renderer:
             audio_bitrate=audio_bitrate,
             preset=preset,
             threads=None,
-            logger=custom_logger
+            logger=custom_logger,
+            temp_audiofile=None
         )
 
         if progress_dialog is not None:
