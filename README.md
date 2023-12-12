@@ -8,23 +8,19 @@
 ## Downloads
 [](https://github.com/nimaid/binary-waterfall/releases/latest)
 <div align="center">
-    <div style="display: inline-block;">
-        <div align="center">
-            <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
-                <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
-                <br />
-                <b>Windows</b>
-            </a>
-        </div>
+    <div align="center" style="display: inline-block;">
+        <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
+            <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
+            <br />
+            <b>Windows</b>
+        </a>
     </div>
-    <div style="display: inline-block; vertical-align:top;">
-        <div align="center">
-            <a href="https://pypi.org/project/binary-waterfall/">
-                <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
-                <br />
-                <b>All Platforms</b>
-            </a>
-        </div>
+    <div align="center" style="display: inline-block;">
+        <a href="https://pypi.org/project/binary-waterfall/">
+            <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
+            <br />
+            <b>All Platforms</b>
+        </a>
     </div>
 </div>
 
