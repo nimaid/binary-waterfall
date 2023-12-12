@@ -354,14 +354,14 @@ class BinaryWaterfall:
         # Get the block index of the current audio location
         address_block_index = round(total_blocks * (ms / self.audio_length_ms))
 
+        # Adjust index for other alignments
+        if self.alignment == constants.AlignmentCode.START:
+            address_block_index -= self.height
+        elif self.alignment == constants.AlignmentCode.MIDDLE:
+            address_block_index -= round(self.height / 2)
+
         # Get the base address (end of frame by default)
         address = address_block_index * address_block_size
-
-        # Adjust address for other alignments
-        if self.alignment == constants.AlignmentCode.START:
-            address -= (address_block_size * self.height)
-        elif self.alignment == constants.AlignmentCode.MIDDLE:
-            address -= (address_block_size * round(self.height / 2))
 
         return address
 
@@ -372,7 +372,7 @@ class BinaryWaterfall:
         address = self.get_address(ms)
         # Compensate for negative addresses
         if address < 0:
-            picture_bytes += b"\x00" * -address
+            picture_bytes += b"\x00" * 3 * round(-address / self.color_bytes)
             address = 0
 
         full_length = (self.width * self.height * 3)
