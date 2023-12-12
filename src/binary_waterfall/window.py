@@ -177,9 +177,15 @@ class MyQMainWindow(QMainWindow):
 
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
+        self.main_widget.setAttribute(Qt.WA_StyledBackground, True)
+        self.main_widget.setStyleSheet("background-color: {};".format(constants.COLORS["controls_background"]))
         self.setCentralWidget(self.main_widget)
 
         self.main_menu = self.menuBar()
+        self.setStyleSheet("QMenuBar {{ background-color: {bg}; text-color: {txt}}}".format(
+            bg=constants.COLORS["status_background"],
+            txt=constants.COLORS["status_text"]
+        ))
 
         self.file_menu = self.main_menu.addMenu("File")
 

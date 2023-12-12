@@ -35,7 +35,7 @@ class MainWindow:
         self.palette.setColor(QPalette.ToolTipText, Qt.white)
         self.palette.setColor(QPalette.Text, Qt.white)
         self.palette.setColor(QPalette.Button, QColor(constants.COLORS["foreground"]))
-        self.palette.setColor(QPalette.ButtonText, QColor(constants.COLORS["button-text"]))
+        self.palette.setColor(QPalette.ButtonText, QColor(constants.COLORS["button_text"]))
         self.palette.setColor(QPalette.BrightText, Qt.red)
         self.palette.setColor(QPalette.Link, QColor(constants.COLORS["link"]))
         self.palette.setColor(QPalette.Highlight, QColor(constants.COLORS["link"]))
