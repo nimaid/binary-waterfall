@@ -17,7 +17,7 @@
             </a>
         </div>
     </div>
-    <div style="display: inline-block;">
+    <div style="display: inline-block; vertical-align:top;">
         <div align="center">
             <a href="https://pypi.org/project/binary-waterfall/">
                 <img src="docs/python.png" width="150px" alt="Click here to download the program for Python!"/>
