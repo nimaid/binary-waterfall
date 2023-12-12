@@ -44,7 +44,7 @@ class BinaryWaterfall:
         self.width = None
         self.dim = None
         self.total_bytes = None
-        self.bytes = None
+        self.file = None
         self.audio_filename = None
         self.flip_v = None
         self.flip_h = None
@@ -81,14 +81,19 @@ class BinaryWaterfall:
     def __del__(self):
         self.cleanup()
 
+    def close_file(self):
+        if self.file is not None:
+            self.file.close()
+            self.file = None
+        self.filename = None
+
     def set_filename(self, filename):
         # Delete current audio file if it exists
         self.delete_audio()
 
         if filename is None:
-            # Reset all vars
-            self.filename = None
-            self.bytes = None
+            # Reset all vars and close the file pointer
+            self.close_file()
             self.total_bytes = None
             self.audio_filename = None
             return
@@ -98,10 +103,11 @@ class BinaryWaterfall:
 
         self.filename = os.path.realpath(filename)
 
-        # Load bytes
-        with open(self.filename, "rb") as f:
-            self.bytes = f.read()
-        self.total_bytes = len(self.bytes)
+        # Open file
+        self.file = open(self.filename, "rb")
+
+        # Get total number of bytes
+        self.total_bytes = os.stat(self.filename).st_size
 
         # Compute audio file name
         file_path, file_main_name = os.path.split(self.filename)
@@ -325,7 +331,8 @@ class BinaryWaterfall:
             f.setnchannels(self.num_channels)
             f.setsampwidth(self.sample_bytes)
             f.setframerate(self.sample_rate)
-            f.writeframesraw(self.bytes)
+            for chunk in iter(lambda: self.file.read(4096), b""):
+                f.writeframesraw(chunk)
 
         if self.volume != 100:
             # Reduce the audio volume
@@ -343,6 +350,10 @@ class BinaryWaterfall:
     def change_filename(self, new_filename):
         self.set_filename(new_filename)
         self.compute_audio()
+
+    def get_file_bytes(self, address, count):
+        self.file.seek(address)
+        return self.file.read(count)
 
     def get_address(self, ms):
         # Get the size of a single "block" (a row, we only move in increments of 1 row)
@@ -375,8 +386,15 @@ class BinaryWaterfall:
             picture_bytes += b"\x00" * 3 * round(-address / self.color_bytes)
             address = 0
 
+        # Get the maximum number of bytes that could be used for this frame
+        frame_bytes = self.get_file_bytes(
+            address=address,
+            count=(self.width * self.height * self.color_bytes)
+        )
+
         full_length = (self.width * self.height * 3)
 
+        idx = 0
         for row in range(self.height):
             for col in range(self.width):
                 # If we already have a full frame, stop the loops
@@ -387,27 +405,27 @@ class BinaryWaterfall:
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
                     if c == constants.ColorFmtCode.RED:
-                        this_byte[0] = self.bytes[address:address + 1]  # Red
+                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
                     elif c == constants.ColorFmtCode.RED_INV:
-                        this_byte[0] = helpers.invert_bytes(self.bytes[address:address + 1])  # Red inverted
+                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
                     elif c == constants.ColorFmtCode.GREEN:
-                        this_byte[1] = self.bytes[address:address + 1]  # Green
+                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
                     elif c == constants.ColorFmtCode.GREEN_INV:
-                        this_byte[1] = helpers.invert_bytes(self.bytes[address:address + 1])  # Green inverted
+                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
                     elif c == constants.ColorFmtCode.BLUE:
-                        this_byte[2] = self.bytes[address:address + 1]  # Blue
+                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
                     elif c == constants.ColorFmtCode.BLUE_INV:
-                        this_byte[2] = helpers.invert_bytes(self.bytes[address:address + 1])  # Blue inverted
+                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
                     elif c == constants.ColorFmtCode.WHITE:
-                        this_byte[0] = self.bytes[address:address + 1]  # Red
-                        this_byte[1] = self.bytes[address:address + 1]  # Green
-                        this_byte[2] = self.bytes[address:address + 1]  # Blue
+                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
+                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
+                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
                     elif c == constants.ColorFmtCode.WHITE_INV:
-                        this_byte[0] = helpers.invert_bytes(self.bytes[address:address + 1])  # Red inverted
-                        this_byte[1] = helpers.invert_bytes(self.bytes[address:address + 1])  # Green inverted
-                        this_byte[2] = helpers.invert_bytes(self.bytes[address:address + 1])  # Blue inverted
+                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
+                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
+                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
 
-                    address += 1
+                    idx += 1
 
                 picture_bytes += b"".join(this_byte)
             else:
@@ -451,6 +469,7 @@ class BinaryWaterfall:
         return qimg
 
     def cleanup(self):
+        self.close_file()
         self.delete_audio()
         shutil.rmtree(self.temp_dir)
 

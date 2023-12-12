@@ -414,7 +414,7 @@ class Renderer:
             if progress_dialog.wasCanceled():
                 shutil.rmtree(temp_dir)
                 return
-            progress_dialog.setLabelText("Splicing final video file (program may lag)...")
+            progress_dialog.setLabelText("Splicing final video file... (program may lag)")
 
         # Export audio
         self.export_audio(audio_file)
