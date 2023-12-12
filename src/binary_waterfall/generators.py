@@ -107,7 +107,9 @@ class BinaryWaterfall:
         self.file = open(self.filename, "rb")
 
         # Get total number of bytes
-        self.total_bytes = os.stat(self.filename).st_size
+        self.file.seek(0, os.SEEK_END)
+        self.total_bytes = self.file.tell()
+        self.file.seek(0)
 
         # Compute audio file name
         file_path, file_main_name = os.path.split(self.filename)
@@ -331,6 +333,7 @@ class BinaryWaterfall:
             f.setnchannels(self.num_channels)
             f.setsampwidth(self.sample_bytes)
             f.setframerate(self.sample_rate)
+            self.file.seek(0)
             for chunk in iter(lambda: self.file.read(4096), b""):
                 f.writeframesraw(chunk)
 
