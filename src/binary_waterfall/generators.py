@@ -394,6 +394,7 @@ class BinaryWaterfall:
 
         full_length = (self.width * self.height * 3)
 
+        # TODO: Fix sync bug
         idx = 0
         for row in range(self.height):
             for col in range(self.width):
