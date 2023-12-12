@@ -182,9 +182,8 @@ class MyQMainWindow(QMainWindow):
         self.setCentralWidget(self.main_widget)
 
         self.main_menu = self.menuBar()
-        self.setStyleSheet("QMenuBar {{ background-color: {bg}; text-color: {txt}}}".format(
-            bg=constants.COLORS["status_background"],
-            txt=constants.COLORS["status_text"]
+        self.setStyleSheet("QMenuBar {{ background-color: {bg}; }}".format(
+            bg=constants.COLORS["status_background"]
         ))
 
         self.file_menu = self.main_menu.addMenu("File")
@@ -194,6 +193,7 @@ class MyQMainWindow(QMainWindow):
         self.file_menu.addAction(self.file_menu_open)
 
         self.file_menu_close = QAction("Close", self)
+        self.file_menu_close.setEnabled(False)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
 
@@ -413,6 +413,7 @@ class MyQMainWindow(QMainWindow):
             self.update_seekbar()
 
             self.export_menu.setEnabled(True)
+            self.file_menu_close.setEnabled(True)
 
     def close_file_clicked(self):
         self.pause_player()
@@ -425,6 +426,7 @@ class MyQMainWindow(QMainWindow):
         self.update_seekbar()
 
         self.export_menu.setEnabled(False)
+        self.file_menu_close.setEnabled(False)
 
     def audio_settings_clicked(self):
         popup = dialogs.AudioSettings(
