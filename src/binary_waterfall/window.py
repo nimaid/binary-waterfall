@@ -146,21 +146,22 @@ class MyQMainWindow(QMainWindow):
         self.transport_left_layout.addWidget(self.transport_back)
 
         self.restart_counterpad = QLabel()
+        self.restart_counterpad.setFixedSize(self.transport_restart.size())
 
         self.transport_right_layout = QHBoxLayout()
         self.transport_right_layout.setSpacing(self.padding_px)
         self.transport_right_layout.addWidget(self.transport_forward)
         self.transport_right_layout.addWidget(self.restart_counterpad)
 
-        self.voume_layout = QGridLayout()
-        self.voume_layout.setContentsMargins(0, 0, self.padding_px, 0)
+        self.volume_layout = QGridLayout()
+        self.volume_layout.setContentsMargins(0, 0, self.padding_px, 0)
 
-        self.voume_layout.addWidget(self.volume_icon, 0, 0,
-                                    alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
-        self.voume_layout.addWidget(self.volume_label, 1, 0,
-                                    alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
-        self.voume_layout.addWidget(self.volume_slider, 0, 1, 2, 1,
-                                    alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
+        self.volume_layout.addWidget(self.volume_icon, 0, 0,
+                                     alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignBottom)
+        self.volume_layout.addWidget(self.volume_label, 1, 0,
+                                     alignment=Qt.AlignmentFlag.AlignHCenter | Qt.AlignmentFlag.AlignTop)
+        self.volume_layout.addWidget(self.volume_slider, 0, 1, 2, 1,
+                                     alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
 
         self.main_layout = QGridLayout()
         self.main_layout.setContentsMargins(0, 0, 0, self.padding_px)
@@ -173,7 +174,7 @@ class MyQMainWindow(QMainWindow):
         self.main_layout.addWidget(self.transport_play, 2, 2, alignment=Qt.AlignmentFlag.AlignCenter)
         self.main_layout.addLayout(self.transport_right_layout, 2, 3,
                                    alignment=Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self.main_layout.addLayout(self.voume_layout, 2, 4, alignment=Qt.AlignmentFlag.AlignCenter)
+        self.main_layout.addLayout(self.volume_layout, 2, 4, alignment=Qt.AlignmentFlag.AlignCenter)
 
         self.main_widget = QWidget()
         self.main_widget.setLayout(self.main_layout)
@@ -246,9 +247,6 @@ class MyQMainWindow(QMainWindow):
 
         self.set_volume(self.current_volume)
 
-        # Set window to content size
-        self.resize_window()
-
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -272,25 +270,6 @@ class MyQMainWindow(QMainWindow):
             self.player.frame_back()
         elif key == Qt.Key_Period:
             self.player.frame_forward()
-
-    def resize_window(self):
-        # First, make largest elements smaller
-        self.seek_bar.setFixedWidth(20)
-
-        # Next, we update counterpadding
-        self.update_counterpad_size()
-
-        # We need to wait a sec for the sizeHint to recompute
-        QTimer.singleShot(10, self.resize_window_helper)
-
-    def resize_window_helper(self):
-        size_hint = self.sizeHint()
-        self.setFixedSize(size_hint)
-
-        self.seek_bar.setFixedWidth(size_hint.width() - (self.padding_px * 2))
-
-    def update_counterpad_size(self):
-        self.restart_counterpad.setFixedSize(self.transport_restart.sizeHint())
 
     def set_play_button(self, play):
         if play:
@@ -478,14 +457,10 @@ class MyQMainWindow(QMainWindow):
             self.bw.set_alignment(
                 alignment=video_settings["alignment"]
             )
-            self.player.refresh_dims()
             self.player.update_image()
-            # We need to wait a moment for the size hint to be computed
-            QTimer.singleShot(10, self.resize_window)
 
     def player_settings_clicked(self):
         popup = dialogs.PlayerSettings(
-            max_view_dim=self.player.max_dim,
             fps=self.player.fps,
             parent=self
         )
@@ -495,9 +470,6 @@ class MyQMainWindow(QMainWindow):
         if result:
             player_settings = popup.get_player_settings()
             self.player.set_fps(fps=player_settings["fps"])
-            self.player.update_dims(max_dim=player_settings["max_view_dim"])
-            # We need to wait a moment for the size hint to be computed
-            QTimer.singleShot(10, self.resize_window)
 
     def export_image_clicked(self):
         if self.bw.audio_filename is None:

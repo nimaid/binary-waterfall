@@ -21,23 +21,19 @@ class Player:
                  display,
                  set_playbutton_function=None,
                  set_seekbar_function=None,
-                 max_dim=512,
-                 fps=120
+                 fps=constants.DEFAULTS["player_fps"]
                  ):
         self.image = None
         self.volume = None
         self.fps = None
         self.frame_ms = None
-        self.height = None
-        self.width = None
+        #self.height = None
+        #self.width = None
         self.dim = None
-        self.max_dim = None
 
         self.bw = binary_waterfall
 
         self.display = display
-
-        self.set_dims(max_dim=max_dim)
 
         self.set_play_button = set_playbutton_function
         self.set_seekbar_function = set_seekbar_function
@@ -67,17 +63,6 @@ class Player:
     def __del__(self):
         self.running = False
 
-    def set_dims(self, max_dim):
-        self.max_dim = max_dim
-        if self.bw.width > self.bw.height:
-            self.width = round(max_dim)
-            self.height = round(self.width * (self.bw.height / self.bw.width))
-        else:
-            self.height = round(max_dim)
-            self.width = round(self.height * (self.bw.width / self.bw.height))
-
-        self.dim = (self.width, self.height)
-
     def set_fps(self, fps):
         self.fps = min(max(fps, self.fps_min), self.fps_max)
         self.frame_ms = math.floor(1000 / self.fps)
@@ -103,19 +88,6 @@ class Player:
         )
 
         self.set_image(qimg)
-
-    def update_dims(self, max_dim):
-        # Change dims
-        self.set_dims(max_dim=max_dim)
-
-        # Update image
-        if self.bw.filename is None:
-            self.clear_image()
-        else:
-            self.set_image(self.image)
-
-    def refresh_dims(self):
-        self.update_dims(self.max_dim)
 
     def set_volume(self, volume):
         self.volume = volume

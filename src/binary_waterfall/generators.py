@@ -18,16 +18,16 @@ from . import constants, helpers
 class BinaryWaterfall:
     def __init__(self,
                  filename=None,
-                 width=48,
-                 height=48,
-                 color_format_string="bgrx",
-                 num_channels=1,
-                 sample_bytes=1,
-                 sample_rate=32000,
-                 volume=100,
-                 flip_v=True,
-                 flip_h=False,
-                 alignment=constants.AlignmentCode.MIDDLE
+                 width=constants.DEFAULTS["width"],
+                 height=constants.DEFAULTS["height"],
+                 color_format_string=constants.DEFAULTS["color_format_string"],
+                 num_channels=constants.DEFAULTS["num_channels"],
+                 sample_bytes=constants.DEFAULTS["sample_bytes"],
+                 sample_rate=constants.DEFAULTS["sample_rate"],
+                 volume=constants.DEFAULTS["volume"],
+                 flip_v=constants.DEFAULTS["flip_v"],
+                 flip_h=constants.DEFAULTS["flip_h"],
+                 alignment=constants.DEFAULTS["alignment"]
                  ):
         # Initialize class variables
         self.audio_length_ms = None
