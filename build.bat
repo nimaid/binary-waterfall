@@ -20,6 +20,7 @@ set VERSION_INFO=%ORIGDIR%\file_version_info.txt
 
 set RESOURCEDIR=%SOURCEDIR%\resources
 set ICON_ICO=%RESOURCEDIR%\icon.ico
+set SPLASH_IMG=%RESOURCEDIR%\splash.jpg
 
 echo Cleaning up before making release...
 del /f /q "%TARGETEXE%" 1>nul 2>&1
@@ -45,6 +46,7 @@ call conda run -n %ENVNAME% pyinstaller ^
 	--add-data %SOURCEDIR%\resources\*;.\src\%MODULENAME%\resources ^
     --onefile ^
     --icon=%ICON_ICO% ^
+    --splash=%SPLASH_IMG% ^
     --version-file=%VERSION_INFO% ^
     "%PY%"
 if errorlevel 1 goto ERROR
