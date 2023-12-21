@@ -422,26 +422,26 @@ class BinaryWaterfall:
                 # Fill one RGB byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
-                    if c == constants.ColorFmtCode.RED:
-                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
-                    elif c == constants.ColorFmtCode.RED_INV:
-                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
-                    elif c == constants.ColorFmtCode.GREEN:
-                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
-                    elif c == constants.ColorFmtCode.GREEN_INV:
-                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
-                    elif c == constants.ColorFmtCode.BLUE:
-                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
-                    elif c == constants.ColorFmtCode.BLUE_INV:
-                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
-                    elif c == constants.ColorFmtCode.WHITE:
-                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
-                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
-                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
-                    elif c == constants.ColorFmtCode.WHITE_INV:
-                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
-                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
-                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
+                    if c == constants.ColorFmtCode.RED:  # Red
+                        this_byte[0] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.RED_INV:  # Red inverted
+                        this_byte[0] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.GREEN:  # Green
+                        this_byte[1] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.GREEN_INV:  # Green inverted
+                        this_byte[1] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.BLUE:  # Blue
+                        this_byte[2] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.BLUE_INV:  # Blue inverted
+                        this_byte[2] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.WHITE:  # RGB
+                        this_byte[0] = frame_bytes[idx:idx + 1]
+                        this_byte[1] = frame_bytes[idx:idx + 1]
+                        this_byte[2] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.WHITE_INV:   # RGB inverted
+                        this_byte[0] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                        this_byte[1] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                        this_byte[2] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
 
                     idx += 1
 
