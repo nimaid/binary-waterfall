@@ -464,6 +464,7 @@ class BinaryWaterfall:
             playhead_end = playhead_start + row_size
 
             playhead = helpers.invert_bytes(picture_bytes[playhead_start:playhead_end])
+            playhead = helpers.desaturate_rgb_bytes(playhead)
 
             picture_bytes = picture_bytes[:playhead_start] + playhead + picture_bytes[playhead_end:]
 

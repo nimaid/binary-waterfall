@@ -1,4 +1,5 @@
 import os
+from itertools import zip_longest
 
 
 def make_file_path(filename):
@@ -6,5 +7,6 @@ def make_file_path(filename):
     os.makedirs(file_path, exist_ok=True)
 
 
-def invert_bytes(bytestring):
-    return bytes([0xFF - x for x in bytestring])
+def grouper(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return zip_longest(*args, fillvalue=fillvalue)
