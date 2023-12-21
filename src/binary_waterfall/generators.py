@@ -27,7 +27,8 @@ class BinaryWaterfall:
                  volume=100,
                  flip_v=True,
                  flip_h=False,
-                 alignment=constants.AlignmentCode.MIDDLE
+                 alignment=constants.AlignmentCode.MIDDLE,
+                 playhead_visible=True
                  ):
         # Initialize class variables
         self.audio_length_ms = None
@@ -48,7 +49,8 @@ class BinaryWaterfall:
         self.audio_filename = None
         self.flip_v = None
         self.flip_h = None
-        self.alignment = alignment
+        self.alignment = None
+        self.playhead_visible = None
 
         # Make the temp dir for the class instance
         self.temp_dir = tempfile.mkdtemp()
@@ -70,6 +72,8 @@ class BinaryWaterfall:
         )
 
         self.set_alignment(alignment=alignment)
+
+        self.set_playhead_visible(playhead_visible=playhead_visible)
 
         self.set_audio_settings(
             num_channels=num_channels,
@@ -278,6 +282,9 @@ class BinaryWaterfall:
     def set_alignment(self, alignment):
         self.alignment = alignment
 
+    def set_playhead_visible(self, playhead_visible):
+        self.playhead_visible = playhead_visible
+
     def set_audio_settings(self,
                            num_channels,
                            sample_bytes,
@@ -379,6 +386,14 @@ class BinaryWaterfall:
 
         return address
 
+    def get_playhead_row(self):
+        if self.alignment == constants.AlignmentCode.END:
+            return 0
+        elif self.alignment == constants.AlignmentCode.START:
+            return self.height - 1
+        else:
+            return round((self.height - 1) / 2)
+
     # A 1D Python byte string
     def get_frame_bytestring(self, ms):
         picture_bytes = bytes()
@@ -404,7 +419,7 @@ class BinaryWaterfall:
                 if len(picture_bytes) >= full_length:
                     break
 
-                # Fill one BGR byte value
+                # Fill one RGB byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
                     if c == constants.ColorFmtCode.RED:
@@ -440,6 +455,17 @@ class BinaryWaterfall:
         if picture_bytes_length < full_length:
             pad_length = full_length - picture_bytes_length
             picture_bytes += b"\x00" * pad_length
+
+        # Invert playhead row if needed
+        if self.playhead_visible:
+            playhead_row = self.get_playhead_row()
+            row_size = self.width * 3
+            playhead_start = playhead_row * row_size
+            playhead_end = playhead_start + row_size
+
+            playhead = helpers.invert_bytes(picture_bytes[playhead_start:playhead_end])
+
+            picture_bytes = picture_bytes[:playhead_start] + playhead + picture_bytes[playhead_end:]
 
         return picture_bytes
 

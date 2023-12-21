@@ -146,6 +146,7 @@ class VideoSettings(QDialog):
                  flip_v,
                  flip_h,
                  alignment,
+                 playhead_visible,
                  parent=None
                  ):
         super().__init__(parent=parent)
@@ -163,6 +164,7 @@ class VideoSettings(QDialog):
         self.flip_v = flip_v
         self.flip_h = flip_h
         self.alignment = alignment
+        self.playhead_visible = playhead_visible
 
         self.width_label = QLabel("Width:")
         self.width_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -207,6 +209,13 @@ class VideoSettings(QDialog):
             self.alignment_entry.setCurrentIndex(2)
         self.alignment_entry.currentIndexChanged.connect(self.alignment_entry_changed)
 
+        self.playhead_entry_label = QLabel("Playhead:")
+        self.playhead_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.playhead_entry = QCheckBox("Visible")
+        self.playhead_entry.setChecked(self.playhead_visible)
+        self.playhead_entry.stateChanged.connect(self.playhead_entry_changed)
+
         self.flip_v_entry_label = QLabel("Vertical:")
         self.flip_v_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
@@ -235,11 +244,13 @@ class VideoSettings(QDialog):
         self.main_layout.addWidget(self.color_format_entry, 2, 1)
         self.main_layout.addWidget(self.alignment_label, 3, 0)
         self.main_layout.addWidget(self.alignment_entry, 3, 1)
-        self.main_layout.addWidget(self.flip_v_entry_label, 4, 0)
-        self.main_layout.addWidget(self.flip_v_entry, 4, 1)
-        self.main_layout.addWidget(self.flip_h_entry_label, 5, 0)
-        self.main_layout.addWidget(self.flip_h_entry, 5, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 6, 0, 1, 2)
+        self.main_layout.addWidget(self.playhead_entry_label, 4, 0)
+        self.main_layout.addWidget(self.playhead_entry, 4, 1)
+        self.main_layout.addWidget(self.flip_v_entry_label, 5, 0)
+        self.main_layout.addWidget(self.flip_v_entry, 5, 1)
+        self.main_layout.addWidget(self.flip_h_entry_label, 6, 0)
+        self.main_layout.addWidget(self.flip_h_entry, 6, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 7, 0, 1, 2)
 
         self.setLayout(self.main_layout)
 
@@ -253,6 +264,7 @@ class VideoSettings(QDialog):
         result["flip_v"] = self.flip_v
         result["flip_h"] = self.flip_h
         result["alignment"] = self.alignment
+        result["playhead_visible"] = self.playhead_visible
 
         return result
 
@@ -277,6 +289,12 @@ class VideoSettings(QDialog):
             error_popup.setInformativeText(parsed["message"])
             error_popup.setWindowTitle("Error")
             error_popup.exec()
+
+    def playhead_entry_changed(self, value):
+        if value == 0:
+            self.playhead_visible = False
+        else:
+            self.playhead_visible = True
 
     def flip_v_entry_changed(self, value):
         if value == 0:
