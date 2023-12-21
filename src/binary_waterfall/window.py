@@ -438,6 +438,7 @@ class MyQMainWindow(QMainWindow):
             flip_v=self.bw.flip_v,
             flip_h=self.bw.flip_h,
             alignment=self.bw.alignment,
+            playhead_visible=self.bw.playhead_visible,
             parent=self
         )
 
@@ -457,6 +458,11 @@ class MyQMainWindow(QMainWindow):
             self.bw.set_alignment(
                 alignment=video_settings["alignment"]
             )
+            self.bw.set_playhead_visible(
+                playhead_visible=video_settings["playhead_visible"]
+            )
+            
+            self.player.refresh_dims()
             self.player.update_image()
 
     def player_settings_clicked(self):

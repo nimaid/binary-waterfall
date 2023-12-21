@@ -76,6 +76,10 @@ class MainWindow:
 
 
 def main(args):
+    if constants.HAS_SPLASH:
+        import pyi_splash
+        pyi_splash.close()
+
     main_window = MainWindow(args)
     main_window.run()
 

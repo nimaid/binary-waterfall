@@ -27,7 +27,8 @@ class BinaryWaterfall:
                  volume=constants.DEFAULTS["volume"],
                  flip_v=constants.DEFAULTS["flip_v"],
                  flip_h=constants.DEFAULTS["flip_h"],
-                 alignment=constants.DEFAULTS["alignment"]
+                 alignment=constants.DEFAULTS["alignment"],
+                 playhead_visible=True
                  ):
         # Initialize class variables
         self.audio_length_ms = None
@@ -48,7 +49,8 @@ class BinaryWaterfall:
         self.audio_filename = None
         self.flip_v = None
         self.flip_h = None
-        self.alignment = alignment
+        self.alignment = None
+        self.playhead_visible = None
 
         # Make the temp dir for the class instance
         self.temp_dir = tempfile.mkdtemp()
@@ -70,6 +72,8 @@ class BinaryWaterfall:
         )
 
         self.set_alignment(alignment=alignment)
+
+        self.set_playhead_visible(playhead_visible=playhead_visible)
 
         self.set_audio_settings(
             num_channels=num_channels,
@@ -278,6 +282,9 @@ class BinaryWaterfall:
     def set_alignment(self, alignment):
         self.alignment = alignment
 
+    def set_playhead_visible(self, playhead_visible):
+        self.playhead_visible = playhead_visible
+
     def set_audio_settings(self,
                            num_channels,
                            sample_bytes,
@@ -379,6 +386,14 @@ class BinaryWaterfall:
 
         return address
 
+    def get_playhead_row(self):
+        if self.alignment == constants.AlignmentCode.END:
+            return 0
+        elif self.alignment == constants.AlignmentCode.START:
+            return self.height - 1
+        else:
+            return round((self.height - 1) / 2)
+
     # A 1D Python byte string
     def get_frame_bytestring(self, ms):
         picture_bytes = bytes()
@@ -404,29 +419,29 @@ class BinaryWaterfall:
                 if len(picture_bytes) >= full_length:
                     break
 
-                # Fill one BGR byte value
+                # Fill one RGB byte value
                 this_byte = [b'\x00', b'\x00', b'\x00']
                 for c in self.color_format:
-                    if c == constants.ColorFmtCode.RED:
-                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
-                    elif c == constants.ColorFmtCode.RED_INV:
-                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
-                    elif c == constants.ColorFmtCode.GREEN:
-                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
-                    elif c == constants.ColorFmtCode.GREEN_INV:
-                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
-                    elif c == constants.ColorFmtCode.BLUE:
-                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
-                    elif c == constants.ColorFmtCode.BLUE_INV:
-                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
-                    elif c == constants.ColorFmtCode.WHITE:
-                        this_byte[0] = frame_bytes[idx:idx + 1]  # Red
-                        this_byte[1] = frame_bytes[idx:idx + 1]  # Green
-                        this_byte[2] = frame_bytes[idx:idx + 1]  # Blue
-                    elif c == constants.ColorFmtCode.WHITE_INV:
-                        this_byte[0] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Red inverted
-                        this_byte[1] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Green inverted
-                        this_byte[2] = helpers.invert_bytes(frame_bytes[idx:idx + 1])  # Blue inverted
+                    if c == constants.ColorFmtCode.RED:  # Red
+                        this_byte[0] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.RED_INV:  # Red inverted
+                        this_byte[0] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.GREEN:  # Green
+                        this_byte[1] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.GREEN_INV:  # Green inverted
+                        this_byte[1] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.BLUE:  # Blue
+                        this_byte[2] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.BLUE_INV:  # Blue inverted
+                        this_byte[2] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                    elif c == constants.ColorFmtCode.WHITE:  # RGB
+                        this_byte[0] = frame_bytes[idx:idx + 1]
+                        this_byte[1] = frame_bytes[idx:idx + 1]
+                        this_byte[2] = frame_bytes[idx:idx + 1]
+                    elif c == constants.ColorFmtCode.WHITE_INV:   # RGB inverted
+                        this_byte[0] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                        this_byte[1] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
+                        this_byte[2] = helpers.filter_rgb_bytes(frame_bytes[idx:idx + 1], helpers.invert)
 
                     idx += 1
 
@@ -440,6 +455,23 @@ class BinaryWaterfall:
         if picture_bytes_length < full_length:
             pad_length = full_length - picture_bytes_length
             picture_bytes += b"\x00" * pad_length
+
+        # Invert playhead row if needed
+        if self.playhead_visible:
+            playhead_row = self.get_playhead_row()
+            row_size = self.width * 3
+            playhead_start = playhead_row * row_size
+            playhead_end = playhead_start + row_size
+
+            playhead = picture_bytes[playhead_start:playhead_end]
+            playhead_contrast = helpers.filter_rgb_bytes(playhead, helpers.pick_shade_from_luminance)
+
+            playhead = helpers.filter_rgb_bytes(playhead, helpers.invert)
+            playhead = helpers.filter_rgb_bytes(playhead, helpers.desaturate)
+            playhead = helpers.average_rgb_bytes(playhead, playhead_contrast)
+
+
+            picture_bytes = picture_bytes[:playhead_start] + playhead + picture_bytes[playhead_end:]
 
         return picture_bytes
 
