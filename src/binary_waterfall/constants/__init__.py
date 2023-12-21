@@ -9,3 +9,4 @@ from .resources import RESOURCE_PATH, ICON_PATHS
 from .links import PROJECT_URL, DONATE_URL, REGISTER_URL
 from .colors import COLORS
 from .splash import HAS_SPLASH
+from .defaults import DEFAULTS

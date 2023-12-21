@@ -21,8 +21,8 @@ class Player:
                  display,
                  set_playbutton_function=None,
                  set_seekbar_function=None,
-                 max_dim=512,
-                 fps=120
+                 max_dim=constants.DEFAULTS["max_dim"],
+                 fps=constants.DEFAULTS["player_fps"]
                  ):
         self.image = None
         self.volume = None
@@ -295,9 +295,14 @@ class Renderer:
         if size is None:
             resized = source
         else:
+            if keep_aspect:
+                output_size = helpers.get_size_for_fit_frame(content_size=source.size, frame_size=size)["size"]
+            else:
+                output_size = size
+
             resized = helpers.fit_to_frame(
                 image=source,
-                frame_size=size,
+                frame_size=output_size,
                 scaling=Image.NEAREST,
                 transparent=False
             )
