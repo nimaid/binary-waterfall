@@ -6,23 +6,6 @@ from PyQt5.QtGui import QPalette, QColor
 
 from . import window, constants
 
-# TODO: Break out defaults into a separate file
-# TODO: Make export defaults based on the defaults file, not player size
-# TODO: Make window fully resizable
-# TODO: Add time markers to left and right of seek bar
-#  left = position
-#  right = total time
-#  no file = --:--
-#  format = (H)(H:)(M)M:SS
-# TODO: Allow specifying custom video (maybe audio) bitrates (see OBS settings for ideas)
-# TODO: Add reset buttons to settings dialogs
-# TODO: Add a "Reset All" to the settings menu entry
-# TODO: Make export settings persistent
-# TODO: Add a color codes formatting help window
-# TODO: When exporting video, set temp audio file location to actual temp folder if possible
-# TODO: Add progress dialogs whenever computing audio (open file, audio settings changed)
-# TODO: Add unit testing (https://realpython.com/python-testing/)
-# TODO: Add documentation (https://realpython.com/python-doctest/)
 
 # Main window class
 #   Handles variables related to the main window.

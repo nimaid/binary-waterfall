@@ -24,11 +24,11 @@ class BinaryWaterfall:
                  num_channels=constants.DEFAULTS["num_channels"],
                  sample_bytes=constants.DEFAULTS["sample_bytes"],
                  sample_rate=constants.DEFAULTS["sample_rate"],
-                 volume=constants.DEFAULTS["volume"],
+                 volume=constants.DEFAULTS["file_volume"],
                  flip_v=constants.DEFAULTS["flip_v"],
                  flip_h=constants.DEFAULTS["flip_h"],
                  alignment=constants.DEFAULTS["alignment"],
-                 playhead_visible=True
+                 playhead_visible=constants.DEFAULTS["playhead_visible"]
                  ):
         # Initialize class variables
         self.audio_length_ms = None
