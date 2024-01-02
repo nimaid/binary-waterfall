@@ -146,7 +146,6 @@ class MyQMainWindow(QMainWindow):
         self.transport_left_layout.addWidget(self.transport_back)
 
         self.restart_counterpad = QLabel()
-        self.restart_counterpad.setFixedSize(self.transport_restart.size())
 
         self.transport_right_layout = QHBoxLayout()
         self.transport_right_layout.setSpacing(self.padding_px)
@@ -247,6 +246,9 @@ class MyQMainWindow(QMainWindow):
 
         self.set_volume(self.current_volume)
 
+        # Set window to content size
+        self.resize_window()
+
     def keyPressEvent(self, event):
         key = event.key()
 
@@ -270,6 +272,25 @@ class MyQMainWindow(QMainWindow):
             self.player.frame_back()
         elif key == Qt.Key_Period:
             self.player.frame_forward()
+
+    def resize_window(self):
+        # First, make largest elements smaller
+        self.seek_bar.setFixedWidth(20)
+
+        # Next, we update counterpadding
+        self.update_counterpad_size()
+
+        # We need to wait a sec for the sizeHint to recompute
+        QTimer.singleShot(10, self.resize_window_helper)
+
+    def resize_window_helper(self):
+        size_hint = self.sizeHint()
+        self.setFixedSize(size_hint)
+
+        self.seek_bar.setFixedWidth(size_hint.width() - (self.padding_px * 2))
+
+    def update_counterpad_size(self):
+        self.restart_counterpad.setFixedSize(self.transport_restart.sizeHint())
 
     def set_play_button(self, play):
         if play:
@@ -464,9 +485,12 @@ class MyQMainWindow(QMainWindow):
             
             self.player.refresh_dims()
             self.player.update_image()
+            # We need to wait a moment for the size hint to be computed
+            QTimer.singleShot(10, self.resize_window)
 
     def player_settings_clicked(self):
         popup = dialogs.PlayerSettings(
+            max_view_dim=self.player.max_dim,
             fps=self.player.fps,
             parent=self
         )
@@ -476,6 +500,9 @@ class MyQMainWindow(QMainWindow):
         if result:
             player_settings = popup.get_player_settings()
             self.player.set_fps(fps=player_settings["fps"])
+            self.player.update_dims(max_dim=player_settings["max_view_dim"])
+            # We need to wait a moment for the size hint to be computed
+            QTimer.singleShot(10, self.resize_window)
 
     def export_image_clicked(self):
         if self.bw.audio_filename is None:

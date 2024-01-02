@@ -324,6 +324,7 @@ class VideoSettings(QDialog):
 #   User interface to set the player settings (for playback)
 class PlayerSettings(QDialog):
     def __init__(self,
+                 max_view_dim,
                  fps,
                  parent=None
                  ):
@@ -334,7 +335,19 @@ class PlayerSettings(QDialog):
         # Hide "?" button
         self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
 
+        self.max_view_dim = max_view_dim
         self.fps = fps
+
+        self.max_dim_label = QLabel("Max. Dimension:")
+        self.max_dim_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
+
+        self.max_dim_entry = QSpinBox()
+        self.max_dim_entry.setMinimum(256)
+        self.max_dim_entry.setMaximum(7680)
+        self.max_dim_entry.setSingleStep(64)
+        self.max_dim_entry.setSuffix("px")
+        self.max_dim_entry.setValue(self.max_view_dim)
+        self.max_dim_entry.valueChanged.connect(self.max_dim_entry_changed)
 
         self.fps_label = QLabel("Framerate:")
         self.fps_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -353,9 +366,11 @@ class PlayerSettings(QDialog):
 
         self.main_layout = QGridLayout()
 
-        self.main_layout.addWidget(self.fps_label, 0, 0)
-        self.main_layout.addWidget(self.fps_entry, 0, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 1, 0, 1, 2)
+        self.main_layout.addWidget(self.max_dim_label, 0, 0)
+        self.main_layout.addWidget(self.max_dim_entry, 0, 1)
+        self.main_layout.addWidget(self.fps_label, 1, 0)
+        self.main_layout.addWidget(self.fps_entry, 1, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
 
         self.setLayout(self.main_layout)
 
@@ -363,9 +378,13 @@ class PlayerSettings(QDialog):
 
     def get_player_settings(self):
         result = dict()
+        result["max_view_dim"] = self.max_view_dim
         result["fps"] = self.fps
 
         return result
+
+    def max_dim_entry_changed(self, value):
+        self.max_view_dim = value
 
     def fps_entry_changed(self, value):
         self.fps = value
