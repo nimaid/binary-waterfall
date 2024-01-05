@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "binary-waterfall"
+version = "3.6.4"
+readme = "README_pypi.md"
+description = "A Raw Data Media Player"
+license= {file = "LICENSE"}
+authors = [
+    {name = "Ella Jameson", email = "ellagjameson@gmail.com"}
+]
+classifiers = [
+    "Topic :: Multimedia",
+    "Topic :: Multimedia :: Graphics",
+    "Topic :: Multimedia :: Graphics :: Graphics Conversion",
+    "Topic :: Multimedia :: Graphics :: Viewers",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Sound/Audio :: Conversion",
+    "Topic :: Multimedia :: Sound/Audio :: Players",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Multimedia :: Video :: Conversion",
+    "Topic :: Multimedia :: Video :: Display"
+]
+dependencies = [
+    "pyyaml",
+    "Pillow",
+    "PyQt5",
+    "pydub",
+    "moviepy",
+    "proglog"
+]
+
+[project.urls]
+homepage = "https://github.com/nimaid/binary-waterfall"
+repository = "https://github.com/nimaid/binary-waterfall"
+Issues = "https://github.com/nimaid/binary-waterfall/issues"
+
+[project.scripts]
+binary-waterfall = "binary_waterfall:run"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]

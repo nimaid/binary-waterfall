@@ -1,19 +1,25 @@
-# <img src="src/binary_waterfall/resources/icon.png" height="20px" alt="Binary Waterfall"/> Binary Waterfall
-### A Raw Data Media Player
-[![Python Version](https://img.shields.io/pypi/pyversions/binary-waterfall?logo=python&logoColor=white)](https://pypi.org/project/binary-waterfall/)
-[![PyPI Version](https://img.shields.io/pypi/v/binary-waterfall?logo=PyPI&logoColor=white)](https://pypi.org/project/binary-waterfall/)
-
-[![GitHub Build](https://img.shields.io/github/actions/workflow/status/nimaid/binary-waterfall/master.yml?logo=GitHub)](https://github.com/nimaid/binary-waterfall/actions/workflows/master.yml)
-[![Codecov Coverage](https://img.shields.io/codecov/c/github/nimaid/binary-waterfall?logo=codecov&logoColor=white)](https://codecov.io/gh/nimaid/binary-waterfall)
-Codacy Badge
-
-[![License](https://img.shields.io/pypi/l/binary-waterfall?logo=opensourceinitiative&logoColor=white)](https://github.com/nimaid/binary-waterfall/raw/main/LICENSE)
-[![PyPI Downloads](https://img.shields.io/pypi/dm/binary-waterfall.svg?label=pypi%20downloads&logo=PyPI&logoColor=white)](https://pypi.org/project/binary-waterfall/)
-[![Donate](https://img.shields.io/badge/PayPal-donate?logo=paypal&logoColor=white&label=donate&color=purple)](https://paypal.me/EllaJameson)
-
-<p align="center"><img src="docs/example.png" width="400px" alt="Running the program on mspaint.exe"/></p>
+<div align="center">
+	<br>
+	<br>
+  <p><img src="https://raw.githubusercontent.com/nimaid/binary-waterfall/main/src/binary_waterfall/resources/icon.png" width="150px" alt="Binary Waterfall"/></p>
+  <p><b>Binary Waterfall</b></p>
+  A Raw Data Media Player
+	<br>
+    <a href="https://pypi.org/project/binary-waterfall/"><img src="https://img.shields.io/pypi/pyversions/binary-waterfall?logo=python&logoColor=white" alt="Python Version" /></a>
+    <a href="https://pypi.org/project/binary-waterfall/"><img src="https://img.shields.io/pypi/v/binary-waterfall?logo=PyPI&logoColor=white" alt="PyPI Version" /></a>
+    <br>
+    <a href="https://github.com/nimaid/binary-waterfall/actions/workflows/master.yml"><img src="https://img.shields.io/github/actions/workflow/status/nimaid/binary-waterfall/master.yml?logo=GitHub" alt="GitHub Build" /></a>
+    <a href="https://codecov.io/gh/nimaid/binary-waterfall"><img src="https://img.shields.io/codecov/c/github/nimaid/binary-waterfall?logo=codecov&logoColor=white" alt="Codecov Coverage" /></a>
+    Codacy Badge
+    <br>
+    <a href="https://github.com/nimaid/binary-waterfall/raw/main/LICENSE"><img src="https://img.shields.io/pypi/l/binary-waterfall?logo=opensourceinitiative&logoColor=white" alt="License" /></a>
+    <a href="https://pypi.org/project/binary-waterfall/"><img src="https://img.shields.io/pypi/dm/binary-waterfall.svg?label=pypi%20downloads&logo=PyPI&logoColor=white" alt="PyPI Downloads" /></a>
+    <a href="https://paypal.me/EllaJameson"><img src="https://img.shields.io/badge/PayPal-donate?logo=paypal&logoColor=white&label=donate&color=purple" alt="Donate" /></a>
+</div>
 
 <p align="center"><a href="https://www.youtube.com/watch?v=NFe0aGO9-TE">Inspired by this video.</a></p>
+
+<p align="center"><img src="docs/example.png" width="400px" alt="Running the program on mspaint.exe"/></p>
 
 ## Downloads
 <table align="center" border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse !important;">
