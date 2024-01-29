@@ -9,7 +9,7 @@
 <table align="center" border="0" cellspacing="0" cellpadding="0" style="border-collapse:collapse !important;">
     <tr style="border: none !important;">
         <td align="center" style="border: none !important;">
-            <a href="https://github.com/nimaid/binary-waterfall/releases/latest/download/binary-waterfall.exe">
+            <a href="https://nimaid.itch.io/binary-waterfall">
                 <img src="docs/windows.png" width="150px" alt="Click here to download the program for Windows!"/>
                 <br />
                 <b>Windows</b>
@@ -42,17 +42,6 @@ https://github.com/nimaid/binary-waterfall
 - **Volume Up:** `Up Arrow`
 - **Volume Down:** `Down Arrow`
 - **Mute / Unmute:** `M`
-
-## Licensing Info
-All features of this program are free, with one exception:
-
-When using the pre-built `.exe` file from [the releases page](https://github.com/nimaid/binary-waterfall/releases), a watermark will be added to exported videos. This watermark is ONLY added when exporting video directly, and it will not be present on exported image stills or image sequences.
-
-To use the `.exe` version of the program to export videos without a watermark, you need to buy a serial key for $5 USD. This serial key can be used to register infinite copies of the program, on an infinite number of computers, with no expiration date. You can activate the program by going to `Help > Registration... > Register...` and entering your serial key.
-
-[Buy a serial key here!](https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386)
-
-If you run the `.py` file directly, you will be able to export videos without a watermark, even if the program is unregistered. You can still register the software with a valid serial key when running the `.py` version, but it will have no effect as all features will already be unlocked.
 
 ## Showcase Video
 [<img src="https://i.ytimg.com/vi/gZRWbv_aob0/maxresdefault.jpg" width="300px">](https://www.youtube.com/watch?v=gZRWbv_aob0 "Microsoft Paint Remix")

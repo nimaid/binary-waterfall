@@ -7,7 +7,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QIcon
 
-from . import constants, licensing
+from . import constants
 
 
 # Audio settings input window
@@ -990,178 +990,6 @@ class HotkeysInfo(QDialog):
         self.setFixedSize(self.sizeHint())
 
 
-# Registration info dialog
-#   Displays registration info and a button to register
-class RegistrationInfo(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setWindowTitle("Registration Info")
-        self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
-
-        # Hide "?" button
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
-
-        self.status_label = QLabel("Status:")
-        self.status_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-
-        self.status_value = QLabel()
-        self.status_value.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self.set_registered_value()
-
-        self.serial_label = QLabel("Serial Number:")
-        self.serial_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-
-        self.serial_value = QLabel()
-        self.serial_value.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft)
-        self.set_serial_value()
-
-        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Close | QDialogButtonBox.Help)
-        self.confirm_buttons.button(QDialogButtonBox.Help).setText("Register...")
-        self.confirm_buttons.helpRequested.connect(self.register_clicked)
-        self.confirm_buttons.rejected.connect(self.reject)
-
-        self.main_layout = QGridLayout()
-
-        self.main_layout.addWidget(self.status_label, 0, 0)
-        self.main_layout.addWidget(self.status_value, 0, 1)
-        self.main_layout.addWidget(self.serial_label, 1, 0)
-        self.main_layout.addWidget(self.serial_value, 1, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
-
-        self.setLayout(self.main_layout)
-
-        self.resize_window()
-
-    def resize_window(self):
-        self.setFixedSize(self.sizeHint())
-
-    def set_registered_value(self):
-        if licensing.IS_REGISTERED:
-            reg_status = "Activated!"
-        else:
-            reg_status = "Unregistered"
-
-        self.status_value.setText(reg_status)
-
-    def set_serial_value(self):
-        if licensing.SERIAL_KEY is None:
-            self.serial_value.setText("None")
-        else:
-            self.serial_value.setText(licensing.SERIAL_KEY)
-
-    def register_clicked(self):
-        if licensing.SERIAL_KEY is None:
-            popup = RegistrationEntry(parent=self)
-
-            result = popup.exec()
-
-            if result:
-                settings = popup.get_settings()
-                if settings["key_is_valid"]:
-                    licensing.IS_REGISTERED = True
-                    licensing.SERIAL_KEY = settings["serial"]
-
-                    # Register product
-                    os.makedirs(constants.DATA_DIR, exist_ok=True)
-                    with open(licensing.KEY_FILE, "w") as f:
-                        f.write(licensing.SERIAL_KEY)
-
-                    self.set_registered_value()
-                    self.set_serial_value()
-                    self.resize_window()
-
-                    choice = QMessageBox.information(
-                        self,
-                        "Registration Complete",
-                        f"Thank you for registering {constants.TITLE}!",
-                        QMessageBox.Ok
-                    )
-                else:
-                    choice = QMessageBox.critical(
-                        self,
-                        "Serial Not Valid",
-                        "You have entered an invalid serial key.",
-                        QMessageBox.Ok
-                    )
-        else:
-            choice = QMessageBox.warning(
-                self,
-                "Already Registered",
-                "You have already registered this product!",
-                QMessageBox.Ok
-            )
-
-
-# Registration entry dialog
-#   Prompts the user to enter a serial number
-#   Also gives the user a button to buy a serial key (open link)
-class RegistrationEntry(QDialog):
-    def __init__(self, parent=None):
-        super().__init__(parent=parent)
-        self.setWindowTitle("Registration Info")
-        self.setWindowIcon(QIcon(constants.ICON_PATHS["program"]))
-
-        # Hide "?" button
-        self.setWindowFlags(self.windowFlags() ^ Qt.WindowContextHelpButtonHint)
-
-        self.serial = ""
-        self.key_is_valid = False
-        self.validator = licensing.KeyValidate(constants.TITLE)
-
-        self.info_label = QLabel(f"You can buy a key at the following link:\n{constants.DONATE_URL}")
-        self.info_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
-
-        self.serial_label = QLabel("Serial:")
-        self.serial_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
-
-        self.serial_entry = QLineEdit()
-        self.serial_entry.setMaxLength((5 * 4) + 3)
-        self.serial_entry.setText(self.serial)
-        self.serial_entry.editingFinished.connect(self.serial_entry_changed)
-
-        self.buy_button = QPushButton("Buy...")
-        self.buy_button.clicked.connect(self.buy_button_clicked)
-
-        self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Ok)
-        self.confirm_buttons.button(QDialogButtonBox.Ok).setText("Register")
-        self.confirm_buttons.addButton(self.buy_button, QDialogButtonBox.ResetRole)
-        self.confirm_buttons.accepted.connect(self.accept)
-        self.confirm_buttons.rejected.connect(self.reject)
-
-        self.main_layout = QGridLayout()
-
-        self.main_layout.addWidget(self.info_label, 0, 0, 1, 2)
-        self.main_layout.addWidget(self.serial_label, 1, 0)
-        self.main_layout.addWidget(self.serial_entry, 1, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 2, 0, 1, 2)
-
-        self.setLayout(self.main_layout)
-
-        self.resize_window()
-
-    def resize_window(self):
-        self.setFixedSize(self.sizeHint())
-
-    def get_settings(self):
-        result = dict()
-        result["serial"] = self.serial
-        result["key_is_valid"] = self.key_is_valid
-
-        return result
-
-    def serial_entry_changed(self):
-        self.serial = self.serial_entry.text().strip()
-
-        if self.validator.is_key_valid(self.serial):
-            self.key_is_valid = True
-        else:
-            self.key_is_valid = False
-
-    @staticmethod
-    def buy_button_clicked():
-        webbrowser.open(constants.REGISTER_URL)
-
-
 # About dialog
 #   Gives info about the program
 class About(QDialog):
@@ -1185,7 +1013,7 @@ class About(QDialog):
             f"{constants.TITLE} v{constants.VERSION}\nby {constants.COPYRIGHT}\n© Copyright 2023\n\n"
             f"{constants.DESCRIPTION}\n\n"
             f"Project Home Page:\n{constants.PROJECT_URL}\n\n"
-            f"Patreon:\n{constants.DONATE_URL}")
+            f"Donate:\n{constants.DONATE_URL}")
         self.about_text.setAlignment(Qt.AlignmentFlag.AlignCenter)
 
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok)

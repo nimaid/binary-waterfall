@@ -1,3 +1,2 @@
-DONATE_URL = "https://www.patreon.com/nimaid"
-REGISTER_URL = "https://www.patreon.com/nimaid/shop/binary-waterfall-pro-serial-key-license-69386"
+DONATE_URL = "https://paypal.me/EllaJameson"
 PROJECT_URL = "https://github.com/nimaid/binary-waterfall"

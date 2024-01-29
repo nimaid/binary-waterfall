@@ -270,14 +270,12 @@ class Renderer:
                  binary_waterfall,
                  ):
         self.bw = binary_waterfall
-        self.watermarker = generators.Watermarker()
 
     def export_frame(self,
                      ms,
                      filename,
                      size=None,
-                     keep_aspect=False,
-                     watermark=False
+                     keep_aspect=False
                      ):
         helpers.make_file_path(filename)
 
@@ -306,10 +304,6 @@ class Renderer:
                 scaling=Image.NEAREST,
                 transparent=False
             )
-
-        # Watermark
-        if watermark:
-            resized = self.watermarker.mark(resized)
 
         final = resized.convert("RGB")
 
@@ -343,7 +337,6 @@ class Renderer:
                         size=None,
                         keep_aspect=False,
                         image_format=None,
-                        watermark=False,
                         progress_dialog=None
                         ):
         helpers.make_file_path(directory)
@@ -370,8 +363,7 @@ class Renderer:
                 ms=frame_ms,
                 filename=frame_filename,
                 size=size,
-                keep_aspect=keep_aspect,
-                watermark=watermark
+                keep_aspect=keep_aspect
             )
 
         if progress_dialog is not None:
@@ -382,7 +374,6 @@ class Renderer:
                      fps,
                      size=None,
                      keep_aspect=False,
-                     watermark=False,
                      progress_dialog=None,
                      codec=None,
                      audio_codec=None,
@@ -411,7 +402,6 @@ class Renderer:
             size=size,
             keep_aspect=keep_aspect,
             image_format=constants.ImageFormatCode.PNG,
-            watermark=watermark,
             progress_dialog=progress_dialog
         )
 

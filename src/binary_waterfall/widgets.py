@@ -3,7 +3,6 @@ from PyQt5.QtCore import QSize
 from PyQt5.QtWidgets import QAbstractButton, QSlider, QStyle
 from PyQt5.QtGui import QPainter
 
-from . import constants
 
 # Custom image-based button
 #   Allows for very fancy custom buttons

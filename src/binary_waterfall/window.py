@@ -6,7 +6,7 @@ from PyQt5.QtWidgets import (
 )
 from PyQt5.QtGui import QPixmap, QIcon
 
-from . import constants, generators, outputs, widgets, dialogs, licensing
+from . import constants, generators, outputs, widgets, dialogs
 
 
 # My QMainWindow class
@@ -235,10 +235,6 @@ class MyQMainWindow(QMainWindow):
         self.help_menu_hotkeys = QAction("Hotkeys...", self)
         self.help_menu_hotkeys.triggered.connect(self.hotkeys_clicked)
         self.help_menu.addAction(self.help_menu_hotkeys)
-
-        self.help_menu_registration = QAction("Registration...", self)
-        self.help_menu_registration.triggered.connect(self.registration_clicked)
-        self.help_menu.addAction(self.help_menu_registration)
 
         self.help_menu_about = QAction("About...", self)
         self.help_menu_about.triggered.connect(self.about_clicked)
@@ -682,17 +678,6 @@ class MyQMainWindow(QMainWindow):
             )
             return
 
-        if not licensing.IS_REGISTERED:
-            choice = QMessageBox.warning(
-                self,
-                "Warning",
-                f"{constants.TITLE} is currently unregistered,\na watermark will be added to the final video.\n\n"
-                f"Please see the Help menu for info on how to register.\n\nProceed anyway?",
-                QMessageBox.Cancel | QMessageBox.Ok
-            )
-            if choice == QMessageBox.Cancel:
-                return
-
         popup = dialogs.ExportVideo(
             width=self.player.width,
             height=self.player.height,
@@ -738,18 +723,12 @@ class MyQMainWindow(QMainWindow):
                     progress_popup.setWindowTitle("Exporting Video...")
                     progress_popup.setFixedSize(300, 100)
 
-                    if licensing.IS_REGISTERED:
-                        add_watermark = False
-                    else:
-                        add_watermark = True
-
                     try:
                         self.renderer.export_video(
                             filename=filename,
                             size=(settings["width"], settings["height"]),
                             fps=settings["fps"],
                             keep_aspect=settings["keep_aspect"],
-                            watermark=add_watermark,
                             progress_dialog=progress_popup,
                             codec=encoder_settings["codec"].value,
                             audio_codec=encoder_settings["audio_codec"].value,
@@ -783,11 +762,6 @@ class MyQMainWindow(QMainWindow):
 
     def hotkeys_clicked(self):
         popup = dialogs.HotkeysInfo(parent=self)
-
-        result = popup.exec()
-
-    def registration_clicked(self):
-        popup = dialogs.RegistrationInfo(parent=self)
 
         result = popup.exec()
 
