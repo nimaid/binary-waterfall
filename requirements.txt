@@ -1,0 +1,2 @@
+# All the dependencies are now tracked in the pyproject.toml, this file is provided for legacy reasons.
+-e .

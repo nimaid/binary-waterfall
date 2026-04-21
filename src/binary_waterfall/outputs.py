@@ -4,7 +4,8 @@ import math
 import time
 import tempfile
 import pydub
-from moviepy.editor import ImageSequenceClip, AudioFileClip
+# moviepy 2.x exposes core classes at package root; import directly for compatibility
+from moviepy import ImageSequenceClip, AudioFileClip
 from PIL import Image
 from PyQt5.QtCore import QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
@@ -294,7 +295,8 @@ class Renderer:
             resized = source
         else:
             if keep_aspect:
-                output_size = helpers.get_size_for_fit_frame(content_size=source.size, frame_size=size)["size"]
+                output_size = helpers.get_size_for_fit_frame(
+                    content_size=source.size, frame_size=size)["size"]
             else:
                 output_size = size
 
@@ -320,10 +322,12 @@ class Renderer:
             shutil.copy(self.bw.audio_filename, filename)
         elif filename_ext == constants.AudioFormatCode.MP3.value:
             # Use Pydub to export MP3
-            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="mp3")
+            pydub.AudioSegment.from_wav(
+                self.bw.audio_filename).export(filename, format="mp3")
         elif filename_ext == constants.AudioFormatCode.FLAC.value:
             # Use Pydub to export FLAC
-            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="flac")
+            pydub.AudioSegment.from_wav(
+                self.bw.audio_filename).export(filename, format="flac")
 
     def get_frame_count(self, fps):
         audio_duration = self.bw.get_audio_length() / 1000
@@ -350,7 +354,8 @@ class Renderer:
 
         for frame in range(frame_count):
             frame_number = str(frame).rjust(frame_number_digits, "0")
-            frame_filename = os.path.join(directory, f"{frame_number}{image_format.value}")
+            frame_filename = os.path.join(
+                directory, f"{frame_number}{image_format.value}")
             frame_ms = round((frame / fps) * 1000)
 
             if progress_dialog is not None:
@@ -409,14 +414,16 @@ class Renderer:
             if progress_dialog.wasCanceled():
                 shutil.rmtree(temp_dir)
                 return
-            progress_dialog.setLabelText("Splicing final video file... (program may lag)")
+            progress_dialog.setLabelText(
+                "Splicing final video file... (program may lag)")
 
         # Export audio
         self.export_audio(audio_file)
 
         # Prepare the custom logger to update the progress box
         if progress_dialog is not None:
-            custom_logger = helpers.QtBarLoggerMoviepy(progress_dialog=progress_dialog)
+            custom_logger = helpers.QtBarLoggerMoviepy(
+                progress_dialog=progress_dialog)
         else:
             custom_logger = "bar"
 

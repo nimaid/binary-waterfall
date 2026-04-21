@@ -7,10 +7,8 @@ name = "binary-waterfall"
 version = "3.7.0"
 readme = "README_pypi.md"
 description = "A Raw Data Media Player"
-license= {file = "LICENSE"}
-authors = [
-    {name = "Ella Jameson", email = "ellagjameson@gmail.com"}
-]
+license = { file = "LICENSE" }
+authors = [{ name = "Ella Jameson", email = "ellagjameson@gmail.com" }]
 classifiers = [
     "Topic :: Multimedia",
     "Topic :: Multimedia :: Graphics",
@@ -21,15 +19,15 @@ classifiers = [
     "Topic :: Multimedia :: Sound/Audio :: Players",
     "Topic :: Multimedia :: Video",
     "Topic :: Multimedia :: Video :: Conversion",
-    "Topic :: Multimedia :: Video :: Display"
+    "Topic :: Multimedia :: Video :: Display",
 ]
 dependencies = [
-    "pyyaml",
-    "Pillow",
-    "PyQt5",
-    "pydub",
-    "moviepy",
-    "proglog"
+    "pyyaml==6.0.3",
+    "Pillow==11.3.0",
+    "PyQt5==5.15.11",
+    "pydub==0.25.1",
+    "moviepy==2.2.1",
+    "proglog==0.1.12",
 ]
 
 [project.urls]
