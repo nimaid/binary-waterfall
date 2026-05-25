@@ -28,6 +28,7 @@ dependencies = [
     "Pillow",
     "PyQt5",
     "pydub",
+    "audioop-lts; python_version >= '3.13'",
     "moviepy",
     "proglog"
 ]
