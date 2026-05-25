@@ -4,7 +4,12 @@ import math
 import time
 import tempfile
 import pydub
-from moviepy.editor import ImageSequenceClip, AudioFileClip
+try:
+    from moviepy.editor import AudioFileClip, ImageSequenceClip
+except ModuleNotFoundError as exc:
+    if exc.name != "moviepy.editor":
+        raise
+    from moviepy import AudioFileClip, ImageSequenceClip
 from PIL import Image
 from PyQt5.QtCore import QUrl
 from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
