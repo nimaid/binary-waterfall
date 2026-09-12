@@ -1,16 +1,16 @@
 import os
 import shutil
 import math
-import time
+import threading
 import tempfile
 import pydub
 from moviepy.editor import ImageSequenceClip, AudioFileClip
 from PIL import Image
-from PyQt5.QtCore import QUrl
-from PyQt5.QtMultimedia import QMediaPlayer, QMediaContent
+from PyQt5.QtCore import QTimer
 from PyQt5.QtGui import QImage, QPixmap
+import numpy as np
 
-from . import generators, helpers, constants
+from . import generators, helpers, constants, buffer_player
 
 
 # Image playback class
@@ -45,27 +45,27 @@ class Player:
         # Initialize player as black
         self.clear_image()
 
-        # Make the QMediaPlayer for audio playback
-        self.audio = QMediaPlayer()
-        # self.audio_output = QAudioOutput()
-        # self.audio.setAudioOutput(self.audio_output)
+        self._audio_index = 0
+        self._audio_lock = threading.Lock()
+        self._playback_finished = False
+
+        self.audio = buffer_player.BufferPlayer(
+            self.obtain_data,
+            samplerate=self.bw.sample_rate,
+            channels=self.bw.num_channels,
+        )
 
         # Set audio playback settings
         self.set_volume(100)
 
-        # Set set_image_timestamp to run when the audio position is changed
-        self.audio.positionChanged.connect(self.set_image_timestamp)
-        self.audio.positionChanged.connect(self.set_seekbar_if_given)
-        # Also, make sure it's updating more frequently (default is too slow when playing)
         self.fps_min = 1
         self.fps_max = 120
+        self._ui_timer = QTimer(self.display)
+        self._ui_timer.timeout.connect(self._on_playback_tick)
         self.set_fps(fps)
 
-        # Setup change state handler
-        self.audio.stateChanged.connect(self.state_changed_handler)
-
     def __del__(self):
-        self.running = False
+        self.audio.close()
 
     def set_dims(self, max_dim):
         self.max_dim = max_dim
@@ -81,7 +81,7 @@ class Player:
     def set_fps(self, fps):
         self.fps = min(max(fps, self.fps_min), self.fps_max)
         self.frame_ms = math.floor(1000 / self.fps)
-        self.audio.setNotifyInterval(self.frame_ms)
+        self._ui_timer.setInterval(self.frame_ms)
 
     def clear_image(self):
         background_image = Image.new(
@@ -109,7 +109,7 @@ class Player:
         self.set_dims(max_dim=max_dim)
 
         # Update image
-        if self.bw.filename is None:
+        if self.bw.file is None:
             self.clear_image()
         else:
             self.set_image(self.image)
@@ -134,26 +134,35 @@ class Player:
         self.display.setPixmap(qpixmap)
 
     def get_position(self):
-        return self.audio.position()
+        with self._audio_lock:
+            frame = self._audio_index
+        if self.bw.sample_rate <= 0:
+            return 0
+        return int(frame * 1000 / self.bw.sample_rate)
 
     def get_duration(self):
-        return self.audio.duration()
+        return self.bw.get_audio_length_ms()
 
     def set_position(self, ms):
         duration = self.get_duration()
 
-        # Validate it's in range, and if it's not, clip it
         ms = math.ceil(ms)
         if ms < 0:
             ms = 0
         if ms > duration:
             ms = duration
 
-        if self.bw.filename is not None:
-            self.audio.setPosition(ms)
+        with self._audio_lock:
+            self._audio_index = self._ms_to_frame(ms)
+            self._playback_finished = (
+                duration > 0 and self._audio_index >= self._frame_count()
+            )
 
-        # If the file is at the end, pause
-        if ms == duration:
+        if self.bw.file is not None:
+            self.set_image_timestamp(ms)
+            self.set_seekbar_if_given(ms)
+
+        if duration > 0 and ms >= duration:
             self.pause()
 
     def set_playbutton_if_given(self, play):
@@ -164,19 +173,37 @@ class Player:
         if self.set_seekbar_function is not None:
             self.set_seekbar_function(ms)
 
-    def state_changed_handler(self, media_state):
-        if media_state == self.audio.PlayingState:
-            self.set_playbutton_if_given(play=False)
-        elif media_state == self.audio.PausedState:
-            self.set_playbutton_if_given(play=True)
-        elif media_state == self.audio.StoppedState:
-            self.set_playbutton_if_given(play=True)
+    def _on_playback_tick(self):
+        if self._playback_finished:
+            duration = self.get_duration()
+            self.pause()
+            self.set_position(duration)
+            return
+
+        ms = self.get_position()
+        self.set_image_timestamp(ms)
+        self.set_seekbar_if_given(ms)
 
     def play(self):
-        self.audio.play()
+        if self.bw.file is None:
+            return
+
+        duration = self.get_duration()
+        if duration > 0 and self.get_position() >= duration:
+            self.set_position(0)
+
+        with self._audio_lock:
+            self._playback_finished = False
+
+        self.audio.start()
+        self._ui_timer.start()
+        self.set_playbutton_if_given(play=False)
+        self._on_playback_tick()
 
     def pause(self):
-        self.audio.pause()
+        self._ui_timer.stop()
+        self.audio.stop()
+        self.set_playbutton_if_given(play=True)
 
     def forward(self, ms=5000):
         new_pos = self.get_position() + ms
@@ -195,49 +222,49 @@ class Player:
     def restart(self):
         self.set_position(0)
 
-    def set_audio_file(self, filename):
-        if filename is None:
-            url = QUrl(None)
-        else:
-            url = QUrl.fromLocalFile(self.bw.audio_filename)
-        media = QMediaContent(url)
-        self.audio.setMedia(media)
+    def _sync_audio_stream(self):
+        self.audio.update_stream_safe(
+            sample_rate=self.bw.sample_rate,
+            num_channels=self.bw.num_channels,
+        )
 
     def open_file(self, filename):
         self.close_file()
 
         self.bw.change_filename(filename)
+        self._sync_audio_stream()
 
-        self.set_audio_file(self.bw.audio_filename)
+        with self._audio_lock:
+            self._audio_index = 0
+            self._playback_finished = False
 
         self.set_image_timestamp(self.get_position())
+        self.set_seekbar_if_given(self.get_position())
+        self.set_playbutton_if_given(play=True)
 
     def close_file(self):
         self.pause()
 
-        self.audio.stop()
-        time.sleep(0.001)  # Without a short delay here, we crash
-        self.set_audio_file(None)
+        with self._audio_lock:
+            self._audio_index = 0
+            self._playback_finished = False
 
         self.bw.change_filename(None)
 
-        self.restart()
+        self.set_seekbar_if_given(0)
         self.clear_image()
 
     def file_is_open(self):
-        if self.bw.filename is None:
+        if self.bw.file is None:
             return False
         else:
             return True
 
     def is_playing(self):
-        if self.audio.state() == self.audio.PlayingState:
-            return True
-        else:
-            return False
+        return self.audio.is_playing
 
     def set_image_timestamp(self, ms):
-        if self.bw.filename is None:
+        if self.bw.file is None:
             self.clear_image()
         else:
             self.set_image(self.bw.get_frame_qimage(ms))
@@ -252,15 +279,76 @@ class Player:
                            sample_rate,
                            volume
                            ):
+        was_playing = self.is_playing()
+        ms = self.get_position()
+
+        self.pause()
+
         self.bw.set_audio_settings(
             num_channels=num_channels,
             sample_bytes=sample_bytes,
             sample_rate=sample_rate,
             volume=volume
         )
-        # Re-open newly computed file
-        self.set_audio_file(None)
-        self.set_audio_file(self.bw.audio_filename)
+        self._sync_audio_stream()
+        self.set_position(ms)
+
+        if was_playing:
+            self.play()
+
+    def obtain_data(self, n_frames):
+        sample_bytes = self.bw.sample_bytes
+        num_channels = self.bw.num_channels
+        bytes_per_frame = sample_bytes * num_channels
+
+        with self._audio_lock:
+            if self.bw.file is None or bytes_per_frame <= 0:
+                self._playback_finished = True
+                return None
+
+            byte_start = self._audio_index * bytes_per_frame
+            if byte_start >= self.bw.get_total_bytes():
+                self._playback_finished = True
+                return None
+
+            chunk_bytes = self.bw.get_file_bytes(byte_start, n_frames * bytes_per_frame)
+            frames_read = len(chunk_bytes) // bytes_per_frame
+            self._audio_index += frames_read
+            if frames_read < n_frames:
+                self._playback_finished = True
+
+        chunk = buffer_player.pcm_bytes_to_float32(
+            chunk_bytes,
+            sample_bytes=sample_bytes,
+            num_channels=num_channels,
+        )
+
+        if self.bw.volume != 100:
+            chunk = chunk * np.float32(self.bw.volume / 100.0)
+            np.clip(chunk, -1.0, 1.0, out=chunk)
+
+        if frames_read < n_frames:
+            pad = np.zeros((n_frames - frames_read, num_channels), dtype=np.float32)
+            if frames_read == 0:
+                chunk = pad
+            else:
+                chunk = np.vstack([chunk, pad])
+
+        return chunk
+
+    def _frame_count(self):
+        if self.bw.file is None:
+            return 0
+        bytes_per_frame = self.bw.sample_bytes * self.bw.num_channels
+        if bytes_per_frame <= 0:
+            return 0
+        return self.bw.get_total_bytes() // bytes_per_frame
+
+    def _ms_to_frame(self, ms):
+        if self.bw.sample_rate <= 0:
+            return 0
+        frame = int(round((ms / 1000) * self.bw.sample_rate))
+        return min(max(frame, 0), self._frame_count())
 
 
 # Renderer class
@@ -279,7 +367,7 @@ class Renderer:
                      ):
         helpers.make_file_path(filename)
 
-        if self.bw.audio_filename is None:
+        if self.bw.file is None:
             # If no file is loaded, make a black image
             source = Image.new(
                 mode="RGBA",
@@ -316,17 +404,22 @@ class Renderer:
         helpers.make_file_path(filename)
 
         if filename_ext == constants.AudioFormatCode.WAVE.value:
-            # Just copy the .wav file
-            shutil.copy(self.bw.audio_filename, filename)
-        elif filename_ext == constants.AudioFormatCode.MP3.value:
-            # Use Pydub to export MP3
-            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="mp3")
-        elif filename_ext == constants.AudioFormatCode.FLAC.value:
-            # Use Pydub to export FLAC
-            pydub.AudioSegment.from_wav(self.bw.audio_filename).export(filename, format="flac")
+            self.bw.write_wav(filename)
+            return
+
+        wav_file = filename + ".temp.wav"
+        try:
+            self.bw.write_wav(wav_file)
+            if filename_ext == constants.AudioFormatCode.MP3.value:
+                pydub.AudioSegment.from_wav(wav_file).export(filename, format="mp3")
+            elif filename_ext == constants.AudioFormatCode.FLAC.value:
+                pydub.AudioSegment.from_wav(wav_file).export(filename, format="flac")
+        finally:
+            if os.path.isfile(wav_file):
+                os.remove(wav_file)
 
     def get_frame_count(self, fps):
-        audio_duration = self.bw.get_audio_length() / 1000
+        audio_duration = self.bw.get_audio_length_ms() / 1000
         frame_count = round(audio_duration * fps)
 
         return frame_count

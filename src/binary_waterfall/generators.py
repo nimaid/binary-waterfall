@@ -1,7 +1,7 @@
 import os
 import shutil
-import tempfile
 import math
+import threading
 import wave
 from PIL import Image, ImageOps
 import pydub
@@ -31,7 +31,6 @@ class BinaryWaterfall:
                  playhead_visible=constants.DEFAULTS["playhead_visible"]
                  ):
         # Initialize class variables
-        self.audio_length_ms = None
         self.volume = None
         self.sample_rate = None
         self.sample_bytes = None
@@ -40,20 +39,16 @@ class BinaryWaterfall:
         self.color_bytes = None
         self.unused_color_bytes = None
         self.used_color_bytes = None
-        self.filename = None
         self.height = None
         self.width = None
         self.dim = None
-        self.total_bytes = None
         self.file = None
-        self.audio_filename = None
         self.flip_v = None
         self.flip_h = None
         self.alignment = None
         self.playhead_visible = None
 
-        # Make the temp dir for the class instance
-        self.temp_dir = tempfile.mkdtemp()
+        self._file_lock = threading.Lock()
 
         # Set the filename in
         self.set_filename(filename=filename)
@@ -89,38 +84,22 @@ class BinaryWaterfall:
         if self.file is not None:
             self.file.close()
             self.file = None
-        self.filename = None
 
     def set_filename(self, filename):
-        # Delete current audio file if it exists
-        self.delete_audio()
-
         if filename is None:
             # Reset all vars and close the file pointer
             self.close_file()
-            self.total_bytes = None
-            self.audio_filename = None
             return
 
         if not os.path.isfile(filename):
             raise FileNotFoundError(f"File not found: \"{filename}\"")
 
-        self.filename = os.path.realpath(filename)
+        if self.file is not None:
+            self.file.close()
+            self.file = None
 
         # Open file
-        self.file = open(self.filename, "rb")
-
-        # Get total number of bytes
-        self.file.seek(0, os.SEEK_END)
-        self.total_bytes = self.file.tell()
-        self.file.seek(0)
-
-        # Compute audio file name
-        file_path, file_main_name = os.path.split(self.filename)
-        self.audio_filename = os.path.join(
-            self.temp_dir,
-            file_main_name + os.path.extsep + "wav"
-        )
+        self.file = open(os.path.realpath(filename), "rb")
 
     def set_dims(self, width, height):
         if width < 4:
@@ -308,72 +287,75 @@ class BinaryWaterfall:
         self.sample_rate = sample_rate
         self.volume = volume
 
-        # Re-compute audio file
-        self.compute_audio()
+    def get_audio_length_ms(self):
+        total_bytes = self.get_total_bytes()
+        if self.file is None or not total_bytes or not self.sample_rate:
+            return 0
 
-    def delete_audio(self):
-        if self.audio_filename is None:
-            # Do nothing
-            return
-        try:
-            os.remove(self.audio_filename)
-        except FileNotFoundError:
-            pass
+        bytes_per_frame = self.sample_bytes * self.num_channels
+        frames = total_bytes // bytes_per_frame
+        return math.ceil(frames * 1000 / self.sample_rate)
 
-    def get_audio_length(self):
-        audio_length = pydub.AudioSegment.from_file(self.audio_filename).duration_seconds
-        audio_length_ms = math.ceil(audio_length * 1000)
+    def write_wav(self, filename):
+        if self.file is None:
+            raise ValueError("No file is open")
 
-        return audio_length_ms
+        helpers.make_file_path(filename)
 
-    def compute_audio(self):
-        if self.filename is None:
-            # If there is no file set, reset the vars
-            self.audio_length_ms = None
-            return
-
-        # Delete current file if it exists
-        self.delete_audio()
-
-        # Compute the new file (full volume)
-        with wave.open(self.audio_filename, "wb") as f:
+        with wave.open(filename, "wb") as f:
             f.setnchannels(self.num_channels)
             f.setsampwidth(self.sample_bytes)
             f.setframerate(self.sample_rate)
-            self.file.seek(0)
-            for chunk in iter(lambda: self.file.read(4096), b""):
-                f.writeframesraw(chunk)
+            with self._file_lock:
+                self.file.seek(0)
+                for chunk in iter(lambda: self.file.read(4096), b""):
+                    f.writeframesraw(chunk)
 
         if self.volume != 100:
-            # Reduce the audio volume
             factor = self.volume / 100
-            audio = pydub.AudioSegment.from_file(file=self.audio_filename, format="wav")
+            audio = pydub.AudioSegment.from_file(file=filename, format="wav")
             audio += pydub.audio_segment.ratio_to_db(factor)
-            temp_filename = self.audio_filename + ".temp"
+            temp_filename = filename + ".temp"
             audio.export(temp_filename, format="wav")
-            self.delete_audio()
-            shutil.move(temp_filename, self.audio_filename)
-
-        # Get audio length
-        self.audio_length_ms = self.get_audio_length()
+            try:
+                os.remove(filename)
+            except FileNotFoundError:
+                pass
+            shutil.move(temp_filename, filename)
 
     def change_filename(self, new_filename):
         self.set_filename(new_filename)
-        self.compute_audio()
+
+    def get_total_bytes(self):
+        if self.file is None:
+            return 0
+        return os.fstat(self.file.fileno()).st_size
 
     def get_file_bytes(self, address, count):
-        self.file.seek(address)
-        return self.file.read(count)
+        if self.file is None:
+            raise ValueError("No file is open")
+        if count <= 0:
+            raise ValueError("count must be positive")
+        if address < 0:
+            address = 0
+        with self._file_lock:
+            self.file.seek(address)
+            return self.file.read(count)
 
     def get_address(self, ms):
+        audio_length_ms = self.get_audio_length_ms()
+        total_bytes = self.get_total_bytes()
+        if not audio_length_ms or not total_bytes:
+            return 0
+
         # Get the size of a single "block" (a row, we only move in increments of 1 row)
         address_block_size = self.width * self.color_bytes
 
         # Get the total number of blocks (rows) in the file (round up because we don't want to clip a row off)
-        total_blocks = math.ceil(self.total_bytes / address_block_size)
+        total_blocks = math.ceil(total_bytes / address_block_size)
 
         # Get the block index of the current audio location
-        address_block_index = round(total_blocks * (ms / self.audio_length_ms))
+        address_block_index = round(total_blocks * (ms / audio_length_ms))
 
         # Adjust index for other alignments
         if self.alignment == constants.AlignmentCode.START:
@@ -502,11 +484,9 @@ class BinaryWaterfall:
             qimg = qimg.mirrored(horizontal=self.flip_h, vertical=self.flip_v)
 
         return qimg
-
+    
     def cleanup(self):
         self.close_file()
-        self.delete_audio()
-        shutil.rmtree(self.temp_dir)
 
 
 # Watermarker class
