@@ -333,11 +333,11 @@ class MyQMainWindow(QMainWindow):
             self.set_volume_icon(mute=False)
 
     def update_seekbar(self):
-        if self.bw.filename is None:
+        if self.bw.file is None:
             self.seek_bar.setEnabled(False)
             self.seek_bar.setValue(0)
         else:
-            self.seek_bar.setMaximum(self.bw.audio_length_ms)
+            self.seek_bar.setMaximum(self.bw.get_audio_length_ms())
             self.seek_bar.setEnabled(True)
 
     def seekbar_moved(self, position):
@@ -398,7 +398,7 @@ class MyQMainWindow(QMainWindow):
 
         if filename != "":
             self.player.open_file(filename=filename)
-
+            
             file_path, file_title = os.path.split(filename)
             file_savename, file_ext = os.path.splitext(file_title)
             self.set_file_savename(file_savename)
@@ -500,7 +500,7 @@ class MyQMainWindow(QMainWindow):
             QTimer.singleShot(10, self.resize_window)
 
     def export_image_clicked(self):
-        if self.bw.audio_filename is None:
+        if self.bw.file is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -555,7 +555,7 @@ class MyQMainWindow(QMainWindow):
                     )
 
     def export_audio_clicked(self):
-        if self.bw.audio_filename is None:
+        if self.bw.file is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -596,7 +596,7 @@ class MyQMainWindow(QMainWindow):
                 )
 
     def export_sequence_clicked(self):
-        if self.bw.audio_filename is None:
+        if self.bw.file is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",
@@ -669,7 +669,7 @@ class MyQMainWindow(QMainWindow):
                         )
 
     def export_video_clicked(self):
-        if self.bw.audio_filename is None:
+        if self.bw.file is None:
             choice = QMessageBox.critical(
                 self,
                 "Error",

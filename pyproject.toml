@@ -29,7 +29,9 @@ dependencies = [
     "PyQt5",
     "pydub",
     "moviepy",
-    "proglog"
+    "proglog",
+    "numpy",
+    "sounddevice"
 ]
 
 [project.urls]
