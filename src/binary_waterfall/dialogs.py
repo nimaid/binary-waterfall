@@ -769,7 +769,11 @@ class VideoEncoderSettings(QDialog):
         self.audio_codec_entry_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
 
         self.audio_codec_entry = QComboBox()
-        self.audio_codec_entry.addItems(["MP3", "M4A", "WAV 16-bit", "WAV 32-bit"])
+        self.audio_codec_entry.addItems(["MP3", "AAC"])
+        # MP4 does not support the PCM codecs offered here; use AVI for PCM.
+        if self.video_format == constants.VideoFormatCode.AVI:
+            self.audio_codec_entry.addItems(["WAV 16-bit", "WAV 32-bit"])
+        self.audio_codec_entry.setToolTip("For uncompressed WAV/PCM audio, export as AVI.")
         if self.audio_codec == constants.AudioCodecCode.MP3:
             self.audio_codec_entry.setCurrentIndex(0)
         elif self.audio_codec == constants.AudioCodecCode.M4A:

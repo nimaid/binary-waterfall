@@ -381,6 +381,12 @@ class Renderer:
                      audio_bitrate=None,
                      preset=None
                      ):
+        filename_ext = os.path.splitext(filename)[1].lower()
+        pcm_codecs = (constants.AudioCodecCode.WAV16.value,
+                      constants.AudioCodecCode.WAV32.value)
+        if filename_ext == constants.VideoFormatCode.MP4.value and audio_codec in pcm_codecs:
+            raise ValueError("MP4 does not support WAV/PCM audio. Choose AAC or MP3, or export as AVI.")
+
         # Get temporary directory
         temp_dir = tempfile.mkdtemp()
 
@@ -432,7 +438,15 @@ class Renderer:
 
         video_clip = sequence_clip.set_audio(audio_clip)
         # TODO: Control quality settings
-        # TODO: Set temp audio file location if possible
+        # Give MoviePy a container that matches the selected audio codec and
+        # keep its intermediate audio in our writable temporary directory.
+        if audio_codec in pcm_codecs:
+            audio_ext = ".wav"
+        elif audio_codec == constants.AudioCodecCode.M4A.value:
+            audio_ext = ".m4a"
+        else:
+            audio_ext = ".mp3"
+        temp_audiofile = os.path.join(temp_dir, "encoded_audio" + audio_ext)
         video_clip.write_videofile(
             filename=video_file,
             codec=codec,
@@ -442,7 +456,7 @@ class Renderer:
             preset=preset,
             threads=None,
             logger=custom_logger,
-            temp_audiofile=None
+            temp_audiofile=temp_audiofile
         )
 
         if progress_dialog is not None:
