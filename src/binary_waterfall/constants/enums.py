@@ -51,7 +51,7 @@ class VideoCodecCode(Enum):
 
 class AudioCodecCode(Enum):
     MP3 = "libmp3lame"
-    M4A = "libfdk_aac"
+    M4A = "aac"
     WAV16 = "pcm_s16le"
     WAV32 = "pcm_s32le"
 
