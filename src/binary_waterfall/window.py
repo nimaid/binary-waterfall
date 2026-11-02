@@ -7,6 +7,7 @@ from PyQt5.QtWidgets import (
 from PyQt5.QtGui import QPixmap, QIcon
 
 from . import constants, generators, outputs, widgets, dialogs
+from .reversible_worker import ReversibleWorker
 
 
 # My QMainWindow class
@@ -196,6 +197,16 @@ class MyQMainWindow(QMainWindow):
         self.file_menu_close.setEnabled(False)
         self.file_menu_close.triggered.connect(self.close_file_clicked)
         self.file_menu.addAction(self.file_menu_close)
+
+        self.file_menu_recover = QAction(
+            "Recover from Reversible Video...", self
+        )
+        self.file_menu_recover.triggered.connect(
+            self.recover_reversible_clicked
+        )
+        self.file_menu.addAction(self.file_menu_recover)
+
+        self._reversible_worker = None
 
         self.settings_menu = self.main_menu.addMenu("Settings")
 
@@ -423,6 +434,77 @@ class MyQMainWindow(QMainWindow):
 
         self.export_menu.setEnabled(False)
         self.file_menu_close.setEnabled(False)
+
+    def start_reversible_operation(self, action, source, destination):
+        if self._reversible_worker is not None:
+            QMessageBox.information(
+                self, "Busy", "A conversion is already running."
+            )
+            return
+
+        if os.path.abspath(source) == os.path.abspath(destination):
+            QMessageBox.warning(
+                self, "Invalid Destination",
+                "Source and destination must be different."
+            )
+            return
+
+        overwrite = False
+        if os.path.exists(destination):
+            response = QMessageBox.question(
+                self, "Replace Existing File?",
+                "The destination already exists. Replace it?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if response != QMessageBox.Yes:
+                return
+            overwrite = True
+
+        self._reversible_worker = ReversibleWorker(
+            action, source, destination, overwrite, self
+        )
+        worker = self._reversible_worker
+
+        self.file_menu_recover.setEnabled(False)
+
+        worker.succeeded.connect(
+            lambda message: QMessageBox.information(
+                self, "Reversible Video", message
+            )
+        )
+        worker.failed.connect(
+            lambda message: QMessageBox.critical(
+                self, "Reversible Video Error", message
+            )
+        )
+        worker.finished.connect(self.reversible_finished)
+        worker.start()
+
+    def reversible_finished(self):
+        self.file_menu_recover.setEnabled(True)
+        worker = self._reversible_worker
+        self._reversible_worker = None
+        if worker is not None:
+            worker.deleteLater()
+
+    def recover_reversible_clicked(self):
+        video, _ = QFileDialog.getOpenFileName(
+            self, "Open Reversible Video",
+            self.last_load_location,
+            "Matroska Video (*.mkv)"
+        )
+        if not video:
+            return
+
+        destination, _ = QFileDialog.getSaveFileName(
+            self, "Save Recovered File", os.path.splitext(video)[0] + ".bin",
+            "All Files (*)"
+        )
+        if destination:
+            self.start_reversible_operation(
+                "decode", video, destination
+            )
 
     def audio_settings_clicked(self):
         popup = dialogs.AudioSettings(
@@ -695,6 +777,8 @@ class MyQMainWindow(QMainWindow):
                 os.path.join(self.last_save_location, f"{self.file_savename}{constants.VideoFormatCode.MP4.value}"),
                 f"MP4 (*{constants.VideoFormatCode.MP4.value});;"
                 f"AVI (*{constants.VideoFormatCode.AVI.value})"
+                ";;MKV Reversible (*.mkv)",
+                options=QFileDialog.DontUseNativeDialog
             )
 
             if filename != "":
@@ -703,6 +787,17 @@ class MyQMainWindow(QMainWindow):
 
                 file_main_name, file_ext = os.path.splitext(file_title)
                 file_ext = file_ext.lower()
+
+                if file_ext == ".mkv":
+                    if settings["include_recovery"]:
+                        self.export_reversible_mkv(
+                            filename, settings
+                        )
+                    else:
+                        self.export_standard_mkv(
+                            filename, settings
+                        )
+                    return
 
                 encoder_popup = dialogs.VideoEncoderSettings(
                     video_format=constants.VideoFormatCode(file_ext),
@@ -759,6 +854,214 @@ class MyQMainWindow(QMainWindow):
                                 f"Export video successful!",
                                 QMessageBox.Ok
                             )
+
+    def export_standard_mkv(self, filename, settings):
+        import subprocess
+        import tempfile
+        from pathlib import Path
+
+        destination = Path(filename).resolve()
+
+        if destination == Path(self.bw.filename).resolve():
+            QMessageBox.warning(
+                self, "Export Error",
+                "Cannot overwrite the original input file."
+            )
+            return
+
+        if destination.exists():
+            response = QMessageBox.question(
+                self, "Replace Existing File?",
+                "Replace the existing video?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if response != QMessageBox.Yes:
+                return
+
+        progress = QProgressDialog(
+            "Rendering video...", "Cancel",
+            0, self.renderer.get_frame_count(fps=settings["fps"]),
+            self
+        )
+        progress.setWindowModality(Qt.WindowModal)
+
+        try:
+            with tempfile.TemporaryDirectory(
+                dir=destination.parent
+            ) as folder:
+                folder = Path(folder)
+                animation = folder / "animation.mp4"
+
+                self.renderer.export_video(
+                    filename=str(animation),
+                    size=(settings["width"], settings["height"]),
+                    fps=settings["fps"],
+                    keep_aspect=settings["keep_aspect"],
+                    progress_dialog=progress,
+                    codec="libx264",
+                    audio_codec="mp3",
+                    preset="ultrafast"
+                )
+
+                if progress.wasCanceled():
+                    return
+
+                # Remux without the recovery stream.
+                output = folder / "output.mkv"
+                subprocess.run([
+                    "ffmpeg", "-hide_banner",
+                    "-loglevel", "error", "-nostdin", "-y",
+                    "-i", str(animation),
+                    "-map", "0:v:0", "-map", "0:a?",
+                    "-c", "copy", str(output)
+                ], check=True, capture_output=True)
+
+                if progress.wasCanceled():
+                    return
+
+                output.replace(destination)
+
+            QMessageBox.information(
+                self, "Export Complete",
+                "Standard MKV exported successfully!"
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self, "Export Error", str(error)
+            )
+        finally:
+            progress.close()
+
+    def export_reversible_mkv(self, filename, settings):
+        import filecmp
+        import subprocess
+        import tempfile
+        from pathlib import Path
+        from . import reversible_video
+
+        destination = Path(filename).resolve()
+        original = Path(self.bw.filename).resolve()
+
+        if destination == original:
+            QMessageBox.warning(
+                self, "Export Error",
+                "Cannot overwrite the original input file."
+            )
+            return
+
+        if destination.exists():
+            answer = QMessageBox.question(
+                self, "Replace File?",
+                "This file already exists. Replace it?",
+                QMessageBox.Yes | QMessageBox.No,
+                QMessageBox.No
+            )
+            if answer != QMessageBox.Yes:
+                return
+
+        self.pause_player()
+
+        frame_count = self.renderer.get_frame_count(
+            fps=settings["fps"]
+        )
+
+        progress = QProgressDialog(
+            "Rendering Binary Waterfall animation...",
+            "Cancel", 0, frame_count, self
+        )
+        progress.setWindowModality(Qt.WindowModal)
+        progress.setAutoReset(False)
+
+        try:
+            with tempfile.TemporaryDirectory(
+                dir=destination.parent
+            ) as folder:
+                folder = Path(folder)
+                animation = folder / "animation.mp4"
+                recovery = folder / "recovery.mkv"
+                combined = folder / "combined.mkv"
+                recovered = folder / "verified.bin"
+
+                self.renderer.export_video(
+                    filename=str(animation),
+                    size=(
+                        settings["width"],
+                        settings["height"]
+                    ),
+                    fps=settings["fps"],
+                    keep_aspect=settings["keep_aspect"],
+                    progress_dialog=progress,
+                    codec="libx264",
+                    audio_codec="mp3",
+                    preset="ultrafast"
+                )
+
+                if progress.wasCanceled():
+                    return
+
+                progress.setLabelText(
+                    "Encoding original file for recovery..."
+                )
+
+                reversible_video.encode(
+                    original, recovery
+                )
+
+                if progress.wasCanceled():
+                    return
+
+                progress.setLabelText(
+                    "Combining video and recovery data..."
+                )
+
+                subprocess.run([
+                    "ffmpeg", "-hide_banner",
+                    "-loglevel", "error",
+                    "-nostdin", "-y",
+                    "-i", str(animation),
+                    "-i", str(recovery),
+                    "-map", "0:v:0",
+                    "-map", "0:a?",
+                    "-map", "1:v:0",
+                    "-c", "copy",
+                    "-disposition:v:0", "default",
+                    "-disposition:v:1", "0",
+                    str(combined)
+                ], check=True, capture_output=True)
+
+                progress.setLabelText(
+                    "Verifying recovered data..."
+                )
+
+                reversible_video.decode(
+                    combined, recovered
+                )
+
+                if not filecmp.cmp(
+                    original, recovered, shallow=False
+                ):
+                    raise ValueError(
+                        "Recovery verification failed"
+                    )
+
+                if progress.wasCanceled():
+                    return
+
+                combined.replace(destination)
+
+            QMessageBox.information(
+                self, "Export Complete",
+                "Reversible MKV exported and verified!"
+            )
+
+        except Exception as error:
+            QMessageBox.critical(
+                self, "Export Error", str(error)
+            )
+        finally:
+            progress.close()
 
     def hotkeys_clicked(self):
         popup = dialogs.HotkeysInfo(parent=self)

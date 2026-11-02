@@ -676,6 +676,15 @@ class ExportVideo(QDialog):
         self.aspect_entry.setChecked(self.keep_aspect)
         self.aspect_entry.stateChanged.connect(self.aspect_entry_changed)
 
+        self.recovery_entry = QCheckBox(
+            "Include original file for recovery (MKV only)"
+        )
+        self.recovery_entry.setChecked(True)
+        self.recovery_entry.setToolTip(
+            "A reversible MKV contains the complete original file. "
+            "Anyone with the video can recover its contents."
+        )
+
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
@@ -690,7 +699,22 @@ class ExportVideo(QDialog):
         self.main_layout.addWidget(self.height_entry, 2, 1)
         self.main_layout.addWidget(self.aspect_label, 3, 0)
         self.main_layout.addWidget(self.aspect_entry, 3, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+        self.main_layout.addWidget(
+            self.recovery_entry, 4, 0, 1, 2
+        )
+        self.recovery_warning = QLabel(
+            "Reversible MKV files contain the complete original "
+            "file. Anyone with the video can recover it."
+        )
+        self.recovery_warning.setWordWrap(True)
+        self.recovery_warning.setMaximumWidth(340)
+
+        self.main_layout.addWidget(
+            self.recovery_warning, 5, 0, 1, 2
+        )
+        self.main_layout.addWidget(
+            self.confirm_buttons, 6, 0, 1, 2
+        )
 
         self.setLayout(self.main_layout)
 
@@ -705,6 +729,7 @@ class ExportVideo(QDialog):
         result["height"] = self.height
         result["fps"] = self.fps
         result["keep_aspect"] = self.keep_aspect
+        result["include_recovery"] = self.recovery_entry.isChecked()
 
         return result
 
