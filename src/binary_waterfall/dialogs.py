@@ -18,6 +18,7 @@ class AudioSettings(QDialog):
                  sample_bytes,
                  sample_rate,
                  volume,
+                 byte_order="little",
                  parent=None
                  ):
         super().__init__(parent=parent)
@@ -31,6 +32,7 @@ class AudioSettings(QDialog):
         self.sample_bytes = sample_bytes
         self.sample_rate = sample_rate
         self.volume = volume
+        self.byte_order = byte_order
 
         self.channels_label = QLabel("Channels:")
         self.channels_label.setAlignment(Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignRight)
@@ -80,6 +82,13 @@ class AudioSettings(QDialog):
         self.volume_entry.setValue(self.volume)
         self.volume_entry.valueChanged.connect(self.volume_entry_changed)
 
+        self.byte_order_label = QLabel("Byte Order:")
+        self.byte_order_entry = QComboBox()
+        self.byte_order_entry.addItems(["Little Endian", "Big Endian"])
+        self.byte_order_entry.setCurrentIndex(
+            0 if byte_order == "little" else 1
+        )
+
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
@@ -94,7 +103,9 @@ class AudioSettings(QDialog):
         self.main_layout.addWidget(self.sample_rate_entry, 2, 1)
         self.main_layout.addWidget(self.volume_label, 3, 0)
         self.main_layout.addWidget(self.volume_entry, 3, 1)
-        self.main_layout.addWidget(self.confirm_buttons, 4, 0, 1, 2)
+        self.main_layout.addWidget(self.byte_order_label, 4, 0)
+        self.main_layout.addWidget(self.byte_order_entry, 4, 1)
+        self.main_layout.addWidget(self.confirm_buttons, 5, 0, 1, 2)
 
         self.setLayout(self.main_layout)
 
@@ -106,6 +117,10 @@ class AudioSettings(QDialog):
         result["sample_bytes"] = self.sample_bytes
         result["sample_rate"] = self.sample_rate
         result["volume"] = self.volume
+        result["byte_order"] = (
+            "little" if self.byte_order_entry.currentIndex() == 0
+            else "big"
+        )
 
         return result
 
