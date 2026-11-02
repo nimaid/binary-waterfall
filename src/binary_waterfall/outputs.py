@@ -250,13 +250,15 @@ class Player:
                            num_channels,
                            sample_bytes,
                            sample_rate,
-                           volume
+                           volume,
+                           byte_order="little"
                            ):
         self.bw.set_audio_settings(
             num_channels=num_channels,
             sample_bytes=sample_bytes,
             sample_rate=sample_rate,
-            volume=volume
+            volume=volume,
+            byte_order=byte_order
         )
         # Re-open newly computed file
         self.set_audio_file(None)

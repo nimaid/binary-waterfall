@@ -430,6 +430,7 @@ class MyQMainWindow(QMainWindow):
             sample_bytes=self.bw.sample_bytes,
             sample_rate=self.bw.sample_rate,
             volume=self.bw.volume,
+            byte_order=self.bw.byte_order,
             parent=self
         )
 
@@ -441,7 +442,8 @@ class MyQMainWindow(QMainWindow):
                 num_channels=audio_settings["num_channels"],
                 sample_bytes=audio_settings["sample_bytes"],
                 sample_rate=audio_settings["sample_rate"],
-                volume=audio_settings["volume"]
+                volume=audio_settings["volume"],
+                byte_order=audio_settings["byte_order"]
             )
 
             self.update_seekbar()

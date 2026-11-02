@@ -8,6 +8,7 @@ import pydub
 from PyQt5.QtGui import QImage
 
 from . import constants, helpers
+from .audio_endianness import convert_pcm_byte_order
 
 
 # Binary Waterfall abstraction class
@@ -24,6 +25,7 @@ class BinaryWaterfall:
                  num_channels=constants.DEFAULTS["num_channels"],
                  sample_bytes=constants.DEFAULTS["sample_bytes"],
                  sample_rate=constants.DEFAULTS["sample_rate"],
+                 byte_order="little",
                  volume=constants.DEFAULTS["file_volume"],
                  flip_v=constants.DEFAULTS["flip_v"],
                  flip_h=constants.DEFAULTS["flip_h"],
@@ -35,6 +37,7 @@ class BinaryWaterfall:
         self.volume = None
         self.sample_rate = None
         self.sample_bytes = None
+        self.byte_order = None
         self.num_channels = None
         self.color_format = None
         self.color_bytes = None
@@ -79,6 +82,7 @@ class BinaryWaterfall:
             num_channels=num_channels,
             sample_bytes=sample_bytes,
             sample_rate=sample_rate,
+            byte_order=byte_order,
             volume=volume
         )
 
@@ -289,7 +293,8 @@ class BinaryWaterfall:
                            num_channels,
                            sample_bytes,
                            sample_rate,
-                           volume
+                           volume,
+                           byte_order="little"
                            ):
         if num_channels not in [1, 2]:
             raise ValueError("Invalid number of audio channels, must be either 1 or 2")
@@ -303,6 +308,10 @@ class BinaryWaterfall:
         if volume < 0 or volume > 100:
             raise ValueError("Volume must be between 0 and 100")
 
+        if byte_order not in ("little", "big"):
+            raise ValueError("Invalid audio byte order")
+
+        self.byte_order = byte_order
         self.num_channels = num_channels
         self.sample_bytes = sample_bytes
         self.sample_rate = sample_rate
@@ -341,8 +350,23 @@ class BinaryWaterfall:
             f.setsampwidth(self.sample_bytes)
             f.setframerate(self.sample_rate)
             self.file.seek(0)
+            remainder = b""
             for chunk in iter(lambda: self.file.read(4096), b""):
-                f.writeframesraw(chunk)
+                if self.byte_order == "little":
+                    f.writeframesraw(chunk)
+                else:
+                    converted, remainder = convert_pcm_byte_order(
+                        remainder + chunk, self.sample_bytes, "big"
+                    )
+                    f.writeframesraw(converted)
+
+            if self.byte_order == "big" and remainder:
+                # Zero-pad the incomplete final sample.
+                final_sample = remainder.ljust(self.sample_bytes, b"\x00")
+                converted, _ = convert_pcm_byte_order(
+                    final_sample, self.sample_bytes, "big"
+                )
+                f.writeframesraw(converted)
 
         if self.volume != 100:
             # Reduce the audio volume
