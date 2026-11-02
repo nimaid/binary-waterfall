@@ -383,85 +383,88 @@ class Renderer:
                      ):
         # Get temporary directory
         temp_dir = tempfile.mkdtemp()
+        try:
 
-        # Make file names
-        image_dir = os.path.join(temp_dir, "images")
-        audio_file = os.path.join(temp_dir, "audio.wav")
-        filename_main, filename_ext = os.path.splitext(filename)
-        filename_path, filename_title = os.path.split(filename)
-        video_file = os.path.join(temp_dir, f"video{filename_ext}")
+            # Make file names
+            image_dir = os.path.join(temp_dir, "images")
+            audio_file = os.path.join(temp_dir, "audio.wav")
+            filename_main, filename_ext = os.path.splitext(filename)
+            filename_path, filename_title = os.path.split(filename)
+            video_file = os.path.join(temp_dir, f"video{filename_ext}")
 
-        # Set progress dialog to not close when at max
-        if progress_dialog is not None:
-            progress_dialog.setAutoReset(False)
+            # Set progress dialog to not close when at max
+            if progress_dialog is not None:
+                progress_dialog.setAutoReset(False)
 
-        # Export image sequence
-        self.export_sequence(
-            directory=image_dir,
-            fps=fps,
-            size=size,
-            keep_aspect=keep_aspect,
-            image_format=constants.ImageFormatCode.PNG,
-            progress_dialog=progress_dialog
-        )
+            # Export image sequence
+            self.export_sequence(
+                directory=image_dir,
+                fps=fps,
+                size=size,
+                keep_aspect=keep_aspect,
+                image_format=constants.ImageFormatCode.PNG,
+                progress_dialog=progress_dialog
+            )
 
-        if progress_dialog is not None:
-            if progress_dialog.wasCanceled():
-                shutil.rmtree(temp_dir)
-                return
-            progress_dialog.setLabelText("Splicing final video file... (program may lag)")
+            if progress_dialog is not None:
+                if progress_dialog.wasCanceled():
+                    shutil.rmtree(temp_dir)
+                    return
+                progress_dialog.setLabelText("Splicing final video file... (program may lag)")
 
-        # Export audio
-        self.export_audio(audio_file)
+            # Export audio
+            self.export_audio(audio_file)
 
-        # Prepare the custom logger to update the progress box
-        if progress_dialog is not None:
-            custom_logger = helpers.QtBarLoggerMoviepy(progress_dialog=progress_dialog)
-        else:
-            custom_logger = "bar"
+            # Prepare the custom logger to update the progress box
+            if progress_dialog is not None:
+                custom_logger = helpers.QtBarLoggerMoviepy(progress_dialog=progress_dialog)
+            else:
+                custom_logger = "bar"
 
-        # Make a list of the image filenames
-        frames_list = list()
-        for frame_filename in os.listdir(image_dir):
-            full_frame_filename = os.path.join(image_dir, frame_filename)
-            frames_list.append(full_frame_filename)
+            # Make a list of the image filenames
+            frames_list = list()
+            for frame_filename in os.listdir(image_dir):
+                full_frame_filename = os.path.join(image_dir, frame_filename)
+                frames_list.append(full_frame_filename)
 
-        # Merge image sequence and audio into final video
-        sequence_clip = ImageSequenceClip(frames_list, fps=fps)
-        audio_clip = AudioFileClip(audio_file)
+            # Merge image sequence and audio into final video
+            sequence_clip = ImageSequenceClip(frames_list, fps=fps)
+            audio_clip = AudioFileClip(audio_file)
 
-        video_clip = sequence_clip.set_audio(audio_clip)
-        # TODO: Control quality settings
-        # TODO: Set temp audio file location if possible
-        video_clip.write_videofile(
-            filename=video_file,
-            codec=codec,
-            bitrate=bitrate,
-            audio_codec=audio_codec,
-            audio_bitrate=audio_bitrate,
-            preset=preset,
-            threads=None,
-            logger=custom_logger,
-            temp_audiofile=None
-        )
+            video_clip = sequence_clip.set_audio(audio_clip)
+            # TODO: Control quality settings
+            # TODO: Set temp audio file location if possible
+            video_clip.write_videofile(
+                filename=video_file,
+                codec=codec,
+                bitrate=bitrate,
+                audio_codec=audio_codec,
+                audio_bitrate=audio_bitrate,
+                preset=preset,
+                threads=None,
+                logger=custom_logger,
+                temp_audiofile=None
+            )
 
-        if progress_dialog is not None:
-            if progress_dialog.wasCanceled():
-                shutil.rmtree(temp_dir)
-                return
+            if progress_dialog is not None:
+                if progress_dialog.wasCanceled():
+                    shutil.rmtree(temp_dir)
+                    return
 
-            # Reset progress dialog and set to exit on completion
-            progress_dialog.setLabelText("Wrapping up...")
-            progress_dialog.setValue(0)
-            progress_dialog.setMaximum(100)
-            progress_dialog.setAutoReset(True)
+                # Reset progress dialog and set to exit on completion
+                progress_dialog.setLabelText("Wrapping up...")
+                progress_dialog.setValue(0)
+                progress_dialog.setMaximum(100)
+                progress_dialog.setAutoReset(True)
 
-        # Move video to final location
-        os.makedirs(filename_path, exist_ok=True)
-        shutil.move(video_file, filename)
+            # Move video to final location
+            os.makedirs(filename_path, exist_ok=True)
+            shutil.move(video_file, filename)
 
-        # Delete temporary files
-        shutil.rmtree(temp_dir)
+            # Delete temporary files
+            shutil.rmtree(temp_dir)
 
-        if progress_dialog is not None:
-            progress_dialog.setValue(100)
+            if progress_dialog is not None:
+                progress_dialog.setValue(100)
+        finally:
+            shutil.rmtree(temp_dir, ignore_errors=True)
