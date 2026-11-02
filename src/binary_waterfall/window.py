@@ -10,6 +10,14 @@ from . import constants, generators, outputs, widgets, dialogs
 from .reversible_worker import ReversibleWorker
 
 
+MKV_AUDIO_CODECS = {
+    "aac",
+    "libmp3lame",
+    "flac",
+    "libopus",
+}
+
+
 # My QMainWindow class
 #   Used to customize the main window.
 #   The actual object used to programmatically reference
@@ -189,7 +197,7 @@ class MyQMainWindow(QMainWindow):
 
         self.file_menu = self.main_menu.addMenu("File")
 
-        self.file_menu_open = QAction("Open...", self)
+        self.file_menu_open = QAction("Open File...", self)
         self.file_menu_open.triggered.connect(self.open_file_clicked)
         self.file_menu.addAction(self.file_menu_open)
 
@@ -199,7 +207,7 @@ class MyQMainWindow(QMainWindow):
         self.file_menu.addAction(self.file_menu_close)
 
         self.file_menu_recover = QAction(
-            "Recover from Reversible Video...", self
+            "Extract Original File from MKV...", self
         )
         self.file_menu_recover.triggered.connect(
             self.recover_reversible_clicked
@@ -490,7 +498,7 @@ class MyQMainWindow(QMainWindow):
 
     def recover_reversible_clicked(self):
         video, _ = QFileDialog.getOpenFileName(
-            self, "Open Reversible Video",
+            self, "Select MKV Containing an Embedded Original File",
             self.last_load_location,
             "Matroska Video (*.mkv)"
         )
@@ -498,7 +506,7 @@ class MyQMainWindow(QMainWindow):
             return
 
         destination, _ = QFileDialog.getSaveFileName(
-            self, "Save Recovered File", os.path.splitext(video)[0] + ".bin",
+            self, "Save Extracted Original File", os.path.splitext(video)[0] + ".bin",
             "All Files (*)"
         )
         if destination:
@@ -771,13 +779,24 @@ class MyQMainWindow(QMainWindow):
         if result:
             settings = popup.get_settings()
 
+            default_ext = (
+                ".mkv" if settings["include_recovery"] else ".mp4"
+            )
+
+            default_filter = (
+                "MKV Video (*.mkv)"
+                if settings["include_recovery"]
+                else "MP4 (*.mp4)"
+            )
+
             filename, filetype = QFileDialog.getSaveFileName(
                 self,
                 "Export Video As...",
-                os.path.join(self.last_save_location, f"{self.file_savename}{constants.VideoFormatCode.MP4.value}"),
+                os.path.join(self.last_save_location, f"{self.file_savename}{default_ext}"),
                 f"MP4 (*{constants.VideoFormatCode.MP4.value});;"
                 f"AVI (*{constants.VideoFormatCode.AVI.value})"
                 ";;MKV Reversible (*.mkv)",
+                initialFilter=default_filter,
                 options=QFileDialog.DontUseNativeDialog
             )
 
@@ -856,6 +875,10 @@ class MyQMainWindow(QMainWindow):
                             )
 
     def export_standard_mkv(self, filename, settings):
+        audio_codec = settings.get("mkv_audio_codec", "aac")
+        if audio_codec not in MKV_AUDIO_CODECS:
+            raise ValueError("Unsupported MKV audio codec")
+
         import subprocess
         import tempfile
         from pathlib import Path
@@ -914,7 +937,8 @@ class MyQMainWindow(QMainWindow):
                     "-loglevel", "error", "-nostdin", "-y",
                     "-i", str(animation),
                     "-map", "0:v:0", "-map", "0:a?",
-                    "-c", "copy", str(output)
+                    "-c:v", "copy",
+                    "-c:a", audio_codec, str(output)
                 ], check=True, capture_output=True)
 
                 if progress.wasCanceled():
@@ -935,6 +959,10 @@ class MyQMainWindow(QMainWindow):
             progress.close()
 
     def export_reversible_mkv(self, filename, settings):
+        audio_codec = settings.get("mkv_audio_codec", "aac")
+        if audio_codec not in MKV_AUDIO_CODECS:
+            raise ValueError("Unsupported MKV audio codec")
+
         import filecmp
         import subprocess
         import tempfile
@@ -1025,7 +1053,8 @@ class MyQMainWindow(QMainWindow):
                     "-map", "0:v:0",
                     "-map", "0:a?",
                     "-map", "1:v:0",
-                    "-c", "copy",
+                    "-c:v", "copy",
+                    "-c:a", audio_codec,
                     "-disposition:v:0", "default",
                     "-disposition:v:1", "0",
                     str(combined)

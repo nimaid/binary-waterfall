@@ -172,7 +172,11 @@ def find_recovery_stream(source):
     ]
 
     if not candidates:
-        raise ValueError("No compatible FFV1 recovery stream found")
+        raise ValueError(
+            "This MKV does not contain a Binary Waterfall "
+            "embedded original file. Only MKV videos exported "
+            "with original-file recovery enabled can be extracted."
+        )
 
     if len(candidates) > 1:
         raise ValueError("Multiple recovery streams found")

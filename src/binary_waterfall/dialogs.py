@@ -685,6 +685,14 @@ class ExportVideo(QDialog):
             "Anyone with the video can recover its contents."
         )
 
+        self.mkv_audio_label = QLabel("MKV Audio Codec:")
+
+        self.mkv_audio_entry = QComboBox()
+        self.mkv_audio_entry.addItem("AAC (Recommended)", "aac")
+        self.mkv_audio_entry.addItem("MP3", "libmp3lame")
+        self.mkv_audio_entry.addItem("FLAC (Lossless)", "flac")
+        self.mkv_audio_entry.addItem("Opus", "libopus")
+
         self.confirm_buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
         self.confirm_buttons.accepted.connect(self.accept)
         self.confirm_buttons.rejected.connect(self.reject)
@@ -710,10 +718,16 @@ class ExportVideo(QDialog):
         self.recovery_warning.setMaximumWidth(340)
 
         self.main_layout.addWidget(
-            self.recovery_warning, 5, 0, 1, 2
+            self.mkv_audio_label, 5, 0
         )
         self.main_layout.addWidget(
-            self.confirm_buttons, 6, 0, 1, 2
+            self.mkv_audio_entry, 5, 1
+        )
+        self.main_layout.addWidget(
+            self.recovery_warning, 6, 0, 1, 2
+        )
+        self.main_layout.addWidget(
+            self.confirm_buttons, 7, 0, 1, 2
         )
 
         self.setLayout(self.main_layout)
@@ -730,6 +744,7 @@ class ExportVideo(QDialog):
         result["fps"] = self.fps
         result["keep_aspect"] = self.keep_aspect
         result["include_recovery"] = self.recovery_entry.isChecked()
+        result["mkv_audio_codec"] = self.mkv_audio_entry.currentData()
 
         return result
 
